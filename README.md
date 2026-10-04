@@ -27,12 +27,6 @@
 | 灵境 · 创意工坊 / 帝江号 / 干员档案（等级系统可关） | 一键同步到博客前台、部署状态查看 |
 | 正文里的 GitHub / Gitee 链接自动变卡片（Star/Fork 实时取） | 指纹重建脚本 + 双端配置检查（`scripts/`） |
 
-![前台首页](docs/screenshots/shot-site-home.png)
-
-![文章页](docs/screenshots/shot-site-post.png)
-
-![控制台编辑器](docs/screenshots/shot-console-editor.png)
-
 ---
 
 ## 一、环境准备
@@ -95,6 +89,8 @@ WEB_PORT=3011 bash Start-Console.sh   # 控制台前端换到 3011
 **2. 改站点信息**
 
 控制台 → 设置 → 个人资料 / 站点配置：标题、头像、背景图、歌单、友链申请模板、页脚…
+
+![修改个人简介](docs/screenshots/shot-console-profile.png)
 
 > ⚠️ 配置存在**两份** `siteConfig.ts` 里（`TLBlog/` 一份给前台、`my-blog-manager/` 一份给控制台），
 > 控制台保存时会一起写。想确认两边有没有漏项：
@@ -164,6 +160,10 @@ WEB_PORT=3011 bash Start-Console.sh   # 控制台前端换到 3011
 网易云音乐网页版打开歌曲详情页，地址栏里的数字就是歌曲 ID，粘进控制台的歌单库即可 ✓
 
 ![音乐 / 歌单](docs/screenshots/shot-console-music.png)
+
+![网易云歌曲 ID](docs/screenshots/shot-console-music-id.png)
+
+![添加歌曲到歌单](docs/screenshots/shot-console-music-add.png)
 
 ### AI 猫猫助理
 
