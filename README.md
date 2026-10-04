@@ -56,12 +56,18 @@
 
 ### Linux
 
+日常就用这两条：
+
 ```bash
 bash Start-Blog.sh        # 前台，默认 3000
 bash Start-Console.sh     # 控制台，后端 7646 + 前端 3010
+```
 
-PORT=8080 bash Start-Blog.sh          # 换端口
-WEB_PORT=3011 bash Start-Console.sh
+**换端口是可选的** ✓ —— 默认端口没被占用就完全不用管；真要换，在命令前面加环境变量即可：
+
+```bash
+PORT=8080 bash Start-Blog.sh          # 前台换到 8080
+WEB_PORT=3011 bash Start-Console.sh   # 控制台前端换到 3011
 ```
 
 第一次运行会自动 `npm install` / `pip install`；前台第一次会先构建一遍（1-3 分钟）。
@@ -177,11 +183,11 @@ WEB_PORT=3011 bash Start-Console.sh
 | `setup-console-server.sh` / `rebuild-console.sh` | 服务器 | 控制台后端 + 前端的服务与重建 |
 | `setup-https.sh` | 服务器 | Let's Encrypt 证书 + http 301 跳 https |
 
-Windows 上打包上传（WinSCP 拖过去就行）：
+Windows 上打包上传（WinSCP 拖过去就行）—— **按你要打包哪个选一条执行，不是两条都跑**：
 
 ```powershell
-.\deploy\windows\pack-for-server.ps1                 # 打包前台（默认输出到「下载」文件夹）
-.\deploy\windows\pack-for-server.ps1 -Target console  # 打包控制台
+.\deploy\windows\pack-for-server.ps1                  # 只打包博客前台
+.\deploy\windows\pack-for-server.ps1 -Target console  # 要打包控制台时才加 -Target console
 ```
 
 双击 `deploy/windows/packForServer.cmd` 也行，它是个菜单 ✓
@@ -256,9 +262,11 @@ git remote set-url origin ssh://git@github.com/<用户名>/<仓库>.git
 ## 八、更新到最新版（无损）
 
 ```bash
-node scripts/update.mjs              # 更新
-node scripts/update.mjs --dry-run    # 先预览：会改哪些、会合哪些、不碰哪些
+node scripts/update.mjs              # 直接更新
+node scripts/update.mjs --dry-run    # 只想先看看会改什么（不会真改文件）
 ```
+
+上面两条**跑一条就行** ✓ —— 想稳一点就先 `--dry-run` 看一眼，再跑第一条 ✓
 
 Windows 双击 `Update.bat`、Linux 跑 `bash Update.sh` 也行 ✓
 
