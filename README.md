@@ -180,10 +180,45 @@ git remote set-url origin ssh://git@github.com/<用户名>/<仓库>.git
 **Q：端口被占用 / 想换端口？**
 `PORT=8080 bash Start-Blog.sh`、`WEB_PORT=3011 bash Start-Console.sh` ✓（Windows 改 .bat 开头那两行 ✓）
 
+**Q：控制台「双轨配置」里的 A线 / B线 是什么？**
+
+那是「把源码 / 静态产物推到 GitHub、再让 Vercel 之类自动构建」的老流程
+（A线 = 静态产物、B线 = 源码，配套 Deploy Key、同步源码那一套按钮）。
+
+**自己用服务器部署的话完全不需要** ✓ 两个都留空即可 —— 你的链路是
+「控制台 → 更新本地 → 同步Blog → 服务器 `rebuild-if-needed.sh`」✓
+
 **Q：目录能改名吗？**
 `TLBlog` 这个**前台目录名**别改 —— 部署脚本、控制台默认路径都按它写的。
 
 ---
+
+## 八、更新到最新版（无损）
+
+```bash
+node scripts/update.mjs              # 更新
+node scripts/update.mjs --dry-run    # 先预览：会改哪些、会合哪些、不碰哪些
+```
+
+Windows 双击 `Update.bat`、Linux 跑 `bash Update.sh` 也行 ✓
+
+它会拉取最新代码，然后**逐个文件**判断：
+
+| 情况 | 处理 |
+|---|---|
+| 内容（文章/说说/杂谈/资源/工具/图片）、站点配置、`data/*.ts`、本机配置 | **永不覆盖** ✓ |
+| 你没动过的代码 | 用新版覆盖（覆盖前把旧文件备份到 `.update-backup-<时间戳>/` ✓） |
+| 只有你改了、上游没动 | 保持你的版本 ✓ |
+| **双方都改了** | **三方合并**：改动不冲突就自动合上（新功能 + 你的修改都在 ✓）；撞在同一处就保留你的版本，合并结果存成 `<文件名>.merge` 让你挑 ✓ |
+
+> 三方合并靠 git；没装 git 也能用，只是「双方都改」的文件会保留你的版本、新版存成 `<文件名>.new` ✓
+
+**维护者：你改完代码要发新版给别人时**
+
+```bash
+node scripts/update.mjs --write-manifest    # 刷新基线清单（别人靠它知道你改了哪些文件）
+git add -A && git commit -m "..." && git push
+```
 
 ## 写在最后
 

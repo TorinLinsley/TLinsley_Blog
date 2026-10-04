@@ -56,3 +56,10 @@ comments-config.json
 
 # ── 🔑 SSH 隧道工具的服务器地址（仓库里只放 server.env.example）──
 deploy/windows/server.env
+
+# -- update tool artifacts --
+# baseline mirror + backups + merge/new files produced by scripts/update.mjs
+.update-baseline/
+.update-backup-*/
+*.new
+*.merge
