@@ -194,6 +194,8 @@ Windows 上打包上传（WinSCP 拖过去就行）—— **按你要打包哪�
 
 ![打包菜单](docs/screenshots/shot-pack-menu.png)
 
+![打包输出与下一步提示](docs/screenshots/shot-pack-output.png)
+
 ## 附：把源码托管到自己的 GitHub 私有仓库（可选）
 
 想给源码留个云端备份，或者以后换电脑能直接拉下来：
@@ -253,8 +255,6 @@ node scripts/update.mjs --dry-run    # 只想先看看会改什么（不会真�
 ```
 
 上面两条**跑一条就行** ✓ —— 想稳一点就先 `--dry-run` 看一眼，再跑第一条 ✓
-
-![更新器的输出](docs/screenshots/shot-update-output.png)
 
 Windows 双击 `Update.bat`、Linux 跑 `bash Update.sh` 也行 ✓
 
