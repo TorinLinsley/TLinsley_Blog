@@ -29,6 +29,12 @@
 | 灵境 · 创意工坊 / 帝江号 / 干员档案（等级系统可关） | 一键同步到博客前台、部署状态查看 |
 | 正文里的 GitHub / Gitee 链接自动变卡片（Star/Fork 实时取） | 指纹重建脚本 + 双端配置检查（`scripts/`） |
 
+![前台首页](docs/screenshots/shot-site-home.png)
+
+![文章页](docs/screenshots/shot-site-post.png)
+
+![控制台编辑器](docs/screenshots/shot-console-editor.png)
+
 ---
 
 ## 一、环境准备
@@ -106,6 +112,10 @@ WEB_PORT=3011 bash Start-Console.sh
 | 相册 / 项目 / 友链（`data/*.ts`） | **不用** ✓ 已改成运行时读盘 |
 | 代码 / 样式 / `siteConfig.ts` / `package.json` | **要** —— 重跑一次 `Start-Blog`，它会自己判断并构建 ✓ |
 
+![暂存到操作队列](docs/screenshots/shot-console-queue.png)
+
+![同步Blog](docs/screenshots/shot-console-sync.png)
+
 ### 内容放在哪
 
 | 内容 | 目录 |
@@ -124,6 +134,8 @@ WEB_PORT=3011 bash Start-Console.sh
 控制台 → 设置 → 图床：填 API 地址和 Token（推荐「去不图床」https://7bu.top 这类标准 API），
 填完点【发送探针测试 Token】验证 ✓ 不用图床也行，直接粘贴外链图片地址 ✓
 
+![图床配置](docs/screenshots/shot-console-picbed.png)
+
 ### 评论
 
 两种发表方式，**列表是同一份、混排展示**（右上角下拉只切换发布框）：
@@ -136,13 +148,19 @@ WEB_PORT=3011 bash Start-Console.sh
 
 评论镜像用的 GitHub Token 放在 `<博客目录>/data/comments-config.json` —— 这个文件已被 `.gitignore` 排除，不会被提交 ✓
 
+![评论设置](docs/screenshots/shot-console-comment.png)
+
 ### 音乐
 
 网易云音乐网页版打开歌曲详情页，地址栏里的数字就是歌曲 ID，粘进控制台的歌单库即可 ✓
 
+![音乐 / 歌单](docs/screenshots/shot-console-music.png)
+
 ### AI 猫猫助理
 
 内置走 Gemini：先申请 API Key，填进控制台 → 设置 → AI 猫；线上部署时记得把 `GEMINI_API_KEY` 配到运行环境里 ✓
+
+![AI 猫猫助理](docs/screenshots/shot-console-aicat.png)
 
 ## 六、部署到自己的服务器
 
@@ -191,6 +209,22 @@ git push -u origin main
 > 不放心就先 `git status` 看一眼再推 ✓
 >
 > 用 **SSH 地址**（`git@github.com:...`）比 HTTPS 稳得多 —— 仓库一大、网络一差，HTTPS 经常传到一半被重置 ✗
+
+### 也可以让控制台帮你推（可选）
+
+在 控制台 → 设置 → 双轨配置 里把源码仓库地址填上，就能直接在界面里推送源码、不用手敲 git：
+
+![填源码仓库地址](docs/screenshots/shot-console-repo-ssh.png)
+
+![获取专属密钥](docs/screenshots/shot-console-deploykey.png)
+
+![GitHub 仓库里的 Deploy keys](docs/screenshots/shot-github-deploykeys.png)
+
+![推送源码](docs/screenshots/shot-console-push.png)
+
+![同步进度](docs/screenshots/shot-console-push-progress.png)
+
+![同步部署页面](docs/screenshots/shot-console-open-sync.png)
 
 ## 七、常见问题
 
