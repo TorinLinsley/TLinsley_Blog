@@ -6,8 +6,6 @@
 - **前台** `TLBlog/` —— Next.js 16 + React 19 + Tailwind 4，文章 / 资源分享 / 工具 / 归档 / 项目 / 照片墙 / 音乐 / 灵境 / 说说 / 杂谈 / 友链 / 关于 / 评论
 - **控制台** `my-blog-manager/` —— FastAPI + Next.js，**纯网页模式**（没有桌面窗口依赖），在本机跑、浏览器里操作
 
-![项目根目录：两个项目并列](docs/screenshots/project-folders.png)
-
 > 📦 这个仓库是**空模板**：文章、说说、杂谈、资源、工具、相册、友链都是空的（各目录留了 `.gitkeep` 占位），
 > 外观配置保留了示例值 —— 跑起来后在控制台里换成你自己的就行 ✓
 >
@@ -77,11 +75,16 @@ WEB_PORT=3011 bash Start-Console.sh
 
 **1. 填博客路径**
 
+打开控制台的「设置」页面。项目里有两个核心文件夹：`my-blog-manager`（控制台）和 `TLBlog`（博客前台），
+要在控制台里指定 **`TLBlog`** 的本地物理路径：
+
+![项目里的两个核心文件夹](docs/screenshots/project-folders.png)
+
 控制台 → 设置 → 双轨配置 → 博客路径填 `<仓库目录>/TLBlog` → **先点【测试路径】** → 通过后【保存双轨配置】
 
-（它写进 `my-blog-manager/data/deploy_config.json`，这个文件是每台机器自己的，不会进仓库 ✓）
-
 ![控制台里填本地博客路径](docs/screenshots/console-blog-path.png)
+
+（它写进 `my-blog-manager/data/deploy_config.json`，这个文件是每台机器自己的，不会进仓库 ✓）
 
 **2. 改站点信息**
 
