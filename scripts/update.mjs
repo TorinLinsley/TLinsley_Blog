@@ -147,11 +147,16 @@ function readManifest(root) {
   }
 }
 
-function writeManifest(root) {
+/**
+ * 生成基线清单。
+ * ⚠️ fromRoot 必须是**新版源码**（src.root），绝不能传用户自己的目录 ✗ ——
+ *    从用户目录生成的话，等于把他改过的内容记成"原版"，下次更新就会把他的改动覆盖掉 ✗✗
+ */
+function writeManifest(fromRoot, toDir) {
   const files = {};
-  for (const r of listUpdatable(root)) files[r] = fileHash(path.join(root, r));
+  for (const r of listUpdatable(fromRoot)) files[r] = fileHash(path.join(fromRoot, r));
   const body = { generated: new Date().toISOString(), repo: `${REPO}@${BRANCH}`, files };
-  fs.writeFileSync(path.join(root, MANIFEST_NAME), JSON.stringify(body, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(path.join(toDir, MANIFEST_NAME), JSON.stringify(body, null, 2) + '\n', 'utf8');
   return Object.keys(files).length;
 }
 
@@ -225,6 +230,61 @@ function mergeFile(mineFile, baseFile, theirsFile) {
   return 'conflict';
 }
 
+// ───────────────────────── 本次更新改了什么 ─────────────────────────
+
+/** 粗略统计文本文件行数（给"新增文件"用） */
+function countLines(file) {
+  const buf = fs.readFileSync(file);
+  if (buf.includes(0)) return 0; // 二进制不算行
+  return buf.toString('utf8').split('\n').length;
+}
+
+/** 两个文件的增删行数：优先用 git（精确），没有 git 就按行集合粗略估 */
+function diffStat(a, b) {
+  const isText = (f) => !fs.readFileSync(f).includes(0);
+  if (hasGit() && isText(a) && isText(b)) {
+    const parse = (out) => {
+      const line = String(out).split('\n').find((x) => x.trim());
+      if (!line) return null;
+      const [add, del] = line.split('\t');
+      if (add === undefined || add === '-') return null; // 二进制
+      return { add: Number(add) || 0, del: Number(del) || 0 };
+    };
+    try {
+      return parse(execFileSync('git', ['diff', '--no-index', '--numstat', '--', a, b], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }));
+    } catch (e) {
+      const r = parse(e.stdout || ''); // 有差异时退出码是 1，输出还在 stdout
+      if (r) return r;
+    }
+  }
+  if (!isText(a) || !isText(b)) return null;
+  const la = fs.readFileSync(a, 'utf8').split('\n');
+  const lb = fs.readFileSync(b, 'utf8').split('\n');
+  const sa = new Set(la);
+  const sb = new Set(lb);
+  return { add: lb.filter((x) => !sa.has(x)).length, del: la.filter((x) => !sb.has(x)).length };
+}
+
+/** 上游相比"你手上的版本"（基线镜像）改了什么 */
+function upstreamChangelog(srcRoot, baseDir) {
+  const rows = [];
+  for (const r of listUpdatable(srcRoot)) {
+    const nf = path.join(srcRoot, r);
+    const bf = path.join(baseDir, r);
+    if (!fs.existsSync(bf)) {
+      rows.push({ r, kind: 'add', add: countLines(nf), del: 0 });
+      continue;
+    }
+    if (fileHash(bf) === fileHash(nf)) continue;
+    const st = diffStat(bf, nf) || { add: 0, del: 0 };
+    rows.push({ r, kind: 'mod', ...st });
+  }
+  return rows;
+}
+
 // ───────────────────────── 拿新版源码 ─────────────────────────
 
 function downloadSource() {
@@ -288,7 +348,7 @@ const ROOT = path.resolve(opt('--root') || path.join(path.dirname(fileURLToPath(
 const dryRun = has('--dry-run');
 
 if (has('--write-manifest')) {
-  const n = writeManifest(ROOT);
+  const n = writeManifest(ROOT, ROOT);
   log(`✅ 已写入 ${MANIFEST_NAME}（${n} 个文件）—— 记得提交它 ✓`);
   process.exit(0);
 }
@@ -320,6 +380,11 @@ if (!manifest || !hasBaseline) {
   log('   → 判断不了哪些文件是你改过的：会**先备份再覆盖**，');
   log('     你自己改过的地方如果被覆盖，可以从 .update-backup-<时间戳>/ 里找回 ✓\n');
 }
+
+// ⚠️ 清单必须在**刷新基线之前**算 —— 基线一刷新就等于拿新版跟自己比，永远是"没有新改动" ✗
+const changelog = hasBaseline ? upstreamChangelog(src.root, baseDir) : [];
+const changedRows = changelog.filter((x) => x.kind === 'mod');
+const addedRows = changelog.filter((x) => x.kind === 'add');
 
 // 2) 逐文件决定
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -398,45 +463,82 @@ for (const r of listUpdatable(src.root)) {
 if (!dryRun) {
   const srcManifest = path.join(src.root, MANIFEST_NAME);
   if (fs.existsSync(srcManifest)) fs.copyFileSync(srcManifest, path.join(ROOT, MANIFEST_NAME));
-  else writeManifest(ROOT);
+  else writeManifest(src.root, ROOT); // 新版没带清单 → 从**新版**生成（不能从用户目录生成 ✗）
   const n = refreshBaseline(ROOT, src.root);
   log(`\n   基线已刷新（${n} 个文件）`);
 }
 
-// 4) 报告
+// 4) 汇总"你这边"的情况
+const touched = onlyMine.length + merged.length + conflicted.length + keptMine.length;
+
+// 5) 报告
 log('');
-log(`  新增文件        ${added.length}`);
-log(`  覆盖更新        ${updated.length}`);
-log(`  已经是最新      ${same.length}`);
-log(`  你改过·上游未动  ${onlyMine.length}`);
-log(`  ${dryRun ? '双方都改了·要合并' : '自动合并成功  '}  ${merged.length}`);
+log('════════════ 本次更新内容（上游相比你手上的版本）════════════');
+if (!hasBaseline) {
+  log('  （没有基线可比 —— 新装的会从这里开始记，下次更新就能看到清单了）');
+} else if (changelog.length === 0) {
+  log('  ✅ 上游没有任何新改动 —— 你已经是最新版 ✓');
+} else {
+  log(`  改了 ${changedRows.length} 个文件，新增 ${addedRows.length} 个：`);
+  log('');
+  const show = changelog.slice(0, 25);
+  for (const x of show) {
+    const stat = x.kind === 'add' ? `新增 +${x.add}` : `+${x.add} -${x.del}`;
+    log(`   ${stat.padEnd(13)} ${x.r}`);
+  }
+  if (changelog.length > show.length) log(`   … 另外还有 ${changelog.length - show.length} 个文件没列出来`);
+}
+
+log('');
+log('════════════ 你这边的情况 ════════════');
+if (touched === 0) {
+  log('  你自己改过的文件：0 个 ✓ —— 本版改动全部直接用新版覆盖了 ✓');
+} else {
+  log(`  你自己改过 ${touched} 个文件，处理如下：`);
+  log(`    ✅ 自动三方合并成功（新改动 + 你的改动都在）  ${merged.length}`);
+  log(`    ⚠️ 撞在同一处，要你手动挑（先保留你的版本）    ${conflicted.length}`);
+  log(`    ⚠️ 没法自动合并，新版另存 .new                ${keptMine.length}`);
+  log(`    ⏸  上游没动它，保持原样                        ${onlyMine.length}`);
+}
 
 if (merged.length) {
-  log('\n  ✅ 这些文件双方都改过，但改动不冲突，已经自动合并（新改动 + 你的改动都在）：');
+  log('\n  ✅ 自动合并的文件：');
   merged.slice(0, 15).forEach((r) => log(`     · ${r}`));
   if (merged.length > 15) log(`     … 还有 ${merged.length - 15} 个`);
 }
 
 if (conflicted.length) {
-  log('\n  ⚠️ 这些文件双方改到了同一处，**保留了你的版本**，新版合并结果写在同名 .merge 文件里：');
+  log('\n  ⚠️ 双方改到同一处 —— 你的版本原样保留，新版合并结果在同名 .merge 里：');
   conflicted.forEach((r) => log(`     · ${r}  →  ${r}.merge`));
   log('     对着 .merge 里的 <<<<<<< 标记挑一下，改完把 .merge 删掉即可 ✓');
 }
 
 if (keptMine.length) {
-  log('\n  ⚠️ 这些文件你改过、上游也改了，但没能自动合并 —— 保留了你的版本，新版存成 .new：');
+  log('\n  ⚠️ 你改过、上游也改了，但没能自动合并 —— 你的版本保留，新版存成 .new：');
   keptMine.forEach((r) => log(`     · ${r}  →  ${r}.new`));
-  log('     （装个 git 就能自动三方合并了；或者自己对着 .new 手动挑 ✓）');
+  log('     （装个 git 就能自动三方合并；或自己对着 .new 手动挑 ✓）');
 }
 
+if (onlyMine.length) {
+  log('\n  ⏸  这些只有你改过、上游没动，原样保留：');
+  onlyMine.slice(0, 10).forEach((r) => log(`     · ${r}`));
+  if (onlyMine.length > 10) log(`     … 还有 ${onlyMine.length - 10} 个`);
+}
+
+log('');
+log('════════════ 结果 ════════════');
+log(`  新增 ${added.length} 个 / 覆盖更新 ${updated.length} 个 / 本来就已经是最新 ${same.length} 个`);
 if (updated.length && !dryRun) {
-  log(`\n  被覆盖的旧文件备份在：${rel(path.relative(ROOT, backupDir))}/`);
+  log(`  被覆盖的旧文件备份在：${rel(path.relative(ROOT, backupDir))}/  （不想要直接删 ✓）`);
 }
 
 if (dryRun) {
-  log('\n（--dry-run：什么都没改 ✓）');
+  log('\n（--dry-run：以上全是预览，一个文件都没改 ✓）');
+} else if (changelog.length === 0 && touched === 0) {
+  log('\n✅ 无事可做 —— 你已经是最新版，也没有冲突要处理 ✓');
 } else {
-  log('\n✅ 更新完成 —— 前台/控制台代码变了的话，重跑 Start-Blog / Start-Console 会自动装依赖并重新构建 ✓');
+  log('\n✅ 更新完成');
+  log('   前台 / 控制台的代码变了的话，重跑 Start-Blog / Start-Console 会自动装依赖并重新构建 ✓');
 }
 
 src.cleanup();
