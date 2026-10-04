@@ -16,6 +16,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// 以脚本自己所在的上一级（项目根目录）为基准定位：这样在哪个目录下跑都不会找不到文件 ✓
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const INDENT = '  ';
 
@@ -41,7 +45,7 @@ function topLevelKeys(text) {
 }
 
 const loaded = TARGETS.map((t) => {
-  const file = path.resolve(t.file);
+  const file = path.join(ROOT, t.file);
   if (!fs.existsSync(file)) return { ...t, keys: null };
   return { ...t, keys: topLevelKeys(fs.readFileSync(file, 'utf8')) };
 });
@@ -62,11 +66,14 @@ if (!bad) {
   console.log(`   ${a.name}  ${a.file}  → ${a.keys.size} 项`);
   console.log(`   ${b.name}  ${b.file}  → ${b.keys.size} 项\n`);
 
-  const onlyA = [...a.keys].filter((k) => !b.keys.has(k));
+  // 这些是**有意只在控制台**里的（图床配置前台用不上），不算不一致 ✓
+  const MANAGER_ONLY = new Set(['picBedName', 'picBedUrl', 'picBedToken']);
+
+  const onlyA = [...a.keys].filter((k) => !b.keys.has(k) && !MANAGER_ONLY.has(k));
   const onlyB = [...b.keys].filter((k) => !a.keys.has(k));
 
   if (onlyA.length === 0 && onlyB.length === 0) {
-    console.log('✅ 两边顶层配置项完全一致。\n');
+    console.log(`✅ 两边顶层配置项一致（已忽略控制台独有项：${[...MANAGER_ONLY].join(', ')}）\n`);
   } else {
     bad = true;
     if (onlyA.length) console.log(`❌ 只在【${a.name.trim()}】里有：${onlyA.join(', ')}`);
