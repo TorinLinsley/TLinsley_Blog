@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════
+#  TLinsleyBlog 仓库根目录的忽略规则
+#  （XHBlogs / my-blog-manager 里各自还有一份 Next.js 自带的 .gitignore）
+#  推送之前扫一眼这份 —— 免得把依赖、构建产物、密钥、机器相关配置一起推上去
+# ═══════════════════════════════════════════════════════════════════
+
+# ── 🗑️ 系统 / 编辑器垃圾 ──
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+__pycache__/
+*.py[cod]
+
+# ── 📦 依赖 / 构建产物（子项目里已排除，这里再兜一层）──
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── 📝 日志 / 临时文件 ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ── 🔐 密钥 / 环境变量（这些**绝对不能**推上去）──
+.env
+.env.*
+!.env.example
+# 评论镜像用的 GitHub Token 就存在这个文件里（服务器上那份，别提交）
+comments-config.json
+**/data/comments-config.json
+
+# ── 🖥️ 机器相关：每台电脑/每台服务器都不一样，不进仓库 ──
+# 控制台里配的博客路径（界面：设置 → 双轨配置，写的就是它）
+**/data/deploy_config.json
+# 控制台前端靠它知道后端端口（Start-Console 脚本每次启动自动写）
+**/public/backend_config.json
+# 启动脚本的代码指纹（判断"要不要重新构建"用）
+**/.code-hash
+**/.lock-hash
+# 控制台运行时数据：草稿、操作记录、部署状态…
+**/manager_data/
+# 游客评论（运行时数据，服务器上那份才是真的）
+**/data/comments/
+
+# ── 🔑 SSH 隧道工具的服务器地址（仓库里只放 server.env.example）──
+deploy/windows/server.env

@@ -1,0 +1,18 @@
+[Unit]
+Description=TLinsleyBlog 前台（Next.js）
+Documentation=file:///srv/www/tlblog
+After=network.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__WORK__
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/npm run start -- -p __PORT__
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

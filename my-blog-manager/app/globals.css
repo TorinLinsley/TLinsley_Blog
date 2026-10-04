@@ -1,0 +1,820 @@
+@import "tailwindcss";
+
+/* 1. 声明暗黑模式变体 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================================================
+   📱 手机上点按钮 / 链接时闪的那一下蓝色半透明遮罩（tap highlight）
+   整站统一干掉，省得每个页面、每个组件都自己处理一遍。
+   它是**继承属性**，写在 html 上就整站生效。
+   ======================================================== */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ========================================================
+   🖱️ 除输入框外，别处不要出现文本光标（I 型光标）
+   · 输入框 / 文本域 / contenteditable 照常是 I 型；
+   · 链接 / 按钮 / 下拉 照常是手型；
+   · **只动 cursor，不碰 user-select** —— 选中文字、复制照常能用；
+   · 带 cursor-* 工具类的元素不受影响（类选择器优先级更高，会盖过这里的规则），
+     所以控制台里那种拖拽分隔条的 col-resize 还是好好的。
+   ======================================================== */
+html { cursor: default; }
+body * { cursor: default; }
+body a,
+body button,
+body [role="button"],
+body label,
+body summary,
+body select { cursor: pointer; }
+body input,
+body textarea,
+body [contenteditable="true"] { cursor: text; }
+body input[type="checkbox"],
+body input[type="radio"],
+body input[type="range"],
+body input[type="color"],
+body input[type="file"],
+body input[type="submit"],
+body input[type="button"] { cursor: pointer; }
+
+/* ========================================================
+   🎛️ 原生控件 / 原生下拉的配色跟着主题走
+   浏览器给 <select> 画的**弹出列表**默认是白底，而深色模式下我们给的字色是浅色
+   → 「白底 + 浅灰字」，根本看不清是什么 ✗
+   ① color-scheme：让原生控件（下拉、日期框、滚动条…）整体按主题深浅渲染；
+   ② 再把 option 的底色/字色显式写死（浅色=白底黑字，深色=深底浅字）双保险 ✓
+   （编辑器工具栏那个字号下拉已经换成自绘的 components/ThemedSelect，不受这里影响）
+   ======================================================== */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+select option,
+select optgroup { background-color: #ffffff; color: #0f172a; }
+.dark select option,
+.dark select optgroup { background-color: #1e293b; color: #e2e8f0; }
+
+/* ========================================================
+   📱 手机整站等比缩小（和博客前台 app/globals.css 里那条**逐字一致**）
+   用根字号 —— Tailwind 的尺寸全是 rem 基准，会跟着缩「并重新排版」，
+   所以手机上所有元素的大小/间距都和博客前台那边对得上。
+   ⚠️ 千万不要用 zoom：它只是把页面整体缩小、右边留一片空白，不会重新排版。
+   配套：导航栏那几个写死的高度都用 rem（Navbar 的 NAV_HEIGHT、
+   ResourcePanels 的 NAV_H / TOOL_ROW_H），否则会出现「字缩了、导航栏没缩」。
+   只影响小屏；桌面 ≥1024px 完全不变。
+   ======================================================== */
+@media (max-width: 1023.98px) {
+  html {
+    font-size: 74%;
+    /* 📱 键盘弹出时，浏览器为了露出光标会自己把页面往上顶。
+       留出这条 scroll-padding，它自动滚动时就会在顶部留出空白 ——
+       编辑器/工具栏不会被顶到可视区外面去（配合 layout.tsx 里 viewport 的
+       interactiveWidget: 'resizes-content' 一起用）。 */
+    scroll-padding-top: 5.5rem;
+  }
+}
+
+/* 2. 基础环境与性能优化 */
+@layer base {
+  :root {
+    /* 🈶 本地自托管的思源宋体（@font-face 在 app/noto-serif-sc.css，分片在 public/fonts/）——
+       以前这里写的是 `var(--font-serif), …` 自引用（靠 next/font 在 <html> 上塞变量），
+       现在字体改成自托管、不再有那个变量，所以直接写字体名 ✓ */
+    --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  }
+
+  body {
+    font-family: var(--font-serif);
+    @apply transition-colors duration-1000 text-slate-900 bg-slate-50;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    @apply text-slate-100 bg-slate-950;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+
+  .dark .prose {
+    --tw-prose-body: var(--color-slate-200);
+    --tw-prose-headings: var(--color-white);
+    --tw-prose-links: var(--color-indigo-400);
+  }
+
+  [class*="backdrop-blur-"] {
+    will-change: backdrop-filter;
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .group:hover img {
+    will-change: transform;
+  }
+}
+
+/* 3. 音乐播放器进度条样式 */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+}
+
+/* 4. 火狐专项优化与布局兜底 */
+@layer base {
+  [class*="backdrop-blur-"] {
+    will-change: backdrop-filter;
+  }
+
+  @-moz-document url-prefix() {
+    [class*="backdrop-blur-md"] {
+      backdrop-filter: blur(8px) !important;
+    }
+  }
+
+  html, body {
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* ========================================================
+   5. 全局滚动条美化 (Chrome, Edge, Safari)
+   ======================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+/* ========================================================
+   6. Firefox 浏览器的兼容写法
+   ======================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+/* 彻底隐藏所有数字输入框的上下滑动箭头 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield; /* 针对 Firefox 的兼容 */
+}
+
+/* 修复 Tailwind Prose 抹除列表符号的问题 */
+.prose ul { list-style-type: disc !important; padding-left: 1.5em !important; }
+.prose ol { list-style-type: decimal !important; padding-left: 1.5em !important; }
+.prose ul[data-type="taskList"] { list-style-type: none !important; padding-left: 0 !important; }
+.prose ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.prose ul[data-type="taskList"] input[type="checkbox"] {
+  margin-top: 0.5rem;
+  cursor: pointer;
+  accent-color: #6366f1;
+}
+/* 自定义滚动条美化 */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.2); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
+/* ========================================================
+   表格：Obsidian 那种观感 —— 完整网格 + 隔行底色 + 表头着色
+   （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
+   ======================================================== */
+.prose table,
+.resource-preview table,
+.editor-content-area table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+
+/* 表头：染色 + 加粗。tiptap 的表格没有 <thead>，首行是 <tr><th>，所以两种都覆盖 */
+.prose thead th,
+.resource-preview thead th,
+.editor-content-area thead th,
+.prose tbody tr:first-child th,
+.resource-preview tbody tr:first-child th,
+.editor-content-area tbody tr:first-child th {
+  background-color: rgba(99, 102, 241, 0.12);
+  font-weight: 700;
+}
+.dark .prose thead th,
+.dark .resource-preview thead th,
+.dark .editor-content-area thead th,
+.dark .prose tbody tr:first-child th,
+.dark .resource-preview tbody tr:first-child th,
+.dark .editor-content-area tbody tr:first-child th {
+  background-color: rgba(129, 140, 248, 0.16);
+}
+
+/* 隔行底色：从"第一条数据行"开始隔行染色，
+   预览端表头在 <thead>（不算 tbody 的行），编辑器的表头就在 tbody 第一行，
+   所以两种要分开写，否则两边会错开一行 */
+/* ⚠️ 编辑器的容器同时挂着 .prose 和 .editor-content-area 两个类，
+   所以 prose 那条必须用 :not() 把编辑器排除掉，否则两套规则会叠加成"每行都染色" */
+.prose:not(.editor-content-area) tbody tr:nth-child(odd),
+.resource-preview tbody tr:nth-child(odd),
+.editor-content-area tbody tr:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.10);
+}
+.dark .prose:not(.editor-content-area) tbody tr:nth-child(odd),
+.dark .resource-preview tbody tr:nth-child(odd),
+.dark .editor-content-area tbody tr:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.08);
+}
+
+/* 单元格里的段落别把行撑高（编辑器里每个单元格内容是个 <p>，默认带着下边距） */
+.prose th p,
+.prose td p,
+.resource-preview th p,
+.resource-preview td p,
+.editor-content-area th p,
+.editor-content-area td p {
+  margin: 0 !important;
+}
+
+/* H4–H6：Markdown 的 #### 也很常见，编辑器/预览/前台统一给个像样的层级（比 H3 再小一档） */
+/* H4-H6: 均匀过渡, H6 只比正文大 1~2px (正文: 编辑器 1rem / 博客 0.95rem) */
+.prose h4, .resource-preview h4, .editor-content-area h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; }
+.prose h5, .resource-preview h5, .editor-content-area h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
+.prose h6, .resource-preview h6, .editor-content-area h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
+@media (min-width: 768px) {
+  /* ⚠️ 这里**只放大 .prose（博客文章正文）**，绝不能连编辑器/预览一起放大 ——
+     文章正文的 H3 是 1.5rem，跟着放大到 1.44rem 没毛病 ✓
+     但编辑器/预览的 H1-H3 是写死的 2.2 / 1.6 / **1.25rem**（见 RichTextEditor 和资源页的
+     .resource-preview 那两处），把 H4-H6 放大到 1.44/1.35/1.26 就会**比 H3 还大** ——
+     表现就是"3 级比 4 级小、4/5/6 级乱掉"✗ 所以这两套保持下面的基准值不动 ✓ */
+  /* 桌面正文是 1.15rem(18.4px), 所以 H6 = 1.26rem(20.2px), 依然只大 ~1.8px */
+  .prose h4 { font-size: 1.44rem !important; }
+  .prose h5 { font-size: 1.35rem !important; }
+  .prose h6 { font-size: 1.26rem !important; }
+}
+/* ========================================================
+   表格：网格线（编辑器/预览/前台完全一致）+ 收紧"标题→表格"的空白
+   之前边框只写在资源页（.resource-preview）里，文章（.prose）没有，
+   所以预览里看不到表格线。
+   ======================================================== */
+html :is(.prose, .resource-preview, .editor-content-area) table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0 !important;
+}
+html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 0.6rem 0.9rem;
+  vertical-align: top;
+}
+/* 紧跟标题的表格不再叠一层外边距（标题自己的 margin-bottom 已经给间距了） */
+html :is(.prose, .resource-preview, .editor-content-area) :is(h1, h2, h3, h4, h5, h6) + table {
+  margin-top: 0.6rem !important;
+}
+/* ========================================================
+   Obsidian 风格的 Callout（标注块）
+   > [!note] 标题   /  > [!warning] 注意  ……
+   ======================================================== */
+.callout {
+  --callout: 56, 189, 248;
+  margin: 1.5rem 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--callout), 0.55);
+  border-radius: 0.75rem;
+  background-color: rgba(var(--callout), 0.06);
+}
+/* 标题行：用淡一点的边框色铺底，整行通栏 */
+.callout-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  background-color: rgba(var(--callout), 0.18);
+  border-bottom: 1px solid rgba(var(--callout), 0.35);
+  font-weight: 700;
+  color: rgb(var(--callout));
+}
+.callout-body { padding: 0.8rem 0.95rem; }
+.callout-title-text { line-height: 1.4; }
+.callout-icon { display: inline-flex; flex: 0 0 auto; }
+.callout-icon svg { width: 1.05em; height: 1.05em; display: block; }
+/* ✍️ 编辑器里：标题行的 `[!info]` 标记默认藏起来（预览本来就不显示它），
+   光标进到标题那一行时这条装饰会被摘掉、标记重新露出来，方便直接改类型 —— 和 Obsidian 一样 */
+.callout-marker-hidden { display: none !important; }
+.callout-body > :first-child { margin-top: 0 !important; }
+.callout-body > :last-child { margin-bottom: 0 !important; }
+.callout-body p, .callout-body li { color: inherit; }
+
+.callout-note { --callout: 148, 163, 184; }
+.callout-info, .callout-tip, .callout-hint { --callout: 56, 189, 248; }
+.callout-success, .callout-check, .callout-done { --callout: 34, 197, 94; }
+.callout-warning, .callout-caution, .callout-attention { --callout: 245, 158, 11; }
+.callout-danger, .callout-error, .callout-failure, .callout-bug { --callout: 239, 68, 68; }
+.callout-question, .callout-help, .callout-faq { --callout: 168, 85, 247; }
+.callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary { --callout: 148, 163, 184; }
+.callout-todo { --callout: 56, 189, 248; }
+
+/* ========================================================
+   杂谈卡片里的正文预览（chatter-preview）
+   卡片内容是服务端按详情页那套管线渲染出来的 HTML，但空间小：
+   · 引用块 / callout 左右留一点间距，盒子比卡片窄一点，不贴着卡片边缘
+   · 字号行距收一档，图/代码块限高，免得卡片被撑爆
+   ======================================================== */
+.chatter-preview > :first-child { margin-top: 0 !important; }
+.chatter-preview > :last-child { margin-bottom: 0 !important; }
+.chatter-preview :is(h1, h2, h3, h4, h5, h6) { font-size: 0.95rem !important; margin: 0.4rem 0 !important; line-height: 1.35 !important; }
+.chatter-preview p, .chatter-preview li { font-size: 0.85rem; line-height: 1.6; margin: 0.25rem 0; }
+.chatter-preview :is(ul, ol) { padding-left: 1.1rem; margin: 0.25rem 0; }
+/* 卡片窄：水平方向留 0.4rem 内缩 */
+.chatter-preview blockquote, .chatter-preview .callout { margin: 0.35rem 0.4rem !important; }
+.chatter-preview blockquote { padding: 0.25rem 0.55rem; }
+.chatter-preview .callout { border-radius: 0.6rem; }
+.chatter-preview .callout-title { padding: 0.3rem 0.55rem; font-size: 0.78rem; gap: 0.35rem; }
+.chatter-preview .callout-body { padding: 0.45rem 0.55rem; }
+.chatter-preview .callout-body p, .chatter-preview .callout-body li { font-style: normal; font-size: 0.8rem; }
+/* callout 是「格式块」：不能被卡片预览那层斜体（.italic）带跑 —— 正文里没写斜体就别斜 */
+.chatter-preview .callout,
+.chatter-preview .callout-title,
+.chatter-preview .callout-title-text,
+.chatter-preview .callout-body,
+.chatter-preview .callout-body :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote) { font-style: normal; }
+.chatter-preview img { max-height: 7rem; width: auto; border-radius: 0.4rem; }
+.chatter-preview pre { max-height: 7rem; overflow: auto; font-size: 0.72rem; padding: 0.6rem; border-radius: 0.5rem; }
+.chatter-preview table { display: block; overflow-x: auto; font-size: 0.72rem; }
+/* ========================================================
+   表格横向滚动：列多 / 每列文字长时，不再撑破板块
+   （display:block + overflow-x:auto 是表格响应式的常规做法，
+     表格内部仍是正常表格布局，只是自己变成可横向滚动的容器）
+   ======================================================== */
+/* 滚动容器（由 components/TableScroll.tsx 套在表格外面；编辑器用 tiptap 自带的 .tableWrapper） */
+html .prose .table-scroll,
+html .resource-preview .table-scroll,
+html .editor-content-area .tableWrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* 手机上：横向滚动不传染给页面 —— 否则在屏幕边缘横拖会被当成「返回上一级」手势 */
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y pinch-zoom;}
+/* 里面的表格按内容取自然宽度（列不被挤窄、文字不竖排），至少铺满容器 */
+html :is(.prose, .resource-preview) .table-scroll > table,
+html .editor-content-area .tableWrapper > table {
+  width: max-content !important;
+  min-width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+}
+/* 没套容器时的兜底：仍然是普通表格，不会撑出卡片 */
+html :is(.prose, .resource-preview, .editor-content-area) table {
+  display: table;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+/* 单元格不换行，列保持自然宽度（表格整体该滚就滚） */
+html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
+  white-space: nowrap;
+}
+/* 表格滚动条：轨道给灰底、滑块用实心亮色，对比拉满（手机上也要看得清、够得着） */
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar,
+html .editor-content-area .tableWrapper::-webkit-scrollbar {
+  height: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-track,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
+  background: #6366f1;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb:hover,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+html .dark :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-track,
+html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+html .dark :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb,
+html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
+  background: #818cf8;
+  border-color: rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 768px) {
+  html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar,
+  html .editor-content-area .tableWrapper::-webkit-scrollbar { height: 12px; }
+}
+
+
+
+/* 大纲条目：不要留浏览器默认的黑色聚焦框（点完条目后那个方框很显眼；
+   当前读到的条目本来就有高亮色，够用了） */
+[data-toc-level]:focus,
+[data-toc-level]:focus-visible { outline: none !important; }
+
+/* ========================================================
+   预览界面不要那个一闪一闪的输入光标（caret）
+   文章正文 / 资源预览 / 杂谈卡片都是只读内容，点一下留个光标在那儿很碍眼。
+   真正的输入位置（编辑器、输入框、文本域）照旧显示光标。
+   ======================================================== */
+html { caret-color: transparent; }
+:is(input, textarea, select, [contenteditable="true"], [contenteditable=""], .editor-content-area, .ProseMirror) { caret-color: auto; }
+
+/* ========================================================
+   🚫 引用块（blockquote / Obsidian 标注块）默认**不要斜体**
+   Tailwind 的 prose 默认就写着 blockquote { font-style: italic }，
+   各页面历史上也各自写过一遍，这里统一兜一条（用 :is() 提特异性，
+   比 .prose blockquote 高，谁先谁后都压得住）✓
+   ⚠️ 只重置 blockquote **自己**：里面你手动写的 *斜体* / <em> 依旧是斜体 ✓
+   ======================================================== */
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) blockquote {
+  font-style: normal !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ✍️ 编辑器正文区 .editor-content-area
+   —— 原来写在 components/editor/RichTextEditor.tsx 的内联 <style> 里，
+      线上实测那段 <style> 渲染成了 <style>false</style>（CSS 一条都没生效），
+      所以整段搬到真正的样式表里。这里的数值必须和预览(.resource-preview)
+      /博客前台(.prose) 保持一致 —— 编辑时看到的就得是发出去的样子。
+   ═══════════════════════════════════════════════════════════════════════ */
+        /* ⚠️ 下面这一组的数值必须和预览/博客前台的 .resource-preview 完全一致，
+ 否则编辑时看到的和发出去的就不是一个东西了（所见即所得）。 */
+        .editor-content-area h1 { font-size: 2.2rem !important; font-weight: 900 !important; margin: 2rem 0 1.2rem !important; line-height: 1.25 !important; color: inherit; } 
+        .editor-content-area h2 { font-size: 1.6rem !important; font-weight: 800 !important; margin: 1.6rem 0 1rem !important; line-height: 1.5 !important; color: inherit; } 
+        .editor-content-area h3 { font-size: 1.25rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.8rem !important; line-height: 1.5 !important; color: inherit; } 
+        /* ⚠️ H4-H6 必须写在这里（组件自己的 <style> 里），不能只靠 globals.css ——
+ 编辑器正文那个 div 同时带着 `prose` 和 `editor-content-area` 两个类，
+ 而 globals.css 里「桌面端放大版」的那条 .prose h4 (1.44rem) 和它**特异性相同**，
+ 靠 CSS 顺序取胜 → 会把 .editor-content-area h4 那条盖掉，
+ 结果就是 H4/H5/H6 比 H3 还大、层级乱掉 ✗
+ 所以下面三个选择器特意加了 .editor-content-area.prose hN 这一段：
+ 它的特异性 (0,2,1) 比 .prose h4 (0,1,1) 高 —— **不管样式表先后，这里都赢** ✓ */
+        .editor-content-area h4, .editor-content-area.prose h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; color: inherit; } 
+        .editor-content-area h5, .editor-content-area.prose h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
+        .editor-content-area h6, .editor-content-area.prose h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
+        .editor-content-area p { font-size: 1rem !important; line-height: 1.8 !important; margin: 0 0 1rem !important; } 
+        .editor-content-area ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; } 
+        .editor-content-area ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; }
+        .editor-content-area li { margin-bottom: 0.4rem !important; line-height: 1.5 !important; }
+        /* 正文颜色也照预览来（原本是 prose-slate 自己那套偏白的灰） */
+        .editor-content-area { color: #1e293b !important; }
+        .dark .editor-content-area { color: #e2e8f0 !important; }
+        .editor-content-area h1, .editor-content-area h2, .editor-content-area h3,
+        .editor-content-area p, .editor-content-area ul, .editor-content-area ol,
+        .editor-content-area li, .editor-content-area strong, .editor-content-area em,
+        .editor-content-area s, .editor-content-area del { color: inherit !important; }
+        .editor-content-area a { color: #6366f1 !important; font-weight: 600 !important; text-decoration: none !important; border-bottom: 1px dashed #6366f1 !important; }
+        .dark .editor-content-area a { color: #a5b4fc !important; border-bottom-color: #a5b4fc !important; }
+        
+        .editor-content-area s, .editor-content-area del { text-decoration-line: line-through !important; opacity: 0.6; }
+
+        .editor-content-area blockquote {
+border-left: 4px solid #6366f1 !important;
+background-color: rgba(99, 102, 241, 0.05) !important;
+padding: 1rem 1.5rem !important;
+margin: 1.5rem 0 !important;
+border-radius: 0 1.25rem 1.25rem 0 !important;
+font-style: normal !important;
+color: #64748b !important;
+line-height: 1.5 !important;
+        }
+        .editor-content-area blockquote p {
+margin: 0 !important; 
+color: inherit !important;
+        }
+        /* 引用块里只剩一个空行（老文件里可能就有这种 `>` 空行）→ 把引用自己的上下内边距收掉。
+ 不然那一行会带着 1rem 内边距，看起来比正常空行"胖"一圈 ✗
+ （ProseMirror 会在空段落里塞一个 <br class="ProseMirror-trailingBreak">，所以 :empty 认不到，用 :has ✓） */
+        .editor-content-area blockquote:has(> p:only-child:empty),
+        .editor-content-area blockquote:has(> p:only-child:has(> br.ProseMirror-trailingBreak)) {
+padding-top: 0.25rem !important;
+padding-bottom: 0.25rem !important;
+        }
+        .dark .editor-content-area blockquote {
+border-left-color: #818cf8 !important;
+background-color: rgba(129, 140, 248, 0.1) !important;
+color: #94a3b8 !important;
+        }
+
+        /* 等宽字体也照预览/博客那一套来（原来前面挂了 ui-rounded/Quicksand，字宽和间距都不一样） */
+        .editor-content-area pre code, .editor-content-area p code, .editor-content-area li code {
+font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, ui-monospace, monospace !important;
+font-variant-ligatures: normal !important;
+font-weight: 400 !important;
+letter-spacing: normal !important;
+        }
+        
+        .editor-content-area p code, .editor-content-area li code {
+ background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.15rem 0.35rem !important; border-radius: 0.3rem !important; font-weight: 600 !important; font-size: 0.9em !important;
+        }
+        .dark .editor-content-area p code, .dark .editor-content-area li code {
+ background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important;
+        }
+        .editor-content-area pre code { background-color: transparent !important; color: #ffffff !important; font-size: 0.9em !important; padding: 0 !important; }
+
+        :is(.editor-content-area, .resource-preview) pre code .hljs-comment, :is(.editor-content-area, .resource-preview) pre code .hljs-quote { color: #5c6370; font-style: italic; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-doctag, :is(.editor-content-area, .resource-preview) pre code .hljs-keyword, :is(.editor-content-area, .resource-preview) pre code .hljs-formula { color: #c678dd; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-keyword.type_, :is(.editor-content-area, .resource-preview) pre code .hljs-type { color: #c678dd; } 
+        :is(.editor-content-area, .resource-preview) pre code .hljs-section, :is(.editor-content-area, .resource-preview) pre code .hljs-name, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-tag, :is(.editor-content-area, .resource-preview) pre code .hljs-deletion, :is(.editor-content-area, .resource-preview) pre code .hljs-subst { color: #e06c75; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-literal { color: #56b6c2; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-string, :is(.editor-content-area, .resource-preview) pre code .hljs-regexp, :is(.editor-content-area, .resource-preview) pre code .hljs-addition, :is(.editor-content-area, .resource-preview) pre code .hljs-attribute, :is(.editor-content-area, .resource-preview) pre code .hljs-meta-string { color: #98c379; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-built_in, :is(.editor-content-area, .resource-preview) pre code .hljs-class .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.class_ { color: #e6c07b; } 
+        :is(.editor-content-area, .resource-preview) pre code .hljs-attr, :is(.editor-content-area, .resource-preview) pre code .hljs-variable, :is(.editor-content-area, .resource-preview) pre code .hljs-template-variable, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-class, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-attr, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-pseudo, :is(.editor-content-area, .resource-preview) pre code .hljs-number { color: #d19a66; }
+        :is(.editor-content-area, .resource-preview) pre code .hljs-symbol, :is(.editor-content-area, .resource-preview) pre code .hljs-bullet, :is(.editor-content-area, .resource-preview) pre code .hljs-link, :is(.editor-content-area, .resource-preview) pre code .hljs-meta, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-id, :is(.editor-content-area, .resource-preview) pre code .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.function_ { color: #61aeee; } 
+
+        /* ═══════════ 📏 行号 ═══════════ */
+        /* 正文左侧留出行号栏的位置（左边距的其余部分由外层 pl-1 提供，正文起始位置和以前完全一样） */
+        .editor-content-area { padding-left: 3.75rem !important; }
+        /* 顶部留白收掉：滚动区原本 py-12(48px) + 首个标题 2rem 外边距(32px) = 80px 空一截 */
+        .editor-content-area > :first-child { margin-top: 0 !important; }
+
+        .line-no {
+position: absolute;
+text-align: right;
+font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+font-size: 0.92rem;
+font-variant-numeric: tabular-nums;
+color: rgba(100, 116, 139, 0.72);
+user-select: none;
+-webkit-user-select: none;
+pointer-events: none;
+        }
+        .dark .line-no { color: rgba(148, 163, 184, 0.64); }
+
+        /* 代码块的方块本身也和预览对齐（左边距额外留出行号的位置，这是行号功能带来的唯一差异）
+ padding-top 多留一条：右上角那个「语言下拉 + 复制」工具条是绝对定位的，
+ 不留白的话第一行代码会被它盖住（长代码行尤其明显）。 */
+        .editor-content-area pre { padding: 1.25rem !important; padding-top: 2.75rem !important; padding-left: 3rem !important; border-radius: 0.75rem !important; margin: 1.5rem 0 !important; line-height: 1.5 !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.3) !important; overflow-x: auto !important; white-space: pre !important; }
+        /* 行号关掉时，左边那条给行号留的 3rem 槽也收掉 —— 这样编辑器里的代码块和预览完全一致 */
+        .editor-content-area[data-code-linenumbers="off"] pre { padding-left: 1.25rem !important; }
+
+        /* ═══════════ 代码块右上角工具条：语言下拉 + 复制按钮 ═══════════ */
+        .cc-tools {
+position: absolute;
+top: 0.6rem;
+right: 0.6rem;
+z-index: 5;
+display: flex;
+align-items: center;
+gap: 0.35rem;
+        }
+        /* 编辑器里的复制按钮跟着工具条排，不再绝对定位；常显，不用 hover */
+        .cc-tools .cc-bar--inline { position: static !important; opacity: 1; }
+        .cc-lang-pick {
+-webkit-appearance: none;
+appearance: none;
+min-height: 1.8rem;
+max-width: 9rem;
+padding: 0.3rem 1.5rem 0.3rem 0.6rem;
+border: 1px solid rgba(255,255,255,0.14);
+border-radius: 0.6rem;
+background-color: rgba(255,255,255,0.08);
+background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+background-repeat: no-repeat;
+background-position: right 0.45rem center;
+background-size: 0.85rem;
+color: #cbd5e1;
+font-family: 'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Consolas,ui-monospace,monospace;
+font-size: 0.7rem;
+font-weight: 500;
+line-height: 1;
+cursor: pointer;
+-webkit-tap-highlight-color: transparent;
+transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+        }
+        .cc-lang-pick:hover,
+        .cc-lang-pick:focus-visible { background-color: rgba(255,255,255,0.18); color: #ffffff; outline: none; }
+        .cc-lang-pick option { color: #0f172a; background-color: #ffffff; }
+        /* 「自定义…」时就地变成的输入框，和下拉同一副长相 */
+        .cc-lang-input {
+min-height: 1.8rem;
+width: 9rem;
+padding: 0.3rem 0.6rem;
+border: 1px solid rgba(255,255,255,0.28);
+border-radius: 0.6rem;
+background-color: rgba(255,255,255,0.14);
+color: #ffffff;
+font-family: 'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Consolas,ui-monospace,monospace;
+font-size: 0.7rem;
+line-height: 1;
+outline: none;
+-webkit-appearance: none;
+appearance: none;
+        }
+        .cc-lang-input::placeholder { color: rgba(203,213,225,0.65); }
+
+
+        /* ═══════════ 💡 编辑器里的 Callout 外观（和预览一致，纯装饰） ═══════════ */
+        .editor-content-area blockquote.callout {
+--callout: 148, 163, 184;
+margin: 1.5rem 0 !important;
+padding: 0 !important;
+overflow: hidden;
+border: 1px solid rgba(var(--callout), 0.55) !important;
+border-radius: 0.75rem !important;
+background-color: rgba(var(--callout), 0.06) !important;
+font-style: normal !important;
+        }
+        /* 标题行：就是那个装着 [!type] 文本的段落 */
+        .editor-content-area blockquote.callout > p.callout-title {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+margin: 0 !important;
+padding: 0.5rem 0.95rem !important;
+background-color: rgba(var(--callout), 0.18);
+border-bottom: 1px solid rgba(var(--callout), 0.35);
+color: rgb(var(--callout));
+font-weight: 700;
+font-style: normal !important;
+font-size: 0.95rem;
+        }
+        .editor-content-area blockquote.callout > p.callout-title::before {
+content: 'ⓘ';
+flex: 0 0 auto;
+font-weight: 700;
+line-height: 1;
+        }
+        .editor-content-area blockquote.callout-note > p.callout-title::before { content: '✎'; }
+        .editor-content-area blockquote.callout-info > p.callout-title::before,
+        .editor-content-area blockquote.callout-tip > p.callout-title::before,
+        .editor-content-area blockquote.callout-hint > p.callout-title::before { content: 'ⓘ'; }
+        .editor-content-area blockquote.callout-success > p.callout-title::before,
+        .editor-content-area blockquote.callout-check > p.callout-title::before,
+        .editor-content-area blockquote.callout-done > p.callout-title::before { content: '✔'; }
+        .editor-content-area blockquote.callout-warning > p.callout-title::before,
+        .editor-content-area blockquote.callout-caution > p.callout-title::before,
+        .editor-content-area blockquote.callout-attention > p.callout-title::before { content: '⚠'; }
+        .editor-content-area blockquote.callout-danger > p.callout-title::before,
+        .editor-content-area blockquote.callout-error > p.callout-title::before,
+        .editor-content-area blockquote.callout-failure > p.callout-title::before,
+        .editor-content-area blockquote.callout-bug > p.callout-title::before { content: '✖'; }
+        .editor-content-area blockquote.callout-question > p.callout-title::before,
+        .editor-content-area blockquote.callout-help > p.callout-title::before,
+        .editor-content-area blockquote.callout-faq > p.callout-title::before { content: '?'; }
+        .editor-content-area blockquote.callout-quote > p.callout-title::before,
+        .editor-content-area blockquote.callout-cite > p.callout-title::before { content: '❝'; }
+        .editor-content-area blockquote.callout-example > p.callout-title::before,
+        .editor-content-area blockquote.callout-abstract > p.callout-title::before,
+        .editor-content-area blockquote.callout-summary > p.callout-title::before { content: '☰'; }
+        .editor-content-area blockquote.callout-todo > p.callout-title::before { content: '☑'; }
+        /* 正文区留白（标题行以外的内容）。
+ ⚠️ 这里必须把 ul/ol 排除掉：:not(.callout-title) 的权重比下面那条列表规则高
+    （3 个 class vs 2 个），不排除的话列表只能拿到 0.95rem，
+    序号就会被挤到 callout 的左边框线上、跟外面的行号叠在一起。 */
+        .editor-content-area blockquote.callout > :not(.callout-title):not(ul):not(ol) { padding-left: 0.95rem !important; padding-right: 0.95rem !important; }
+        /* ⚠️ 列表单独给更宽的左缩进：序号/圆点是挂在缩进左侧的，
+ 跟着 0.95rem 走就会跑到 callout 边框外面去（普通列表不受影响，还是原来的 1.5rem） */
+        .editor-content-area blockquote.callout > ul,
+        .editor-content-area blockquote.callout > ol { padding-left: 2.15rem !important; padding-right: 0.95rem !important; }
+        .editor-content-area blockquote.callout > :nth-child(2) { padding-top: 0.8rem !important; }
+        .editor-content-area blockquote.callout > :last-child { padding-bottom: 0.8rem !important; }
+        /* 各类型配色（和 globals.css 里预览那套一致） */
+        .editor-content-area blockquote.callout-info, .editor-content-area blockquote.callout-tip, .editor-content-area blockquote.callout-hint, .editor-content-area blockquote.callout-todo { --callout: 56, 189, 248; }
+        .editor-content-area blockquote.callout-success, .editor-content-area blockquote.callout-check, .editor-content-area blockquote.callout-done { --callout: 34, 197, 94; }
+        .editor-content-area blockquote.callout-warning, .editor-content-area blockquote.callout-caution, .editor-content-area blockquote.callout-attention { --callout: 245, 158, 11; }
+        .editor-content-area blockquote.callout-danger, .editor-content-area blockquote.callout-error, .editor-content-area blockquote.callout-failure, .editor-content-area blockquote.callout-bug { --callout: 239, 68, 68; }
+        .editor-content-area blockquote.callout-question, .editor-content-area blockquote.callout-help, .editor-content-area blockquote.callout-faq { --callout: 168, 85, 247; }
+        .editor-content-area blockquote.callout-example, .editor-content-area blockquote.callout-abstract, .editor-content-area blockquote.callout-summary { --callout: 148, 163, 184; }
+        /* ═══════════ 📊 表格工具条（就放在编辑器工具栏里，光标进表格才出现） ═══════════ */
+        .table-tools {
+display: inline-flex;
+flex-wrap: wrap;
+align-items: center;
+gap: 0.1rem;
+max-width: 100%;
+padding: 0.15rem 0.3rem;
+border-radius: 0.75rem;
+background: rgba(15, 23, 42, 0.3);
+border: 1px solid rgba(148, 163, 184, 0.22);
+        }
+        .dark .table-tools { background: rgba(2, 6, 23, 0.45); }
+        .table-tools button {
+display: inline-flex;
+align-items: center;
+gap: 0.12rem;
+height: 1.6rem;
+padding: 0 0.34rem;
+border: none;
+border-radius: 0.45rem;
+background: transparent;
+color: #64748b;
+font-size: 0.64rem;
+font-weight: 800;
+line-height: 1;
+cursor: pointer;
+-webkit-appearance: none;
+appearance: none;
+transition: background-color .15s ease, color .15s ease;
+        }
+        .dark .table-tools button { color: #cbd5e1; }
+        .table-tools button:hover { background: rgba(99, 102, 241, 0.18); color: #4f46e5; }
+        .dark .table-tools button:hover { color: #ffffff; }
+        .table-tools .sep { width: 1px; align-self: stretch; margin: 0 0.2rem; background: rgba(148, 163, 184, 0.28); }
+
+        /* 带 data-tip 的按钮：气泡提示统一由 components/HoverTip.tsx 用 portal 画
+（它负责：原生 title → data-tip 的转换、上下自动翻面、不受面板 overflow:hidden 裁剪）。
+这里**不要**再用 CSS 的 ::after 画第二层气泡了，否则同一个提示会冒出来两个 ✗ */
+        [data-tip] { position: relative; }
+        @media (max-width: 520px) {
+.cc-lang-pick { font-size: 0.64rem; padding-left: 0.45rem; max-width: 6.5rem; }
+.cc-lang-input { width: 7rem; font-size: 0.64rem; }
+.cc-tools { top: 0.45rem; right: 0.45rem; gap: 0.25rem; }
+        }
+        .editor-content-area img { display: block !important; margin: 2rem 0 !important; border-radius: 1.5rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; max-width: 100% !important; height: auto !important; }
+        /* ⚠️ 上面那条 img 规则会把 ProseMirror 塞在代码块里的占位图（ProseMirror-separator，
+ 给光标定位用的）也变成"块级图片 + 2rem 上下外边距"，结果代码块底部凭空多出一大片空白。
+ 这里按更高优先级把这两个辅助元素还原成零尺寸。 */
+        .editor-content-area pre img.ProseMirror-separator,
+        .editor-content-area pre .ProseMirror-separator {
+display: inline !important;
+margin: 0 !important;
+padding: 0 !important;
+border: none !important;
+border-radius: 0 !important;
+box-shadow: none !important;
+width: 0 !important;
+height: 0 !important;
+max-width: none !important;
+        }
+        .editor-content-area pre .ProseMirror-trailingBreak {
+margin: 0 !important;
+padding: 0 !important;
+border: none !important;
+box-shadow: none !important;
+        }
+        .editor-content-area table { width: 100% !important; border-collapse: collapse !important; margin: 1.5rem 0 !important; }
+        .editor-content-area th, .editor-content-area td { border: 1px solid rgba(148,163,184,0.35) !important; padding: 0.6rem 0.9rem !important; }
+
+        /* 代码块内部行号：零宽 + inline-block，靠 vertical-align: top 落在本行行盒顶部，
+ 再用绝对定位把数字甩到左边距里（这样每个数字都能精准对上自己那一行） */
+        .editor-content-area pre code .code-line-no {
+position: relative;
+display: inline-block;
+width: 0;
+height: 0;
+vertical-align: top;
+pointer-events: none;
+user-select: none;
+-webkit-user-select: none;
+        }
+        .editor-content-area pre code .code-line-no::before {
+content: attr(data-n);
+position: absolute;
+top: 0;
+right: 0.9rem;
+line-height: inherit;
+font-size: 0.86em;
+font-variant-numeric: tabular-nums;
+color: rgba(171, 178, 191, 0.52);
+user-select: none;
+-webkit-user-select: none;
+        }
+
+/* ============================================================
+   🪟 工具页里那几个弹窗的高度上限。
+   为什么写在 CSS 里而不是 Tailwind 类：同一个元素上并排写
+   `max-h-[calc(100vh-…)] max-h-[calc(100dvh-…)]` 时，谁生效取决于
+   Tailwind 生成规则的先后，不是属性里写的先后 ✗（踩过：手机上改完没反应）。
+   这里只用一个类，顺序和兜底都写死：
+     · 老浏览器没有 dvh → 用 94vh 兜底；
+     · 有 dvh → 跟着手机地址栏/工具栏实时变；
+     · 手机上是「可视高度 × 94% − 一点边距」——按用户要求又缩了 6%，
+       上下留的缝更明显，整块卡在屏幕里；
+     · 电脑（≥768px）那边顶上有 12vh 间距，所以上限收到 71vh/70vh。
+   ============================================================ */
+.tool-dialog { max-height: calc(94vh - 1.5rem); }
+@supports (height: 100dvh) {
+  .tool-dialog { max-height: calc(94dvh - 1.5rem); }
+}
+.tool-dialog-sm { max-height: calc(94vh - 2rem); }
+@supports (height: 100dvh) {
+  .tool-dialog-sm { max-height: calc(94dvh - 2rem); }
+}
+@media (min-width: 768px) {
+  .tool-dialog { max-height: 71vh; }
+  .tool-dialog-sm { max-height: 70vh; }
+}

@@ -1,0 +1,22 @@
+# my-blog-manager (XHBlogs 控制台) Python dependencies
+# Verified working on Python 3.12.0 / Windows
+#
+# Install:
+#   python -m pip install -r requirements.txt
+# With a faster mirror (recommended in China):
+#   python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#
+# NOTE: pydantic + starlette come with fastapi.
+#       控制台现在是**纯网页模式**（项目根目录的 Start-Console.bat / .sh 起 uvicorn + Next，
+#       用浏览器访问），不再需要 pywebview 那套桌面窗口依赖了 ✓
+
+fastapi==0.141.1
+uvicorn==0.34.2
+python-multipart==0.0.20
+requests==2.31.0
+httpx==0.27.2
+PyYAML==6.0.2
+Markdown==3.10.3
+markdownify==1.2.2
+# 🎨 codehilite 真正上色靠它：没有 Pygments 时 python-markdown 只输出结构、一个颜色都不上
+Pygments==2.20.0

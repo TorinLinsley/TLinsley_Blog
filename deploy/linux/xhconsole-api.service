@@ -1,0 +1,16 @@
+[Unit]
+Description=星辉控制台 · 后端（FastAPI）
+After=network.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__CONSOLE_DIR__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m uvicorn cms_core.main:app --host 127.0.0.1 --port __API_PORT__
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

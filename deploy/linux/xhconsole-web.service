@@ -1,0 +1,18 @@
+[Unit]
+Description=星辉控制台 · 前端（Next.js，只监听 127.0.0.1，通过 SSH 隧道访问）
+After=network.target xhconsole-api.service
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__CONSOLE_DIR__
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+# -H 127.0.0.1：只监听本机，公网扫不到；你用 ssh -L 转发进来
+ExecStart=/usr/bin/npm run start -- -H 127.0.0.1 -p __WEB_PORT__
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

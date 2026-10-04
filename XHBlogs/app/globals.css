@@ -1,0 +1,443 @@
+@import "tailwindcss";
+
+/* 1. 声明暗黑模式变体 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================================================
+   📱 手机上点按钮 / 链接时闪的那一下蓝色半透明遮罩（tap highlight）
+   整站统一干掉，省得每个页面、每个组件都自己处理一遍。
+   它是**继承属性**，写在 html 上就整站生效。
+   ======================================================== */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ========================================================
+   🖱️ 除输入框外，别处不要出现文本光标（I 型光标）
+   · 输入框 / 文本域 / contenteditable 照常是 I 型；
+   · 链接 / 按钮 / 下拉 照常是手型；
+   · 带 cursor-* 工具类的元素**不受影响**（类选择器优先级更高，会盖过这里的规则），
+     所以像控制台里那种拖拽分隔条的 col-resize 还是好好的。
+   ======================================================== */
+html { cursor: default; }
+body * { cursor: default; }
+body a,
+body button,
+body [role="button"],
+body label,
+body summary,
+body select { cursor: pointer; }
+body input,
+body textarea,
+body [contenteditable="true"] { cursor: text; }
+body input[type="checkbox"],
+body input[type="radio"],
+body input[type="range"],
+body input[type="color"],
+body input[type="file"],
+body input[type="submit"],
+body input[type="button"] { cursor: pointer; }
+
+/* ========================================================
+   🎛️ 原生控件 / 原生下拉的配色跟着主题走
+   浏览器给 <select> 画的**弹出列表**默认是白底，而深色模式下我们给的字色是浅色
+   → 「白底 + 浅灰字」，根本看不清是什么 ✗
+   ① color-scheme：让原生控件（下拉、日期框、滚动条…）整体按主题深浅渲染；
+   ② 再把 option 的底色/字色显式写死（浅色=白底黑字，深色=深底浅字）双保险 ✓
+   ======================================================== */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+select option,
+select optgroup { background-color: #ffffff; color: #0f172a; }
+.dark select option,
+.dark select optgroup { background-color: #1e293b; color: #e2e8f0; }
+
+/* ========================================================
+   🌟 首页响应式：大屏保持原来的嵌套布局，
+      小屏（<1024px）把这两个容器「打散」(display:contents)，
+      好让里面的卡片各自参与外层排序（照片墙、说说能单独排位置）。
+      用自定义类而不是 Tailwind 的 contents + lg:flex，
+      因为那两者谁覆盖谁取决于 Tailwind 的生成顺序，不可靠。
+   ======================================================== */
+@media (max-width: 1023.98px) {
+  .home-right-col,
+  .home-sub-grid {
+    display: contents;
+  }
+
+  /* ========================================================
+     📱 手机整站等比缩小
+     用根字号 —— Tailwind 的尺寸全是 rem 基准，会跟着缩「并重新排版」。
+     ⚠️ 千万不要用 zoom：它只是把页面整体缩小、右边留一片空白，
+        不会重新排版，长句照样按原宽度换行。
+     配套已把手机导航栏那些写死的 px 改成 rem
+     （Navbar 的 NAV_HEIGHT、ResourcePanels 的 NAV_H 与偏移量），
+     否则会出现「字缩了、导航栏没缩」。
+     只影响小屏；桌面 ≥1024px 完全不变。
+     ======================================================== */
+  html {
+    font-size: 74%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .home-sub-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+
+/* 2. 基础环境与性能优化 */
+@layer base {
+  :root {
+    /* 🈶 本地自托管的思源宋体（@font-face 在 app/noto-serif-sc.css，分片在 public/fonts/）——
+       以前这里写的是 `var(--font-serif), …` 自引用（靠 next/font 在 <html> 上塞变量），
+       现在字体改成自托管、不再有那个变量，所以直接写字体名 ✓ */
+    --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  }
+
+  body {
+    font-family: var(--font-serif);
+    @apply transition-colors duration-1000 text-slate-900 bg-slate-50;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    @apply text-slate-100 bg-slate-950;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+
+  .dark .prose {
+    --tw-prose-body: var(--color-slate-200);
+    --tw-prose-headings: var(--color-white);
+    --tw-prose-links: var(--color-indigo-400);
+  }
+
+  [class*="backdrop-blur-"] {
+    will-change: backdrop-filter;
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .group:hover img {
+    will-change: transform;
+  }
+}
+
+/* 3. 音乐播放器进度条样式 */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+}
+
+/* 4. 火狐专项优化与布局兜底 */
+@layer base {
+  [class*="backdrop-blur-"] {
+    will-change: backdrop-filter;
+  }
+
+  @-moz-document url-prefix() {
+    [class*="backdrop-blur-md"] {
+      backdrop-filter: blur(8px) !important;
+    }
+  }
+
+  html, body {
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* ========================================================
+   5. 全局滚动条美化 (Chrome, Edge, Safari)
+   ======================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+/* ========================================================
+   6. Firefox 浏览器的兼容写法
+   ======================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+/* ========================================================
+   表格：Obsidian 那种观感 —— 完整网格线 + 隔行底色 + 表头着色
+   （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
+   ======================================================== */
+.prose table,
+.resource-preview table,
+.editor-content-area table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+
+/* 表头：染色 + 加粗。tiptap 的表格没有 <thead>，首行是 <tr><th>，所以两种都覆盖 */
+.prose thead th,
+.resource-preview thead th,
+.editor-content-area thead th,
+.prose tbody tr:first-child th,
+.resource-preview tbody tr:first-child th,
+.editor-content-area tbody tr:first-child th {
+  background-color: rgba(99, 102, 241, 0.12);
+  font-weight: 700;
+}
+.dark .prose thead th,
+.dark .resource-preview thead th,
+.dark .editor-content-area thead th,
+.dark .prose tbody tr:first-child th,
+.dark .resource-preview tbody tr:first-child th,
+.dark .editor-content-area tbody tr:first-child th {
+  background-color: rgba(129, 140, 248, 0.16);
+}
+
+/* 隔行底色：从"第一条数据行"开始隔行染色。
+   预览端表头在 <thead>（不占 tbody 的行），编辑器的表头就在 tbody 第一行，
+   所以两种要分开写，否则两边会错开一行。 */
+/* ⚠️ 编辑器的容器同时挂着 .prose 和 .editor-content-area 两个类，
+   所以 prose 那条必须用 :not() 把编辑器排除掉，否则两套规则会叠加成"每行都染色"。 */
+.prose:not(.editor-content-area) tbody tr:nth-child(odd),
+.resource-preview tbody tr:nth-child(odd),
+.editor-content-area tbody tr:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.10);
+}
+.dark .prose:not(.editor-content-area) tbody tr:nth-child(odd),
+.dark .resource-preview tbody tr:nth-child(odd),
+.dark .editor-content-area tbody tr:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.08);
+}
+
+/* 单元格里的段落别把行撑高（编辑器里每个单元格内容是个 <p>，默认带着下边距） */
+.prose th p,
+.prose td p,
+.resource-preview th p,
+.resource-preview td p,
+.editor-content-area th p,
+.editor-content-area td p {
+  margin: 0 !important;
+}
+/* H4–H6：Markdown 里 #### 也很常见，编辑器/预览/前台统一给个像样的层级（比 H3 再小一档） */
+/* H4-H6: 均匀过渡, H6 只比正文大 1~2px (正文: 编辑器 1rem / 博客 0.95rem) */
+.prose h4, .resource-preview h4, .editor-content-area h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; }
+.prose h5, .resource-preview h5, .editor-content-area h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
+.prose h6, .resource-preview h6, .editor-content-area h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
+@media (min-width: 768px) {
+  /* ⚠️ 这里**只放大 .prose（博客文章正文）**，绝不能连编辑器/预览一起放大 ——
+     文章正文的 H3 是 1.5rem，跟着放大到 1.44rem 没毛病 ✓
+     但编辑器/预览的 H1-H3 是写死的 2.2 / 1.6 / **1.25rem**（见 RichTextEditor 和资源页的
+     .resource-preview 那两处），把 H4-H6 放大到 1.44/1.35/1.26 就会**比 H3 还大** ——
+     表现就是"3 级比 4 级小、4/5/6 级乱掉"✗ 所以这两套保持下面的基准值不动 ✓ */
+  /* 桌面正文是 1.15rem(18.4px), 所以 H6 = 1.26rem(20.2px), 依然只大 ~1.8px */
+  .prose h4 { font-size: 1.44rem !important; }
+  .prose h5 { font-size: 1.35rem !important; }
+  .prose h6 { font-size: 1.26rem !important; }
+}
+/* ========================================================
+   表格：网格线（编辑器/预览/前台完全一致）+ 收紧"标题→表格"的空白
+   之前边框只写在资源页的 .resource-preview 里，文章页(.prose)没有，
+   所以预览里看不到表格线。
+   ======================================================== */
+html :is(.prose, .resource-preview, .editor-content-area) table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0 !important;
+}
+html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 0.6rem 0.9rem;
+  vertical-align: top;
+}
+/* 紧跟标题的表格不再叠一层外边距（标题自己的 margin-bottom 已经给间距了） */
+html :is(.prose, .resource-preview, .editor-content-area) :is(h1, h2, h3, h4, h5, h6) + table {
+  margin-top: 0.6rem !important;
+}
+/* ========================================================
+   Obsidian 风格的 Callout（标注块）
+   > [!note] 标题   /  > [!warning] 注意  ……
+   ======================================================== */
+.callout {
+  --callout: 56, 189, 248;
+  margin: 1.5rem 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--callout), 0.55);
+  border-radius: 0.75rem;
+  background-color: rgba(var(--callout), 0.06);
+}
+/* 标题行：用"淡一点的边框色"铺底，整行通栏 */
+.callout-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  background-color: rgba(var(--callout), 0.18);
+  border-bottom: 1px solid rgba(var(--callout), 0.35);
+  font-weight: 700;
+  color: rgb(var(--callout));
+}
+.callout-body { padding: 0.8rem 0.95rem; }
+.callout-title-text { line-height: 1.4; }
+.callout-icon { display: inline-flex; flex: 0 0 auto; }
+.callout-icon svg { width: 1.05em; height: 1.05em; display: block; }
+.callout-body > :first-child { margin-top: 0 !important; }
+.callout-body > :last-child { margin-bottom: 0 !important; }
+.callout-body p, .callout-body li { color: inherit; }
+
+.callout-note { --callout: 148, 163, 184; }
+.callout-info, .callout-tip, .callout-hint { --callout: 56, 189, 248; }
+.callout-success, .callout-check, .callout-done { --callout: 34, 197, 94; }
+.callout-warning, .callout-caution, .callout-attention { --callout: 245, 158, 11; }
+.callout-danger, .callout-error, .callout-failure, .callout-bug { --callout: 239, 68, 68; }
+.callout-question, .callout-help, .callout-faq { --callout: 168, 85, 247; }
+.callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary { --callout: 148, 163, 184; }
+.callout-todo { --callout: 56, 189, 248; }
+
+/* 大纲条目：不要留浏览器默认的黑色聚焦框（点完条目后那个方框很显眼；
+   当前读到的条目本来就有高亮色，够用了） */
+[data-toc-level]:focus,
+[data-toc-level]:focus-visible { outline: none !important; }
+
+/* ========================================================
+   预览界面不要那个一闪一闪的输入光标（caret）
+   文章正文 / 资源预览 / 杂谈卡片都是只读内容，点一下留个光标在那儿很碍眼。
+   真正的输入位置（编辑器、输入框、文本域）照旧显示光标。
+   ======================================================== */
+html { caret-color: transparent; }
+:is(input, textarea, select, [contenteditable="true"], [contenteditable=""], .editor-content-area, .ProseMirror) { caret-color: auto; }
+
+/* ========================================================
+   杂谈卡片里的正文预览（.chatter-preview）
+   卡片内容是服务端按详情页那套管线渲染出来的 HTML，但空间小：
+   · 引用块 / callout 左右留一点间距，盒子比卡片窄一点，不贴着卡片边缘
+   · 字号行距收一档，图/代码块限高，免得卡片被撑爆
+   ======================================================== */
+.chatter-preview > :first-child { margin-top: 0 !important; }
+.chatter-preview > :last-child { margin-bottom: 0 !important; }
+.chatter-preview :is(h1, h2, h3, h4, h5, h6) { font-size: 0.95rem !important; margin: 0.4rem 0 !important; line-height: 1.35 !important; }
+.chatter-preview p, .chatter-preview li { font-size: 0.85rem; line-height: 1.6; margin: 0.25rem 0; }
+.chatter-preview :is(ul, ol) { padding-left: 1.1rem; margin: 0.25rem 0; }
+/* 卡片窄：水平方向留 0.4rem 内缩 */
+.chatter-preview blockquote, .chatter-preview .callout { margin: 0.35rem 0.4rem !important; }
+.chatter-preview blockquote { padding: 0.25rem 0.55rem; }
+.chatter-preview .callout { border-radius: 0.6rem; }
+.chatter-preview .callout-title { padding: 0.3rem 0.55rem; font-size: 0.78rem; gap: 0.35rem; }
+.chatter-preview .callout-body { padding: 0.45rem 0.55rem; }
+.chatter-preview .callout-body p, .chatter-preview .callout-body li { font-style: normal; font-size: 0.8rem; }
+/* callout 是「格式块」：不能被卡片预览那层斜体（.italic）带跑 —— 正文里没写斜体就别斜 */
+.chatter-preview .callout,
+.chatter-preview .callout-title,
+.chatter-preview .callout-title-text,
+.chatter-preview .callout-body,
+.chatter-preview .callout-body :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote) { font-style: normal; }
+.chatter-preview img { max-height: 7rem; width: auto; border-radius: 0.4rem; }
+.chatter-preview pre { max-height: 7rem; overflow: auto; font-size: 0.72rem; padding: 0.6rem; border-radius: 0.5rem; }
+.chatter-preview table { display: block; overflow-x: auto; font-size: 0.72rem; }
+/* ========================================================
+   表格横向滚动：列多 / 每列文字长时，不再撑破板块
+   （display:block + overflow-x:auto 是表格响应式的常规做法，
+     表格内部仍是正常表格布局，只是自己变成可横向滚动的容器）
+   ======================================================== */
+/* 滚动容器（由 components/TableScroll.tsx 套在表格外面；编辑器用 tiptap 自带的 .tableWrapper） */
+html .prose .table-scroll,
+html .resource-preview .table-scroll,
+html .editor-content-area .tableWrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* 手机上：横向滚动不传染给页面 —— 否则在屏幕边缘横拖会被当成「返回上一级」手势 */
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y pinch-zoom;}
+/* 里面的表格按内容取自然宽度（列不被挤窄、文字不竖排），至少铺满容器 */
+html :is(.prose, .resource-preview) .table-scroll > table,
+html .editor-content-area .tableWrapper > table {
+  width: max-content !important;
+  min-width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+}
+/* 没套容器时的兜底：仍然是普通表格，不会撑出卡片 */
+html :is(.prose, .resource-preview, .editor-content-area) table {
+  display: table;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+/* 单元格不换行，列保持自然宽度（表格整体该滚就滚） */
+html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
+  white-space: nowrap;
+}
+/* 表格滚动条：轨道给灰底、滑块用实心亮色，对比拉满（手机上也要看得清、够得着） */
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar,
+html .editor-content-area .tableWrapper::-webkit-scrollbar {
+  height: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-track,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
+  background: #6366f1;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+}
+html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb:hover,
+html .editor-content-area .tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+html .dark :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-track,
+html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+html .dark :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar-thumb,
+html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
+  background: #818cf8;
+  border-color: rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 768px) {
+  html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar,
+  html .editor-content-area .tableWrapper::-webkit-scrollbar { height: 12px; }
+}
+
+/* ========================================================
+   🚫 引用块（blockquote / Obsidian 标注块）默认**不要斜体**
+   Tailwind 的 prose 默认就写着 blockquote { font-style: italic }，
+   各页面历史上也各自写过一遍，这里统一兜一条（用 :is() 提特异性，
+   比 .prose blockquote 高，谁先谁后都压得住）✓
+   ⚠️ 只重置 blockquote **自己**：里面你手动写的 *斜体* / <em> 依旧是斜体 ✓
+   ======================================================== */
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) blockquote {
+  font-style: normal !important;
+}
