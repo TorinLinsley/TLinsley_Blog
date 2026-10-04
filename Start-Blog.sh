@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# TLinsleyBlog 前台博客（Linux / macOS）
+# TLinsleyBlog 前台博客（Linux）
 #
 #   bash Start-Blog.sh          默认 3000 端口
 #   PORT=8080 bash Start-Blog.sh

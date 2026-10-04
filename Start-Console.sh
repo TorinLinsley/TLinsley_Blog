@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# TLinsleyBlog 控制台（Linux / macOS）—— **网页模式**，不开 Python 图形窗口。
+# TLinsleyBlog 控制台（Linux）—— **网页模式**，不开 Python 图形窗口。
 #
 #   bash Start-Console.sh              默认 后端 7646 / 前端 3010
 #   WEB_PORT=3011 bash Start-Console.sh

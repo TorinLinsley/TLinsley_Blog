@@ -48,7 +48,7 @@
 | 看博客前台 → http://localhost:3000 | `Start-Blog.bat` |
 | 管理博客 → 浏览器自动开 http://127.0.0.1:3010 | `Start-Console.bat` |
 
-### Linux / macOS
+### Linux
 
 ```bash
 bash Start-Blog.sh        # 前台，默认 3000
