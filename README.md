@@ -192,6 +192,8 @@ Windows 上打包上传（WinSCP 拖过去就行）—— **按你要打包哪�
 
 双击 `deploy/windows/packForServer.cmd` 也行，它是个菜单 ✓
 
+![打包菜单](docs/screenshots/shot-pack-menu.png)
+
 ## 附：把源码托管到自己的 GitHub 私有仓库（可选）
 
 想给源码留个云端备份，或者以后换电脑能直接拉下来：
@@ -218,22 +220,6 @@ git push -u origin main
 > 不放心就先 `git status` 看一眼再推 ✓
 >
 > 用 **SSH 地址**（`git@github.com:...`）比 HTTPS 稳得多 —— 仓库一大、网络一差，HTTPS 经常传到一半被重置 ✗
-
-### 也可以让控制台帮你推（可选）
-
-在 控制台 → 设置 → 双轨配置 里把源码仓库地址填上，就能直接在界面里推送源码、不用手敲 git：
-
-![填源码仓库地址](docs/screenshots/shot-console-repo-ssh.png)
-
-![获取专属密钥](docs/screenshots/shot-console-deploykey.png)
-
-![GitHub 仓库里的 Deploy keys](docs/screenshots/shot-github-deploykeys.png)
-
-![推送源码](docs/screenshots/shot-console-push.png)
-
-![同步进度](docs/screenshots/shot-console-push-progress.png)
-
-![同步部署页面](docs/screenshots/shot-console-open-sync.png)
 
 ## 七、常见问题
 
@@ -267,6 +253,8 @@ node scripts/update.mjs --dry-run    # 只想先看看会改什么（不会真�
 ```
 
 上面两条**跑一条就行** ✓ —— 想稳一点就先 `--dry-run` 看一眼，再跑第一条 ✓
+
+![更新器的输出](docs/screenshots/shot-update-output.png)
 
 Windows 双击 `Update.bat`、Linux 跑 `bash Update.sh` 也行 ✓
 
