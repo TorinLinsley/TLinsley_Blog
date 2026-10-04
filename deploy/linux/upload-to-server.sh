@@ -14,7 +14,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-BLOG="${BLOG:-$ROOT/XHBlogs}"
+BLOG="${BLOG:-$ROOT/TLBlog}"
 ENV_FILE="${ENV_FILE:-$HERE/server.env}"
 
 DRY_RUN=""

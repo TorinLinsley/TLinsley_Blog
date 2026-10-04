@@ -19,7 +19,7 @@ const TOOL_ROW_H = '3rem';
  * 于是用户一点文章，抽屉就"自己收起来"了。
  * 把状态存在模块作用域里，重挂载时读回来即可；刷新页面时模块重新初始化，自然是关着的。
  *
- * （这份和博客前台 XHBlogs/components/ResourcePanels.tsx 是故意保持一致的，改一边记得改另一边。）
+ * （这份和博客前台 TLBlog/components/ResourcePanels.tsx 是故意保持一致的，改一边记得改另一边。）
  */
 let drawerMemory: null | 'left' | 'right' = null;
 

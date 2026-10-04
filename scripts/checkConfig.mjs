@@ -2,7 +2,7 @@
 /**
  * 🧭 双端 siteConfig.ts 一致性检查（**只报告，不改文件**）
  *
- * 为什么需要：`my-blog-manager/siteConfig.ts`（控制台）和 `XHBlogs/siteConfig.ts`（前台）
+ * 为什么需要：`my-blog-manager/siteConfig.ts`（控制台）和 `TLBlog/siteConfig.ts`（前台）
  * 是**两份独立的文件**。同一个配置项必须两边都有，否则会出现那种很迷惑的现象：
  * 「控制台里改了，前台怎么不生效」—— 其实是改到了另一份文件上。
  *
@@ -21,7 +21,7 @@ const INDENT = '  ';
 
 const TARGETS = [
   { name: '控制台', file: 'my-blog-manager/siteConfig.ts' },
-  { name: '前台  ', file: 'XHBlogs/siteConfig.ts' },
+  { name: '前台  ', file: 'TLBlog/siteConfig.ts' },
 ];
 
 /** 抠出 `export const siteConfig = { ... }` 里的顶层键 */

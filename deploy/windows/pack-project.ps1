@@ -6,7 +6,7 @@
     powershell -ExecutionPolicy Bypass -File pack-project.ps1 -SkipUploads   # 不带 public/uploads 的图片
     powershell -ExecutionPolicy Bypass -File pack-project.ps1 -Out D:\xh.tgz
 
-  打包内容：XHBlogs / my-blog-manager / deploy 三个目录，
+  打包内容：TLBlog / my-blog-manager / deploy 三个目录，
   自动排除 node_modules、.next、.git（这些在虚拟机里自己装/自己生成，传了又慢又容易出问题）。
 #>
 param(
@@ -35,7 +35,7 @@ Write-Host "==> 打包目录: $Source"
 Write-Host "==> 排除: $($excludes -join ' ')"
 
 if (Test-Path $Out) { Remove-Item $Out -Force }
-& $tar -czf $Out -C $Source @excludes XHBlogs my-blog-manager deploy
+& $tar -czf $Out -C $Source @excludes TLBlog my-blog-manager deploy
 
 $size = (Get-Item $Out).Length
 Write-Host ("==> 已生成: {0}  ({1:N1} MB)" -f $Out, ($size / 1MB))

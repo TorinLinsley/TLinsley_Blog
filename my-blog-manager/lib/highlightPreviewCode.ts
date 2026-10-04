@@ -2,7 +2,7 @@
  * 🎨 给「预览区」的代码块补一次语法着色 —— 在**浏览器里**做，不依赖服务器环境。
  *
  * ── 为什么需要它 ────────────────────────────────────────────────
- * 博客前台（XHBlogs）的正文是 remark / rehype-highlight 在 **JS 里**着的色：只往标签上打
+ * 博客前台（TLBlog）的正文是 remark / rehype-highlight 在 **JS 里**着的色：只往标签上打
  * `hljs-*` 类名，颜色交给 CSS。整条链路跟 Python 环境毫无关系，所以前台**永远**是好的。
  *
  * 控制台资源页的预览正相反：它把后端 `contentHtml`（python-markdown + codehilite）直接

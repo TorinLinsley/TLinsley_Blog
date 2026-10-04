@@ -12,11 +12,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-BLOG="$HERE/XHBlogs"
+BLOG="$HERE/TLBlog"
 PORT="${PORT:-3000}"
 
 command -v node >/dev/null 2>&1 || { echo "❌ 没检测到 Node.js，请先安装：https://nodejs.org/" >&2; exit 1; }
-[ -f "$BLOG/package.json" ] || { echo "❌ 没找到 XHBlogs/package.json（脚本要和 XHBlogs 同级）" >&2; exit 1; }
+[ -f "$BLOG/package.json" ] || { echo "❌ 没找到 TLBlog/package.json（脚本要和 TLBlog 同级）" >&2; exit 1; }
 
 cd "$BLOG"
 

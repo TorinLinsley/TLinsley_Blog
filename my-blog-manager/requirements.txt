@@ -1,4 +1,4 @@
-# my-blog-manager (XHBlogs 控制台) Python dependencies
+# my-blog-manager (TLBlog 控制台) Python dependencies
 # Verified working on Python 3.12.0 / Windows
 #
 # Install:

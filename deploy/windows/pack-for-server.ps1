@@ -38,7 +38,7 @@ if (-not $OutDir) {
 $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 if ($Target -eq 'blog') {
-    $src  = Join-Path $Root 'XHBlogs'
+    $src  = Join-Path $Root 'TLBlog'
     $name = 'tlblog'
     # 服务器上就是 root，命令里一律不带 sudo（要 sudo 的话自己加）
     $rebuild = 'bash /srv/www/rebuild-if-needed.sh tlblog'

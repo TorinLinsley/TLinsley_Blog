@@ -3,7 +3,7 @@
 一套「**高颜值毛玻璃个人博客前台** + **网页版管理控制台**」的双项目站点，两个 Next.js 项目放在同一个目录里，
 控制台负责写、改、上传、同步，前台负责展示。
 
-- **前台** `XHBlogs/` —— Next.js 16 + React 19 + Tailwind 4，文章 / 资源分享 / 工具 / 归档 / 项目 / 照片墙 / 音乐 / 灵境 / 说说 / 杂谈 / 友链 / 关于 / 评论
+- **前台** `TLBlog/` —— Next.js 16 + React 19 + Tailwind 4，文章 / 资源分享 / 工具 / 归档 / 项目 / 照片墙 / 音乐 / 灵境 / 说说 / 杂谈 / 友链 / 关于 / 评论
 - **控制台** `my-blog-manager/` —— FastAPI + Next.js，**纯网页模式**（没有桌面窗口依赖），在本机跑、浏览器里操作
 
 > 📦 这个仓库是**空模板**：文章、说说、杂谈、资源、工具、相册、友链都是空的（各目录留了 `.gitkeep` 占位），
@@ -69,7 +69,7 @@ WEB_PORT=3011 bash Start-Console.sh
 
 **1. 填博客路径**
 
-控制台 → 设置 → 双轨配置 → 博客路径填 `<仓库目录>/XHBlogs` → **先点【测试路径】** → 通过后【保存双轨配置】
+控制台 → 设置 → 双轨配置 → 博客路径填 `<仓库目录>/TLBlog` → **先点【测试路径】** → 通过后【保存双轨配置】
 
 （它写进 `my-blog-manager/data/deploy_config.json`，这个文件是每台机器自己的，不会进仓库 ✓）
 
@@ -77,7 +77,7 @@ WEB_PORT=3011 bash Start-Console.sh
 
 控制台 → 设置 → 个人资料 / 站点配置：标题、头像、背景图、歌单、友链申请模板、页脚、ICP…
 
-> ⚠️ 配置存在**两份** `siteConfig.ts` 里（`XHBlogs/` 一份给前台、`my-blog-manager/` 一份给控制台），
+> ⚠️ 配置存在**两份** `siteConfig.ts` 里（`TLBlog/` 一份给前台、`my-blog-manager/` 一份给控制台），
 > 控制台保存时会一起写。想确认两边有没有漏项：
 >
 > ```bash
@@ -109,9 +109,9 @@ WEB_PORT=3011 bash Start-Console.sh
 | 文章 | `posts/` |
 | 说说 | `moments/` |
 | 杂谈 | `chatters/` |
-| 资源分享 | 前台 `XHBlogs/resources/`；控制台在 `my-blog-manager/resources/ResShare/`（同步时平铺过去） |
-| 网页工具 | `XHBlogs/tools/`（一个工具一个目录 + `tools.json` 索引） |
-| 图片 | `XHBlogs/public/uploads/` |
+| 资源分享 | 前台 `TLBlog/resources/`；控制台在 `my-blog-manager/resources/ResShare/`（同步时平铺过去） |
+| 网页工具 | `TLBlog/tools/`（一个工具一个目录 + `tools.json` 索引） |
+| 图片 | `TLBlog/public/uploads/` |
 
 ## 五、各功能配置
 
@@ -181,7 +181,7 @@ git remote set-url origin ssh://git@github.com/<用户名>/<仓库>.git
 `PORT=8080 bash Start-Blog.sh`、`WEB_PORT=3011 bash Start-Console.sh` ✓（Windows 改 .bat 开头那两行 ✓）
 
 **Q：目录能改名吗？**
-`XHBlogs` 这个**前台目录名**别改 —— 部署脚本、控制台默认路径都按它写的。
+`TLBlog` 这个**前台目录名**别改 —— 部署脚本、控制台默认路径都按它写的。
 
 ---
 

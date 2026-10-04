@@ -32,7 +32,7 @@ if errorlevel 1 (
 )
 if not exist "%CONSOLE%\cms_core\main.py" (
   echo [错误] 没找到 my-blog-manager\cms_core\main.py
-  echo        这个脚本要放在项目根目录（和 XHBlogs、my-blog-manager 同级）。
+  echo        这个脚本要放在项目根目录（和 TLBlog、my-blog-manager 同级）。
   pause
   exit /b 1
 )

@@ -146,7 +146,7 @@ export default function ToolsAdmin() {
       const data = await res.json();
       if (data.success) {
         setTools(data.tools || []);
-        setErr(data.configured ? '' : '还没配置博客路径（设置 → 双轨配置 里填 XHBlogs 路径）');
+        setErr(data.configured ? '' : '还没配置博客路径（设置 → 双轨配置 里填 TLBlog 路径）');
       } else {
         setErr(data.message || '读取失败');
       }

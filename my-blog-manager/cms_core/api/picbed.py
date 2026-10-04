@@ -75,7 +75,7 @@ async def upload_local_image(file: UploadFile = File(...)):
     upload_dir = get_upload_dir()
     if not upload_dir:
         return {"success": False,
-                "message": "未配置有效的博客路径，请到【设置 → 双轨配置】填写 XHBlogs 路径并保存"}
+                "message": "未配置有效的博客路径，请到【设置 → 双轨配置】填写 TLBlog 路径并保存"}
 
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXT:
@@ -129,7 +129,7 @@ async def list_local_images():
     upload_dir = get_upload_dir()
     if not upload_dir:
         return {"success": False,
-                "message": "未配置有效的博客路径，请到【设置 → 双轨配置】填写 XHBlogs 路径并保存",
+                "message": "未配置有效的博客路径，请到【设置 → 双轨配置】填写 TLBlog 路径并保存",
                 "files": []}
 
     files = []

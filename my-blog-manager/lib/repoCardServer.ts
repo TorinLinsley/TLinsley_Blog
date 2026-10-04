@@ -60,7 +60,7 @@ function findGithubToken(): string {
 async function getJson(url: string, token: string, giteeToken = ''): Promise<Record<string, unknown> | null> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'User-Agent': 'xhblogs-repo-card',
+    'User-Agent': 'tlblog-repo-card',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   const finalUrl = giteeToken ? `${url}${url.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(giteeToken)}` : url;

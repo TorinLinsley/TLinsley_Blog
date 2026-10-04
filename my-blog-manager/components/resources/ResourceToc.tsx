@@ -8,7 +8,7 @@ export type TocItem = { level: number; text: string; id: string };
 /**
  * 给大纲条目加层级序号：1 / 1.1 / 1.2 / 2 / 2.1.1 …
  * 三级各自独立计数，遇到上一级就归零，这样"谁属于谁"在文字上也一眼看得出来。
- * （和博客前台 XHBlogs/components/ResourceToc.tsx 保持一致，改一边记得改另一边。）
+ * （和博客前台 TLBlog/components/ResourceToc.tsx 保持一致，改一边记得改另一边。）
  */
 function withNumbers(items: TocItem[]) {
   if (items.length === 0) return [];
@@ -113,7 +113,7 @@ function findInnerScroller(container: HTMLElement | null): HTMLElement | null {
  * ⚠️ 颜色、字重必须写在各自的"分支"里，不要写成「基础类 + 覆盖类」：
  *    Tailwind 里 text-slate-600 和 text-indigo-600 是同一类工具类，谁生效取决于
  *    它们在 CSS 里的先后顺序，而不是 class 的书写顺序 —— 写两遍必然翻车。
- *    （这份实现和博客前台 XHBlogs/components/ResourceToc.tsx 是**故意保持一致**的，
+ *    （这份实现和博客前台 TLBlog/components/ResourceToc.tsx 是**故意保持一致**的，
  *      改一边记得改另一边。）
  */
 function levelClass(level: number, isActive: boolean) {

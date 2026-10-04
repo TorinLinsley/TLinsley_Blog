@@ -158,7 +158,7 @@ export default function CloudPlayer() {
                   比 20px 外框（12.5px）大了 2.5px。
                   ⚠️ 换形状后几何基准变了：旧形状"外框中心对齐"= -6.25%，新形状 = -2.1%（差 4.15%）。
                      下面这个 translateX 值保持你手调的，没动。
-                  （和博客前台 XHBlogs/components/CloudPlayer.tsx 保持一致，改一边记得改另一边。） */}
+                  （和博客前台 TLBlog/components/CloudPlayer.tsx 保持一致，改一边记得改另一边。） */}
               {isPlaying ? <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-6 h-6" style={{ transform: 'translateX(0%)' }} fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>}
             </button>
 

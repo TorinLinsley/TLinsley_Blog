@@ -6,7 +6,7 @@
 #   bash setup-vm.sh /path/to/root   # 项目在别处时传进来
 #
 # 装完：桌面会有「TLinsleyBlog 控制台」图标，双击就在浏览器里打开控制台（网页模式）；
-#       博客前台用控制台里的「预览」/或者在 XHBlogs 目录 npm run dev 起来看。
+#       博客前台用控制台里的「预览」/或者在 TLBlog 目录 npm run dev 起来看。
 #
 # 幂等：重复跑只会补缺。
 
@@ -16,12 +16,12 @@ ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"   # 默认就用这个脚本�
 NODE_MAJOR="${NODE_MAJOR:-22}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CONSOLE="$ROOT/my-blog-manager"
-BLOG="$ROOT/XHBlogs"
+BLOG="$ROOT/TLBlog"
 
 log() { printf '\n==> %s\n' "$*"; }
 
 [ -d "$CONSOLE" ] && [ -d "$BLOG" ] || {
-  echo "❌ 在 $ROOT 下没同时找到 my-blog-manager 和 XHBlogs，请把项目根目录作为参数传进来" >&2
+  echo "❌ 在 $ROOT 下没同时找到 my-blog-manager 和 TLBlog，请把项目根目录作为参数传进来" >&2
   exit 1
 }
 

@@ -8,7 +8,7 @@ rem ==================== 想换端口就改这一行 ====================
 set "PORT=3000"
 rem ==========================================================
 
-set "BLOG=%~dp0XHBlogs"
+set "BLOG=%~dp0TLBlog"
 
 echo ==================================================
 echo    TLinsleyBlog  前台博客（Next.js 生产模式）
@@ -24,8 +24,8 @@ if errorlevel 1 (
   exit /b 1
 )
 if not exist "%BLOG%\package.json" (
-  echo [错误] 没找到 XHBlogs\package.json
-  echo        这个脚本要放在项目根目录（和 XHBlogs、my-blog-manager 同级）。
+  echo [错误] 没找到 TLBlog\package.json
+  echo        这个脚本要放在项目根目录（和 TLBlog、my-blog-manager 同级）。
   pause
   exit /b 1
 )

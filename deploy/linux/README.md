@@ -17,7 +17,7 @@ Windows 那台不再参与 —— 虚拟机里就是完整的开发环境（控�
 ## 一、虚拟机：装环境（一次）
 
 ```bash
-cd <项目根目录>/deploy/linux      # 这个目录里同时有 my-blog-manager 和 XHBlogs 的上一级
+cd <项目根目录>/deploy/linux      # 这个目录里同时有 my-blog-manager 和 TLBlog 的上一级
 bash setup-vm.sh                  # 项目根目录不在 ~ 下时：bash setup-vm.sh /path/to/root
 ```
 
@@ -29,7 +29,7 @@ bash setup-vm.sh                  # 项目根目录不在 ~ 下时：bash setup-
 | Node | 装 Node 22（Next 16 要求 ≥ 20.9） |
 | Python 依赖 | `pip install -r my-blog-manager/requirements.txt`（清华源） |
 | 前端依赖 | 两个项目各 `npm ci`（npmmirror 源），**不构建** —— 开发用 `npm run dev` 就够 |
-| 配置 | 把 `my-blog-manager/data/deploy_config.json` 的 `blogPath` 指向本机 `XHBlogs` |
+| 配置 | 把 `my-blog-manager/data/deploy_config.json` 的 `blogPath` 指向本机 `TLBlog` |
 | 桌面图标 | 桌面上放一个「TLinsleyBlog 控制台」快捷方式 |
 
 装完起控制台：
@@ -79,7 +79,7 @@ FORCE_BUILD=1 bash deploy/linux/upload-to-server.sh   # 强制重建
 
 `upload-to-server.sh` 干两件事：
 
-1. `rsync -az --delete`（排除 `node_modules` / `.next` / `.git`）把 `XHBlogs/` 同步到服务器；
+1. `rsync -az --delete`（排除 `node_modules` / `.next` / `.git`）把 `TLBlog/` 同步到服务器；
 2. ssh 过去跑 `/srv/www/rebuild-if-needed.sh`：
 
 | 这次改了什么 | 服务器行为 |
@@ -119,7 +119,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 
 > ⚠️ HSTS 一旦下发，浏览器一年内强制 https（子域名也得有证书），别急着开。
 
-**不需要**再靠应用层跳转：项目里的 `XHBlogs/proxy.ts` 是旧的 Windows 拓扑（Next 占 80、nginx 占 443）留下的第二道保险；新拓扑是 nginx 管 80/443、Next 只听 127.0.0.1:3000，nginx 的 301 就够了。留着也不冲突（它认 `X-Forwarded-Proto`），想少一层变量就 `mv proxy.ts proxy.ts.disabled`。
+**不需要**再靠应用层跳转：项目里的 `TLBlog/proxy.ts` 是旧的 Windows 拓扑（Next 占 80、nginx 占 443）留下的第二道保险；新拓扑是 nginx 管 80/443、Next 只听 127.0.0.1:3000，nginx 的 301 就够了。留着也不冲突（它认 `X-Forwarded-Proto`），想少一层变量就 `mv proxy.ts proxy.ts.disabled`。
 
 ---
 

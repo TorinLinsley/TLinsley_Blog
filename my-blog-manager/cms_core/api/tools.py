@@ -181,7 +181,7 @@ async def save_tool(request: Request):
     try:
         root = blog_root()
         if not root:
-            return {"success": False, "message": "没配置博客路径（设置 → 双轨配置 里填 XHBlogs 路径）"}
+            return {"success": False, "message": "没配置博客路径（设置 → 双轨配置 里填 TLBlog 路径）"}
 
         data = await request.json()
         if not isinstance(data, dict):

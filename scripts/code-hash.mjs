@@ -15,7 +15,7 @@
  *    会变成每次启动都构建一遍（服务器那版早期就踩过这个坑）。
  *
  * 用法：
- *   node scripts/code-hash.mjs XHBlogs
+ *   node scripts/code-hash.mjs TLBlog
  *   node scripts/code-hash.mjs my-blog-manager
  */
 import { createHash } from 'node:crypto';

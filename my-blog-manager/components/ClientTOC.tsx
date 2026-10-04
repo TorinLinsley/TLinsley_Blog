@@ -52,7 +52,7 @@ const getDisplayText = (rawText: string) => {
 /**
  * 给大纲条目加层级序号：1 / 1.1 / 1.2 / 2 / 2.1.1 …
  * 三级各自独立计数，遇到上一级就归零，这样"谁属于谁"在文字上也一眼看得出来。
- * （和 resources/ResourceToc.tsx、博客前台 XHBlogs/components/ClientTOC.tsx 保持一致，改一边记得改另一边。）
+ * （和 resources/ResourceToc.tsx、博客前台 TLBlog/components/ClientTOC.tsx 保持一致，改一边记得改另一边。）
  */
 function withNumbers(items: TocItem[]) {
   if (items.length === 0) return [];

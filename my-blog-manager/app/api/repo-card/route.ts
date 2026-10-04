@@ -4,7 +4,7 @@ import { loadRepoCard } from '../../../lib/repoCardServer';
 /**
  * 🔗 给「仓库/主页卡片」用的数据接口。
  *
- *   GET /api/repo-card?url=https://github.com/TorinLinsley/XHBlogs
+ *   GET /api/repo-card?url=https://github.com/TorinLinsley/TLBlog
  *
  * 为什么不让浏览器直接去请求 GitHub：
  *   1. 卡片要头像/简介/star/fork/协议，GitHub 未登录只有 60 次/小时（按 IP），

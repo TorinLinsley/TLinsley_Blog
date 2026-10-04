@@ -178,7 +178,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ file?: string[
 
   const root = blogRoot();
   if (!root) {
-    return new NextResponse('没配置博客路径：控制台【设置 → 双轨配置】里填 XHBlogs 的项目路径并保存', { status: 404 });
+    return new NextResponse('没配置博客路径：控制台【设置 → 双轨配置】里填 TLBlog 的项目路径并保存', { status: 404 });
   }
 
   const rootAbs = path.resolve(path.join(root, 'tools'));
