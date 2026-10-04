@@ -15,7 +15,7 @@ import { readAlbums } from '../lib/readAlbums';
 // 🩹 首页卡片摘要是**纯文本**，markdown 标记（**加粗** 等）会连着符号露出来 —— 先去标记
 import { stripInlineMarkdown } from '../lib/repairMarkdown';
 import { HomeResourcesCard, HomeToolsCard, readHomeTools } from '../components/HomeQuickCards';
-import { projectsData } from '../data/projects';
+import { readProjects } from '../lib/readProjects';
 import LyricBar from '../components/LyricBar';
 import { ToastProvider } from '../components/ToastProvider';
 
@@ -144,7 +144,7 @@ export default function Home() {
             <SearchBar
           posts={allPosts}
           resources={collectResourceFiles(path.join(process.cwd(), 'resources'))}
-          projects={projectsData}
+          projects={readProjects()}
         />
 
             {/*

@@ -3,22 +3,22 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import BackButton from '../../components/BackButton'; // 注意层级路径
-import { projectsData } from '../../data/projects';
+import type { Project } from '../../data/projects';
 
-export default function ProjectsBoard() {
+export default function ProjectsBoard({ projects }: { projects: Project[] }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   // 搜索过滤逻辑
   const filteredProjects = useMemo(() => {
-    if (searchQuery.trim() === "") return projectsData;
+    if (searchQuery.trim() === "") return projects;
     const query = searchQuery.trim().toLowerCase();
 
-    return projectsData.filter(project =>
+    return projects.filter(project =>
       project.name.toLowerCase().includes(query) ||
       project.description.toLowerCase().includes(query) ||
       project.tags.some(tag => tag.toLowerCase().includes(query))
     );
-  }, [searchQuery]);
+  }, [searchQuery, projects]);
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-10 py-10 relative z-10">
