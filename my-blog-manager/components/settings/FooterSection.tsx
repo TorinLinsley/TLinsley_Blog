@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Calendar, Shield, Link2, Plus, Trash2, LayoutTemplate } from 'lucide-react';
+import { Save, Calendar, Plus, Trash2, LayoutTemplate } from 'lucide-react';
 import { useToast } from '../ToastProvider';
 
 interface FooterSectionProps {
@@ -97,52 +97,7 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
 
           <hr className="border-white/20 dark:border-slate-700/30" />
 
-          {/* 2. 备案信息 */}
-          <div>
-            <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-              <Shield size={16} className="text-emerald-500" /> ICP 备案信息
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1.5 block">备案号 / 显示名称</label>
-                <input
-                  type="text"
-                  value={icpConfig.name}
-                  onChange={(e) => handleUpdate('icpConfig', { ...icpConfig, name: e.target.value })}
-                  className="w-full bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700/50"
-                  placeholder="例如: 萌ICP备 20260240号"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1.5 block flex items-center gap-1"><Link2 size={12}/> 跳转链接</label>
-                <input
-                  type="text"
-                  value={icpConfig.link}
-                  onChange={(e) => handleUpdate('icpConfig', { ...icpConfig, link: e.target.value })}
-                  className="w-full bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700/50"
-                  placeholder="例如: https://icp.gov.moe/..."
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1.5 block">点击时复制的内容（留空 = 复制上面的备案号）</label>
-                <input
-                  type="text"
-                  value={icpConfig.copyText || ''}
-                  onChange={(e) => handleUpdate('icpConfig', { ...icpConfig, copyText: e.target.value })}
-                  className="w-full bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700/50"
-                  placeholder="例如: 20260240（查询框里真正要粘的那串）"
-                />
-                <p className="text-[10px] text-slate-400 mt-2 ml-1 leading-relaxed">
-                  💡 首页那个备案号，访客**点一下会先把这里的内容复制到剪贴板**，再打开上面的跳转链接。<br />
-                  工信部查询页的网址里带不了查询条件（它是个 SPA，接口还只允许自己域名调用），所以只能"帮访客复制好、他自己粘贴" ✓
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <hr className="border-white/20 dark:border-slate-700/30" />
-
-          {/* 3. 技术栈徽章管理 */}
+          {/* 2. 技术栈徽章管理 */}
           <div>
             <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
               <LayoutTemplate size={16} className="text-cyan-500" /> 技术栈徽章管理
