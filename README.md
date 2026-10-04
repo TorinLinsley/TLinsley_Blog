@@ -6,6 +6,8 @@
 - **前台** `TLBlog/` —— Next.js 16 + React 19 + Tailwind 4，文章 / 资源分享 / 工具 / 归档 / 项目 / 照片墙 / 音乐 / 灵境 / 说说 / 杂谈 / 友链 / 关于 / 评论
 - **控制台** `my-blog-manager/` —— FastAPI + Next.js，**纯网页模式**（没有桌面窗口依赖），在本机跑、浏览器里操作
 
+![项目根目录：两个项目并列](docs/screenshots/project-folders.png)
+
 > 📦 这个仓库是**空模板**：文章、说说、杂谈、资源、工具、相册、友链都是空的（各目录留了 `.gitkeep` 占位），
 > 外观配置保留了示例值 —— 跑起来后在控制台里换成你自己的就行 ✓
 >
@@ -72,6 +74,8 @@ WEB_PORT=3011 bash Start-Console.sh
 控制台 → 设置 → 双轨配置 → 博客路径填 `<仓库目录>/TLBlog` → **先点【测试路径】** → 通过后【保存双轨配置】
 
 （它写进 `my-blog-manager/data/deploy_config.json`，这个文件是每台机器自己的，不会进仓库 ✓）
+
+![控制台里填本地博客路径](docs/screenshots/console-blog-path.png)
 
 **2. 改站点信息**
 
@@ -179,14 +183,6 @@ git remote set-url origin ssh://git@github.com/<用户名>/<仓库>.git
 
 **Q：端口被占用 / 想换端口？**
 `PORT=8080 bash Start-Blog.sh`、`WEB_PORT=3011 bash Start-Console.sh` ✓（Windows 改 .bat 开头那两行 ✓）
-
-**Q：控制台「双轨配置」里的 A线 / B线 是什么？**
-
-那是「把源码 / 静态产物推到 GitHub、再让 Vercel 之类自动构建」的老流程
-（A线 = 静态产物、B线 = 源码，配套 Deploy Key、同步源码那一套按钮）。
-
-**自己用服务器部署的话完全不需要** ✓ 两个都留空即可 —— 你的链路是
-「控制台 → 更新本地 → 同步Blog → 服务器 `rebuild-if-needed.sh`」✓
 
 **Q：目录能改名吗？**
 `TLBlog` 这个**前台目录名**别改 —— 部署脚本、控制台默认路径都按它写的。
