@@ -306,13 +306,6 @@ function SettingsContent() {
                         <span className="shrink-0">{item.icon}</span>{item.name}
                       </button>
                     ))}
-
-                    <div className="mt-2 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3">
-                      <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 mb-2">🔄 数据中枢操作</p>
-                      <button className="w-full py-2.5 px-4 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-bold flex justify-between">
-                        <span>拉取 my-blog 数据</span><span>📥</span>
-                      </button>
-                    </div>
                   </div>
                 </motion.aside>
               </>
@@ -330,12 +323,6 @@ function SettingsContent() {
                   </button>
                 ))}
               </nav>
-            </div>
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-4 mt-4">
-              <p className="text-xs font-black text-amber-600 dark:text-amber-400 mb-2">🔄 数据中枢操作</p>
-              <button className="w-full py-2 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-bold hover:bg-amber-500 hover:text-white transition-all text-left px-4 flex justify-between">
-                <span>拉取 my-blog 数据</span><span>📥</span>
-              </button>
             </div>
           </div>
 
