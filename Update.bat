@@ -1,18 +1,38 @@
 @echo off
-chcp 65001 >nul 2>&1
+chcp 936 >nul 2>&1
 setlocal
-title TLinsleyBlog - æ›´æ–°åˆ°æœ€æ–°ç‰ˆ
+title TLinsleyBlog - ¸üĞÂµ½×îĞÂ°æ
 cd /d "%~dp0"
+
+echo ==================================================
+echo    TLinsleyBlog  ¸üĞÂµ½×îĞÂ°æ£¨ÎŞËğ£©
+echo.
+echo    - ÎÄÕÂ / ËµËµ / ×ÊÔ´ / ¹¤¾ß / Í¼Æ¬¡¢Õ¾µãÅäÖÃ¡¢
+echo      data/*.ts¡¢±¾»úÅäÖÃ ¡ª¡ª Ò»ÂÉ**²»¸²¸Ç** ¡Ì
+echo    - ÄãÃ»¸Ä¹ıµÄ´úÂë£ºÖ±½ÓÓÃĞÂ°æ¸²¸Ç
+echo      £¨¸²¸ÇÇ°µÄ¾ÉÎÄ¼ş»á±¸·İµ½ .update-backup-* Àï ¡Ì£©
+echo    - Äã×Ô¼º¸Ä¹ıµÄ´úÂë£ºÄÜ×Ô¶¯Èı·½ºÏ²¢¾ÍºÏ²¢£»
+echo      ×²ÔÚÍ¬Ò»´¦»á±£ÁôÄãµÄ°æ±¾£¬Áí´æ .merge / .new ¸øÄãÌô ¡Ì
+echo.
+echo    Ö»ÏëÏÈ¿´¿´Õâ´Î»á¸ÄÊ²Ã´£¨²»Õæ¸Ä£©£º
+echo        Update.bat --dry-run
+echo ==================================================
+echo.
 
 where node >nul 2>&1
 if errorlevel 1 (
-  echo [é”™è¯¯] æ²¡æ£€æµ‹åˆ° Node.jsï¼Œè¯·å…ˆå®‰è£…ï¼šhttps://nodejs.org/
+  echo [´íÎó] Ã»¼ì²âµ½ Node.js£¬ÇëÏÈ°²×°£ºhttps://nodejs.org/
   pause
   exit /b 1
 )
 
-rem æƒ³åªçœ‹ä¼šæ”¹å“ªäº›æ–‡ä»¶ï¼Œå…ˆè·‘ï¼š Update.bat --dry-run
 node "%~dp0scripts\update.mjs" %*
+set "CODE=%errorlevel%"
 
 echo.
+if not "%CODE%"=="0" (
+  echo [×¢Òâ] ¸üĞÂ½Å±¾ÍË³öÂëÊÇ %CODE% ¡ª¡ª ÉÏÃæÓĞ±¨´í¾ÍÍùÉÏ·­£¬»òÕß×°¸ö git ÔÙÀ´Ò»´Î ¡Ì
+) else (
+  echo [ÌáÊ¾] Ç°Ì¨ / ¿ØÖÆÌ¨µÄ´úÂëÓĞ±ä»¯µÄ»°£¬ÖØĞÂÅÜ Start-Blog / Start-Console ¼´¿É ¡Ì
+)
 pause

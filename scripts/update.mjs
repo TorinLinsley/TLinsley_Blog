@@ -268,18 +268,33 @@ function diffStat(a, b) {
   return { add: lb.filter((x) => !sa.has(x)).length, del: la.filter((x) => !sb.has(x)).length };
 }
 
-/** 上游相比"你手上的版本"（基线镜像）改了什么 */
-function upstreamChangelog(srcRoot, baseDir) {
+/**
+ * 上游相比"你手上的版本"改了什么。
+ *
+ * 基线哈希优先取**内容镜像**（.update-baseline/，能做行数统计 + 三方合并）；
+ * 没有镜像时退回清单里的哈希（`.update-manifest.json`，仓库自带 ✓）——
+ * 这样**第一次更新**的人也能看到"这次改了什么"的清单，只是没有 +N/-N 行数 ✓
+ */
+function upstreamChangelog(srcRoot, baseDir, manifest) {
   const rows = [];
   for (const r of listUpdatable(srcRoot)) {
     const nf = path.join(srcRoot, r);
     const bf = path.join(baseDir, r);
-    if (!fs.existsSync(bf)) {
+    const hasMirror = fs.existsSync(bf);
+    const nHash = fileHash(nf);
+    const baseHash = hasMirror ? fileHash(bf) : manifest?.files?.[r];
+
+    if (!baseHash) {
       rows.push({ r, kind: 'add', add: countLines(nf), del: 0 });
       continue;
     }
-    if (fileHash(bf) === fileHash(nf)) continue;
-    const st = diffStat(bf, nf) || { add: 0, del: 0 };
+    if (baseHash === nHash) continue;
+
+    if (!hasMirror) {
+      rows.push({ r, kind: 'mod', add: 0, del: 0, noDiff: true });
+      continue;
+    }
+    const st = diffStat(bf, nf) || { add: 0, del: 0, noDiff: true };
     rows.push({ r, kind: 'mod', ...st });
   }
   return rows;
@@ -375,14 +390,18 @@ const manifest = readManifest(ROOT);
 const baseDir = path.join(ROOT, BASELINE_DIR);
 const hasBaseline = fs.existsSync(baseDir);
 
-if (!manifest || !hasBaseline) {
-  log('\n⚠️  没有基线（.update-manifest.json / .update-baseline 缺一个）');
+if (!manifest && !hasBaseline) {
+  log('\n⚠️  没有基线（.update-manifest.json 和 .update-baseline 都没有）');
   log('   → 判断不了哪些文件是你改过的：会**先备份再覆盖**，');
   log('     你自己改过的地方如果被覆盖，可以从 .update-backup-<时间戳>/ 里找回 ✓\n');
+} else if (!hasBaseline) {
+  log('\nℹ️  首次更新（还没有内容镜像 .update-baseline/）：');
+  log('   这次改了什么能列出来 ✓ 但行数统计、自动三方合并要下次才有 ✓\n');
 }
 
 // ⚠️ 清单必须在**刷新基线之前**算 —— 基线一刷新就等于拿新版跟自己比，永远是"没有新改动" ✗
-const changelog = hasBaseline ? upstreamChangelog(src.root, baseDir) : [];
+const hasAnyBaseline = hasBaseline || !!manifest;
+const changelog = hasAnyBaseline ? upstreamChangelog(src.root, baseDir, manifest) : [];
 const changedRows = changelog.filter((x) => x.kind === 'mod');
 const addedRows = changelog.filter((x) => x.kind === 'add');
 
@@ -474,7 +493,7 @@ const touched = onlyMine.length + merged.length + conflicted.length + keptMine.l
 // 5) 报告
 log('');
 log('════════════ 本次更新内容（上游相比你手上的版本）════════════');
-if (!hasBaseline) {
+if (!hasAnyBaseline) {
   log('  （没有基线可比 —— 新装的会从这里开始记，下次更新就能看到清单了）');
 } else if (changelog.length === 0) {
   log('  ✅ 上游没有任何新改动 —— 你已经是最新版 ✓');
@@ -483,10 +502,11 @@ if (!hasBaseline) {
   log('');
   const show = changelog.slice(0, 25);
   for (const x of show) {
-    const stat = x.kind === 'add' ? `新增 +${x.add}` : `+${x.add} -${x.del}`;
+    const stat = x.kind === 'add' ? `新增 +${x.add}` : x.noDiff ? '内容有变化' : `+${x.add} -${x.del}`;
     log(`   ${stat.padEnd(13)} ${x.r}`);
   }
   if (changelog.length > show.length) log(`   … 另外还有 ${changelog.length - show.length} 个文件没列出来`);
+  if (!hasBaseline) log('\n  （首次更新没有内容镜像 —— 行数统计和自动合并要下次才有 ✓ 有冲突会留 .new）');
 }
 
 log('');
