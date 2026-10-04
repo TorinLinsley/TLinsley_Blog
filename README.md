@@ -165,6 +165,33 @@ Windows 上打包上传（WinSCP 拖过去就行）：
 
 双击 `deploy/windows/packForServer.cmd` 也行，它是个菜单 ✓
 
+## 附：把源码托管到自己的 GitHub 私有仓库（可选）
+
+想给源码留个云端备份，或者以后换电脑能直接拉下来：
+
+1. 登录 GitHub → 右上角 **+** → **New repository**
+2. **Repository name** 随便起一个（例如 `TLinsley_Blog`）；
+   **Visibility 建议选 Private** —— 保护你自己的配置与内容 ✓
+3. **不要**勾 `Add a README` / `Add .gitignore` / `Add license`（项目里都已经有了 ✓）
+4. 建好之后，在项目根目录执行：
+
+```bash
+git init
+git add -A
+git commit -m "first commit"
+git branch -M main
+git remote add origin git@github.com:<你的用户名>/<仓库名>.git
+git push -u origin main
+```
+
+![在 GitHub 新建私有仓库](docs/screenshots/github-new-repo.png)
+
+> 仓库里的 `.gitignore` 已经排除了 `node_modules`、`.next`、内容目录、`data/deploy_config.json`、
+> 评论用的 GitHub Token、SSH 隧道地址这些 ✓ 推上去不会带上你的密钥和本机路径 ✓
+> 不放心就先 `git status` 看一眼再推 ✓
+>
+> 用 **SSH 地址**（`git@github.com:...`）比 HTTPS 稳得多 —— 仓库一大、网络一差，HTTPS 经常传到一半被重置 ✗
+
 ## 七、常见问题
 
 **Q：`git push` 大仓库老是被重置（`Connection was reset`）？**
