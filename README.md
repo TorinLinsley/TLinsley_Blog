@@ -282,8 +282,3 @@ git add -A && git commit -m "..." && git push
 同步部署串成了一条流水线 —— 后面还会继续折腾 ✓
 
 如果你觉得有用，欢迎点个 ⭐ Star ✓
-
-## 许可证
-
-本项目采用 **[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)** 许可（正文见 `LICENSE`）：
-允许学习、分享、二次修改后发布，**严禁用于任何商业用途** ✓
