@@ -4,9 +4,9 @@ setlocal
 title TLinsleyBlog - 控制台
 cd /d "%~dp0"
 
-rem ================= 想换端口就改这两行 =================
-set "API_PORT=7646"
-set "WEB_PORT=3010"
+rem ====== 想换端口就改这两行（也可以先 set API_PORT=7647 临时覆盖）======
+if not defined API_PORT set "API_PORT=7646"
+if not defined WEB_PORT set "WEB_PORT=3010"
 rem =====================================================
 
 set "CONSOLE=%~dp0my-blog-manager"
@@ -39,6 +39,23 @@ if not exist "%CONSOLE%\cms_core\main.py" (
 
 cd /d "%CONSOLE%"
 
+rem 端口被占住的话别硬起：最常见是 SSH 隧道还开着（它把 3010/7646 转到服务器了），
+rem 那种情况下前端连到的是服务器上的控制台、本地后端根本起不来，页面就没法用。
+set "TLB_PORTS=%TEMP%\tlblog_ports.tmp"
+netstat -ano > "%TLB_PORTS%" 2>nul
+for %%P in (%API_PORT% %WEB_PORT%) do (
+  findstr /c:":%%P " "%TLB_PORTS%" | findstr /i "LISTENING" >nul
+  if not errorlevel 1 (
+    echo [错误] 端口 %%P 已经被占用了，先关掉占用它的程序再运行。
+    echo        看是谁占的：netstat -ano ^| findstr ":%%P"
+    echo        常见原因：1. 上次的控制台/后端窗口还开着   2. SSH 隧道把 %API_PORT%/%WEB_PORT% 转到服务器了
+    del "%TLB_PORTS%" >nul 2>&1
+    pause
+    exit /b 1
+  )
+)
+del "%TLB_PORTS%" >nul 2>&1
+
 if not exist "node_modules" (
   echo [依赖] 正在安装前端依赖（npm install）...
   call npm install --no-fund --no-audit
@@ -65,6 +82,13 @@ if errorlevel 1 (
 rem 前端靠这个文件知道后端在哪个端口
 if not exist "public" mkdir "public"
 > "public\backend_config.json" echo {"api_port": %API_PORT%}
+
+rem .next 里如果躺着上一次「打包构建」的产物，dev 会跟它打架：Turbopack 反复 panic,
+rem 浏览器上的表现就是「页面一直自动刷新、根本没法用」。检测到就先删掉，让 dev 自己重建。
+if exist ".next\BUILD_ID" (
+  echo [清理] .next 里是旧的构建产物，先删掉再启动（否则页面会一直自动刷新）...
+  rmdir /s /q ".next"
+)
 
 echo [启动] 后端 API（新窗口）...
 start "TLinsleyBlog 后端 API" cmd /k python -m uvicorn cms_core.main:app --host 127.0.0.1 --port %API_PORT%

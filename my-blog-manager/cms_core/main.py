@@ -1,5 +1,17 @@
+import sys
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Windows 的 cmd 默认按 GBK(cp936) 输出，日志里只要出现 emoji（👀 之类）就会抛
+# UnicodeEncodeError 把后端进程直接打死，表现就是「控制台打不开、页面一直在重连」。
+# 这里只放宽编码错误处理：中文照常显示，装不下的 emoji 变成 ?，不会再崩。
+# Linux 上是 UTF-8，这行等于没影响。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(errors="replace")
+    except Exception:
+        pass
 
 # 引入所有 API 路由
 from cms_core.api import music, config, picbed, drafts, moments
