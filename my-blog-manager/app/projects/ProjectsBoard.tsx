@@ -150,7 +150,7 @@ export default function ProjectsBoard() {
       <div className="mb-8 flex flex-col items-center md:items-start">
         <div className="w-full flex justify-start mb-6"><BackButton /></div>
         <div className="text-center md:text-left w-full">
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-widest uppercase">Projects Matrix</h1>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-widest uppercase">项目矩阵</h1>
           <p className="text-slate-600 dark:text-slate-400 font-serif italic opacity-80 flex items-center justify-center md:justify-start gap-2">
             <Sparkles size={14} className="text-indigo-500" /> 开源项目、科研代码与实验室折腾记录
           </p>

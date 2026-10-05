@@ -30,7 +30,7 @@ export default function ProjectsBoard({ projects }: { projects: Project[] }) {
         </div>
         <div className="text-center md:text-left w-full">
           <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-widest drop-shadow-sm uppercase">
-            Projects Matrix
+            项目矩阵
           </h1>
           <p className="text-slate-600 dark:text-slate-400 font-serif">
             开源项目、代码折腾记录。
