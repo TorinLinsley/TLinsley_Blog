@@ -105,13 +105,17 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     --tw-prose-links: var(--color-indigo-400);
   }
 
+  /* ⚠️ 这里原本有一条 `.group:hover img { will-change: transform }`，**已删除**。
+     它把图片提升为独立合成层，而背景图卡片宽度是**分数像素**（实测 181.5px），
+     提升的那一瞬间浏览器要重新光栅化 → 图片内容在同一个框里轻微缩放/偏移，
+     看着就是"鼠标一放到图上，图跳了一下、移开又跳回来"。
+     （实测量化：原样悬停与不悬停的像素差 254398；把这条屏蔽掉后掉回底噪 25287。）
+     另外它其实没什么收益：will-change 写在 :hover 里 = 动画都开始了才提示浏览器。
+     以后要用 will-change，请写在没有悬停动画的元素上、并且是**常驻**的。 */
+
   [class*="backdrop-blur-"] {
     will-change: backdrop-filter;
     -webkit-backdrop-filter: blur(12px);
-  }
-
-  .group:hover img {
-    will-change: transform;
   }
 }
 
