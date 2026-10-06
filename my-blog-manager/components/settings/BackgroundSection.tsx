@@ -222,7 +222,9 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
             <AnimatePresence>
               {formData.bgImages?.map((url: string, index: number) => (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={index} className="relative group rounded-2xl overflow-hidden aspect-video shadow-md border border-white/20">
-                  <img src={url || undefined} alt={`bg-${index}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  {/* ⚠️ 别加 group-hover:scale-* —— 悬停时整张图突然放大、移开又缩回去，
+                      鼠标在网格里来回移动时一片图都在"涨缩"，看着很晃；这里只显示按钮就够了 */}
+                  <img src={url || undefined} alt={`bg-${index}`} className="w-full h-full object-cover" />
 
                   {/* 第 1 张就是「首屏先加载」的那张，标出来免得搞混 */}
                   {index === 0 && (
