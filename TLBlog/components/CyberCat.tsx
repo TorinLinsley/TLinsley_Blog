@@ -23,6 +23,25 @@ export default function CyberCat() {
     }, duration);
   };
 
+  /**
+   * 接口返回非 2xx 时该怎么说话。
+   *
+   * ⚠️ 只有"本来就是写给访客看"的那几类才把服务端文案转述出来：
+   *      403 来源被拒 / 413 消息太长 / 429 发得太快
+   *    其余（尤其是 500）一律**不转述**，走兜底台词 ——
+   *    否则像 `Key missing` 这种内部错误会直接显示在页面上，
+   *    既难看，又等于把服务端内部信息透给访客。
+   *
+   * @returns true = 已经说过了，调用方直接 return；false = 调用方走 throw 用兜底台词
+   */
+  const speakIfFriendlyError = async (res: Response): Promise<boolean> => {
+    if (![403, 413, 429].includes(res.status)) return false;
+    const info = await res.json().catch(() => null);
+    if (!info?.error || typeof info.error !== 'string') return false;
+    speak(info.error, 6000);
+    return true;
+  };
+
   // --- 🖱️ 交互事件：摸猫猫 ---
   const handlePetCat = () => {
     if (draggedRef.current) return;   // 刚才是把猫拖走，不是摸它
@@ -51,10 +70,8 @@ export default function CyberCat() {
       });
 
       if (!res.ok) {
-        // 被限流(429)/来源校验(403)挡下时服务端会带 error 文案，
-        // 直接说出来，比笼统的"卡壳了"清楚（读不出来就按原来的兜底走）
-        const info = await res.json().catch(() => null);
-        if (info?.error) { speak(info.error, 6000); return; }
+        // 只有 403/413/429 才转述服务端文案；500 走兜底（别把 Key missing 抛给访客）
+        if (await speakIfFriendlyError(res)) return;
         throw new Error('API Error');
       }
 
@@ -86,9 +103,8 @@ export default function CyberCat() {
       });
 
       if (!res.ok) {
-        // 同上：限流/来源校验的文案直接说出来
-        const info = await res.json().catch(() => null);
-        if (info?.error) { speak(info.error, 6000); return; }
+        // 同上：仍然只有 403/413/429 才转述，500 走兜底
+        if (await speakIfFriendlyError(res)) return;
         throw new Error('API Error');
       }
 
