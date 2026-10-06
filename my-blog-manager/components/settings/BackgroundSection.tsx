@@ -242,25 +242,26 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
                   )}
 
                   {/* 操作按钮：桌面悬停出现，📱 手机上常显。
-                      ⚠️ 这一层**不要加 backdrop-blur**：手机上是常显的，一模糊就完全看不出
-                      这张图是什么画面（桌面只在悬停时出现、还能忍，手机上是真没法用，
-                      要认哪张是首屏图全靠看画面）。 */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2">
+                      这一层**只是按钮的容器**，不加背景色、不加模糊、不加缩放 ——
+                      三个按钮各自有实心背景 + 阴影，本来就看得清；
+                      一旦给这层加 bg-black/40 之类的底色，悬停时整张图会被压暗，
+                      看着就像"图片变了"（用户明确要求：图片任何时候都不许有变化）。 */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2">
                     <button
                       onClick={() => moveBg(index, -1)}
                       disabled={index === 0}
-                      title="前移一位（越靠前越先加载）"
+                      aria-label="前移一位（越靠前越先加载）"
                       className="w-9 h-9 bg-white/90 text-slate-800 rounded-full flex items-center justify-center font-black shadow-xl hover:bg-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
                     >↑</button>
                     <button
                       onClick={() => moveBg(index, 1)}
                       disabled={index === (formData.bgImages?.length || 1) - 1}
-                      title="后移一位"
+                      aria-label="后移一位"
                       className="w-9 h-9 bg-white/90 text-slate-800 rounded-full flex items-center justify-center font-black shadow-xl hover:bg-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
                     >↓</button>
                     <button
                       onClick={() => removeBg(index)}
-                      title="删除这张"
+                      aria-label="删除这张"
                       className="w-9 h-9 bg-red-500 text-white rounded-full flex items-center justify-center font-bold shadow-xl hover:bg-red-600 transition-all"
                     >✕</button>
                   </div>
