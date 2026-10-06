@@ -9,7 +9,9 @@ import { siteConfig } from '../../../siteConfig';
  *
  * 🔌 支持两类模型后端，**优先用 OpenAI 兼容那套**（国内直连，不用梯子）：
  *    ① AI_API_KEY / AI_BASE_URL / AI_MODEL
- *       默认智谱：https://open.bigmodel.cn/api/paas/v4 + glm-4-flash（免费）
+ *       默认智谱：https://open.bigmodel.cn/api/paas/v4 + glm-4-flash-250414
+ *       ⚠️ 模型名刻意钉在**官方文档标注为免费的那一个快照版本**（不用别名，
+ *          别名将来可能被指向收费版）。实测零余额账户下该快照可用且不扣费。
  *    ② GEMINI_API_KEY（Google，国内机房基本连不上，仅作保留）
  *
  * ⚠️ 运行时是 nodejs：运行期读环境变量（Next 启动时加载 `.env.local`），
@@ -19,7 +21,7 @@ import { siteConfig } from '../../../siteConfig';
 export const runtime = 'nodejs';
 
 const AI_BASE_URL = (process.env.AI_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/+$/, '');
-const AI_MODEL = process.env.AI_MODEL || 'glm-4-flash';
+const AI_MODEL = process.env.AI_MODEL || 'glm-4-flash-250414';
 const AI_API_KEY = (
   process.env.AI_API_KEY ||
   process.env.GLM_API_KEY ||

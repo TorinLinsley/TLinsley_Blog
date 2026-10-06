@@ -15,7 +15,14 @@ import { allow, clientIp, deny, isSameOrigin } from '../../../lib/apiGuard';
  *    ① OpenAI 兼容（国内主流，推荐）—— 环境变量：
  *         AI_API_KEY    必填，模型平台的 key
  *         AI_BASE_URL   选填，默认 https://open.bigmodel.cn/api/paas/v4（智谱）
- *         AI_MODEL      选填，默认 glm-4-flash（智谱的免费模型）
+ *         AI_MODEL      选填，默认 glm-4-flash-250414
+ *                       ⚠️ 默认值刻意钉在**官方文档标注为免费的那一个快照版本**上，
+ *                          不用 `glm-4-flash` 这个别名（别名将来可能被指向收费版本）。
+ *                       实测（2026-10-06）：同一个零余额账户下，
+ *                          glm-4-flash / glm-4-flash-250414 → 200 可用（不扣费）
+ *                          glm-4-flashx（收费版）        → 429 余额不足或无可用资源包
+ *                       也就是说：账户不充值 = 收费模型直接调不通，绝不会悄悄扣钱。
+ *                       要换模型只改 .env.local 里的 AI_MODEL，重启即可，不用重建。
  *       通义千问：https://dashscope.aliyuncs.com/compatible-mode/v1 （模型 qwen-flash）
  *       DeepSeek：https://api.deepseek.com                        （模型 deepseek-chat）
  *       Kimi    ：https://api.moonshot.cn/v1                      （模型 moonshot-v1-8k）
@@ -37,7 +44,7 @@ export const runtime = 'nodejs';
 const MAX_MESSAGE_CHARS = 2000;
 
 const AI_BASE_URL = (process.env.AI_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/+$/, '');
-const AI_MODEL = process.env.AI_MODEL || 'glm-4-flash';
+const AI_MODEL = process.env.AI_MODEL || 'glm-4-flash-250414';
 const AI_API_KEY = (
   process.env.AI_API_KEY ||
   process.env.GLM_API_KEY ||
