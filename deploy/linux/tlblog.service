@@ -10,7 +10,11 @@ Group=__APP_USER__
 WorkingDirectory=__WORK__
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
-ExecStart=/usr/bin/npm run start -- -p __PORT__
+# ⚠️ `-H 127.0.0.1` 不能少！少了它 next start 会绑到 0.0.0.0，
+#    公网直接就能访问 http://<服务器IP>:3000 绕过 nginx（安全组再漏一点就全裸奔）。
+#    对外只由 nginx 负责转发，所以这里必须锁死在本机。
+#    （对照：xhconsole-web.service 一直都有这个参数，前台这份以前漏了。）
+ExecStart=/usr/bin/npm run start -- -H 127.0.0.1 -p __PORT__
 Restart=always
 RestartSec=2
 
