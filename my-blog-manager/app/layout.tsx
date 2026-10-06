@@ -24,6 +24,7 @@ import CalloutRender from '../components/CalloutRender';
 import PageKeys from '../components/pageScrollKeys';
 import HoverTip from '../components/HoverTip';
 import InSiteLinks from '../components/InSiteLinks';
+import ApiKeyInjector from '../components/ApiKeyInjector';
 
 /**
  * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
@@ -156,6 +157,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <InSiteLinks />
         <CalloutRender />
         <PageKeys />
+        {/* 🔑 给所有"调后端 API"的请求自动带上管理密钥 X-Admin-Key
+            （后端能改博客文件，见 cms_core/main.py 顶部说明；这里是配套的前端半边） */}
+        <ApiKeyInjector />
       </body>
     </html>
   );
