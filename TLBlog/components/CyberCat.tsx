@@ -50,7 +50,13 @@ export default function CyberCat() {
         body: JSON.stringify({ message: "我刚刚喂了你一条美味的小鱼干！你有什么表示？" }),
       });
 
-      if (!res.ok) throw new Error('API Error');
+      if (!res.ok) {
+        // 被限流(429)/来源校验(403)挡下时服务端会带 error 文案，
+        // 直接说出来，比笼统的"卡壳了"清楚（读不出来就按原来的兜底走）
+        const info = await res.json().catch(() => null);
+        if (info?.error) { speak(info.error, 6000); return; }
+        throw new Error('API Error');
+      }
 
       const data = await res.json();
       speak(data.reply, 8000);
@@ -79,7 +85,12 @@ export default function CyberCat() {
         body: JSON.stringify({ message: userMessage }),
       });
 
-      if (!res.ok) throw new Error('API Error');
+      if (!res.ok) {
+        // 同上：限流/来源校验的文案直接说出来
+        const info = await res.json().catch(() => null);
+        if (info?.error) { speak(info.error, 6000); return; }
+        throw new Error('API Error');
+      }
 
       const data = await res.json();
       speak(data.reply, 8000);
