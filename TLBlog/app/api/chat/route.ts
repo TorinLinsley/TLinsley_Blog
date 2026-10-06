@@ -6,17 +6,24 @@ import { allow, clientIp, deny, isSameOrigin } from '../../../lib/apiGuard';
  * 🛡️ 这个接口是「用服务器上的 AI Key 去调模型」，原先**谁都能打**：
  *    没认证、没限流、没来源校验 —— 别人写个脚本就能拿你的额度刷。
  *
- * 现在加了三道：
+ * 现在加了：
  *   ① 同源校验：只允许本站页面发起的请求（浏览器 POST 必带 Origin）
- *   ② 限流：每个 IP 10 分钟最多 40 次，且两次之间至少隔 2 秒
- *   ③ 长度上限：单条消息最多 2000 字（正常聊天够用，脚本灌水不划算）
+ *   ② 长度上限：单条消息最多 2000 字（正常聊天够用，脚本灌水不划算）
+ *   ③ 进程内限流：作为兜底（见下方 ⚠️）
  *
- * ⚠️ runtime 从 edge 改成 nodejs：限流要跨请求共享内存计数，
- *    Node 运行时才是确定可靠的（edge 沙箱里的模块状态不保证一致）。
- *    这个路由只用到 fetch / Request / Response，换运行时没有副作用。
+ * ⚠️⚠️ 这个路由**必须保持 edge 运行时**，不要改成 nodejs：
+ *    `process.env.GEMINI_API_KEY` 在 edge 运行时是**构建期内联**的
+ *    （服务器上构建时的 key 来自 rebuild-if-needed.sh 会 source 的 /etc/tlblog.env），
+ *    而 nodejs 运行时是**运行期**读进程环境 —— 但 systemd 的 tlblog.service
+ *    并不读 /etc/tlblog.env，所以一改成 nodejs 就会变成 "Key missing"、AI 猫直接哑掉。
+ *    （2026-10-06 踩过这个坑，已回滚。）
+ *
+ * ⚠️ 同样因为运行时是 edge：下面 `allow()` 的内存计数**不保证跨请求共享**，
+ *    所以真正的限流放在 **nginx**（limit_req，所有 worker 共享、和运行时无关），
+ *    见 deploy/linux/nginx-tlblog.conf。这里这层只当兜底。
  */
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 const MAX_MESSAGE_CHARS = 2000;
 
