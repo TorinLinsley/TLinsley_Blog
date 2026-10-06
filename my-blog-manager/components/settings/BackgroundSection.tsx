@@ -239,8 +239,11 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
                     </span>
                   )}
 
-                  {/* 操作按钮：桌面悬停出现，📱 手机上常显 */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                  {/* 操作按钮：桌面悬停出现，📱 手机上常显。
+                      ⚠️ 这一层**不要加 backdrop-blur**：手机上是常显的，一模糊就完全看不出
+                      这张图是什么画面（桌面只在悬停时出现、还能忍，手机上是真没法用，
+                      要认哪张是首屏图全靠看画面）。 */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2">
                     <button
                       onClick={() => moveBg(index, -1)}
                       disabled={index === 0}
