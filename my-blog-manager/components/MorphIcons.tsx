@@ -43,29 +43,23 @@ const BAR = "bg-slate-800 dark:bg-slate-100";
 export function MenuLines({ open, size = 18 }: { open: boolean; size?: number }) {
   const reduce = useReducedMotion();
   /**
-   * 三行的几何**全部取自原图 menu.svg**（1024 视图盒 → 18px 换算），
-   * 这样默认状态和你原来看到的那个图标一致 ✓
-   *   · 圆点：x 1.60→3.40（直径 1.8）
-   *   · 长条：x 4.70→14.36（宽 9.66）
+   * 【几何】全部取自原图 menu.svg（1024 视图盒 → 18px 换算）
+   *   · 圆点：x 1.60→3.40（直径 1.8）→ **圆心在 x = 2.5**
+   *   · 长条（未融合）：x 4.70→14.36（宽 9.66）
+   *   · 长条（融合后）：x 1.60→14.36（宽 12.76）—— 往左延伸盖住圆点，变成一根完整的线
    *   · 行中心 y = 3.94 / 8.00 / 12.09
-   * ⚠️ 圆点和长条之间**留 1.3px 间隙**（原图就是这个间距）。
-   *    之前我把长条从 x=3 起画，紧贴圆点，用户说"线和左边圆点挨太近，看起来不协调" ✗
    */
-  const DOT_X = 1.6;
+  const DOT_L = 1.6;
   const DOT_D = 1.8;
-  const BAR_X = 4.7;
-  const BAR_W = 9.66;
+  const DOT_CX = DOT_L + DOT_D / 2; // 2.5 ← **这就是旋转中心**
+  const FUSED_L = 1.6;
+  const FUSED_R = 14.36;
+  const FUSED_W = FUSED_R - FUSED_L; // 12.76
+  const REST_W = 9.66;               // 未融合时线的长度
+  /** 未融合 / 融合 的长度比（用 scaleX 表达；锚点在右端 → 只往左延伸 ✓） */
+  const REST_SCALE = REST_W / FUSED_W; // ≈ 0.757
   const BAR_H = 1.8;
   const rowCy = [3.94, 8.0, 12.09]; // 上 / 中 / 下
-  /**
-   * 展开时上下两条要**同比伸长**到 2 倍（交叉点到左端的距离），
-   * 这样交叉点才落在两条线的**中点**，左右两段等长 ✓
-   *   交叉点到左端 = √(4.075² + 4.075²) = 5.763
-   *   需要的总长   = 2 × 5.763 = 11.526
-   *   所以 scaleX  = 11.526 / 9.66 = 1.193
-   * ⚠️ 锚点仍在左端 → 只往右伸，左端位置不动 ✓
-   */
-  const OPEN_SCALE = 1.193;
 
   return (
     <span
@@ -76,60 +70,70 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
       {rowCy.map((cy, i) => {
         const isMid = i === 1;
         /**
-         * ⚠️⚠️ 旋转锚点（用户明确指定的几何）：
-         *   **上下两条都以各自线条的左端为轴心**，而且**只转不平移** ——
-         *     上面那条：顺时针 45° → 右端指到"右下"
-         *     下面那条：逆时针 45° → 右端指到"右上"
-         *   两条起点各在自己的 y、各转 45° 之后，自然交于 (8.78, 8.02)，
-         *   正好落在图标盒中心附近 ✓ 不需要任何位移补偿 ✓
-         *   （之前我先平移再绕中心转，结果交点被拖到左边 —— 用户指出"没在中心交叉" ✗）
-         * 中间那条：锚点同样在左端，靠 scaleX 缩回圆点里 ✓
+         * ⚠️⚠️ 这里是**骨骼父子级**的写法（用户明确要求的模型）：
+         *
+         *   每一行 = 一个父级容器（**点 + 线同属一个整体**），父级的旋转中心
+         *   定在**圆点的圆心 (2.5px, cy)** —— 不是线条左端点 ✗
+         *
+         *   父级旋转时，子级（线）同步做自己的动作，互不干扰：
+         *     上面那条：父级顺时针 45°；线的锚点在**右端**、scaleX 从 0.757 → 1
+         *               → 线的左端从 4.7 一路伸到 1.6，把圆点**盖住并融合成一根完整的线** ✓
+         *     下面那条：父级逆时针 45°，其余同上 ✓
+         *     中间那条：**整行（含圆点）** 以圆心为锚点 scaleX → 0
+         *               → 从线的右端一路缩回圆点、连圆点一起消失 ✓
+         *
+         *   ⚠️ 之前错在哪：把圆点当成不动的独立元素、又把线条左端点当旋转中心 ✗
+         *      → 结果"线在转、三个点却在慢慢变透明"，而且交点被拖偏 ✓
          */
-        /**
-         * ⚠️ 这两个状态是按用户的两条实测反馈定的：
-         *  ① 交叉后左右不对称 —— 因为线的起点在 x=4.7、交叉点在 x=8.78，
-         *     交叉点**不在线条中点**，左边那段比右边长 ✗
-         *     → 展开时 `scaleX: OPEN_SCALE`（锚点左端 → 只往右伸），
-         *       线长补齐到 11.53，交叉点正好落在中点 ✓
-         *  ② 中间那条"看不出缩短、只看到变透明" —— 因为 `scaleX: 0` 和 `opacity: 0`
-         *     同时跑，淡出把收缩过程盖住了 ✗
-         *     → **去掉 opacity**，只留 scaleX，就能看到它从右端往左缩回圆点里 ✓
-         *       （scaleX 到 0 时线本身就没了，不需要再淡出）
-         */
-        const to = isMid
-          ? { scaleX: 0 }
-          : { rotate: i === 0 ? 45 : -45, scaleX: OPEN_SCALE, opacity: 1 };
-        const rest = { rotate: 0, scaleX: 1, opacity: 1 };
+        const rowTo = isMid
+          ? { scaleX: 0 }                                   // 整行缩进圆心
+          : { rotate: i === 0 ? 45 : -45 };                 // 上顺下逆
+        const lineTo = isMid ? { scaleX: 0 } : { scaleX: 1 }; // 融合（往左长）
+        const lineRest = { scaleX: isMid ? 1 : REST_SCALE };
         return (
-          <span key={i} className="absolute left-0 right-0 block" style={{ top: cy - BAR_H / 2, height: BAR_H }}>
-            {/* 圆点：叉上不要，展开时淡出 */}
+          <span
+            key={i}
+            className="absolute left-0 right-0 block"
+            style={{
+              top: cy - BAR_H / 2,
+              height: BAR_H,
+              // 整个"点+线"这一行，绕**圆心**转 / 绕**圆心**缩 ✓
+              transformOrigin: `${DOT_CX}px center`,
+            }}
+          >
             <motion.span
-              className={`absolute top-1/2 -translate-y-1/2 rounded-full ${BAR}`}
-              style={{ left: DOT_X, width: DOT_D, height: DOT_D }}
-              animate={{ opacity: open ? 0 : 1 }}
-              transition={{ duration: reduce ? D_RETRACT : D_MORPH, ease: EASE_OUT }}
-            />
-            {/* 长条：左端为锚点（既是旋转中心，也是缩回时的锚点）✓ */}
-            <motion.span
-              className={`absolute top-0 rounded-full ${BAR}`}
-              style={{
-                left: BAR_X,
-                width: BAR_W,
-                height: BAR_H,
-                transformOrigin: 'left center',
-              }}
+              className="absolute inset-0 block"
               initial={false}
-              animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? to : rest)}
+              animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? rowTo : { rotate: 0, scaleX: 1 })}
               transition={
                 reduce
                   ? { duration: D_RETRACT, ease: EASE_OUT }
                   : {
                       ...SPRING_MORPH,
-                      // 收起时让"中间那条伸回来"稍晚一点，先让上下两条转平，顺序更好读
+                      // 收起时让中间那条稍晚一点回来，先让上下两条转平，顺序更好读
                       delay: !open && isMid ? 0.06 : 0,
                     }
               }
-            />
+            >
+              {/* 圆点：**跟着父级一起转**（不再单独淡出 ✗）；融合后被线盖住，看起来就是一根线 ✓ */}
+              <span
+                className={`absolute top-0 rounded-full ${BAR}`}
+                style={{ left: DOT_L, width: DOT_D, height: DOT_D }}
+              />
+              {/* 线：锚点在**右端** → scaleX 变大时只往左延伸，伸到圆点处即融合 ✓ */}
+              <motion.span
+                className={`absolute top-0 rounded-full ${BAR}`}
+                style={{
+                  left: FUSED_L,
+                  width: FUSED_W,
+                  height: BAR_H,
+                  transformOrigin: 'right center',
+                }}
+                initial={false}
+                animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? lineTo : lineRest)}
+                transition={reduce ? { duration: D_RETRACT, ease: EASE_OUT } : SPRING_MORPH}
+              />
+            </motion.span>
           </span>
         );
       })}
