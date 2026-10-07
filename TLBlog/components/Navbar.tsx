@@ -14,8 +14,17 @@ import { navLinks } from '../lib/navLinks';
     写成 rem 是为了跟着手机上的根字号一起缩，见 globals.css 里的手机缩放。 */
 const NAV_HEIGHT = '3.25rem';
 
+/**
+ * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
+ *   弹簧 → **可打断** ✓（鼠标快速划过时不会卡在半路 ✗）
+ *   时长 ≤0.35s ✓ 非线性 ✓
+ */
+const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
+
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  /** 当前鼠标悬停的选项卡 href（null = 没有悬停）—— 桌面端色块用 ✓ 触摸设备不会触发 ✓ */
+  const [hovered, setHovered] = useState<string | null>(null);
   const pathname = usePathname();
   const { isDark, toggleTheme } = useTheme();
   /** 抽屉本体 / 汉堡按钮：交给 layerStack 判断"这一下该不该收" */
@@ -141,22 +150,51 @@ export default function Navbar() {
                 当前栏目那一个单独放大到 **16.3px**（高亮除了变色、再微微大一点点）。
                 只作用于**大屏这条**（整块在 hidden lg:block 里），手机那套导航栏不受影响。 */}
             <nav className="flex items-center gap-3 xl:gap-5 2xl:gap-6 text-[16px] font-black whitespace-nowrap overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative py-1 transition-colors ${
-                    isActivePath(link.href)
-                      ? 'text-[16.3px] text-indigo-600 dark:text-indigo-400'
-                      : 'text-slate-700 dark:text-slate-200 hover:text-indigo-600'
-                  }`}
-                >
-                  {link.name}
-                  {isActivePath(link.href) && (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-500 rounded-full animate-pulse" />
-                  )}
-                </Link>
-              ))}
+              {/*
+                ⚠️ 悬停/选中样式（用户要求）：
+                  · **字体大小一个字不动** ✓（基准 16px 由父级给 ✓ 选中的 16.3px 保留 ✓）
+                  · **文字颜色完全不动** ✗ → 去掉所有 text-* / hover:text-* ✓
+                    文字永远跟随主题（浅色=深字 深色=白字）✓
+                  · 悬停：一个高 = 文字高度 1/3 的色块，垫在**文字下层** ✓
+                    从**左往右像进度条**揭开（clip-path ✓ 不是 scaleX 拉伸 ✗）
+                    移开时反着缩回 ✓ 用弹簧 → 可打断 ✓
+                  · 选中：色块常驻 ✓ 站点原有的紫 indigo-500 ✓
+                    悬停：淡一点的紫 indigo-400 ✓
+              */}
+              {navLinks.map((link) => {
+                const active = isActivePath(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`relative py-1 ${active ? 'text-[16.3px]' : ''}`}
+                    /* 鼠标进入/离开驱动色块；触摸设备不会触发这两个事件 ✓ 等于天然只在桌面生效 ✓ */
+                    onMouseEnter={() => setHovered(link.href)}
+                    onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
+                  >
+                    <span className="relative inline-block">
+                      {/* 色块：垫在文字下层 ✓ 高 = 文字高度 1/3 ✓ 从左边进度条式揭开 ✓ */}
+                      <motion.span
+                        aria-hidden
+                        className={`absolute left-0 right-0 rounded-[3px] ${
+                          active ? 'bg-indigo-500' : 'bg-indigo-400'
+                        }`}
+                        style={{ bottom: '-0.06em', height: '0.34em' }}
+                        initial={false}
+                        animate={{
+                          clipPath:
+                            hovered === link.href || active
+                              ? 'inset(0 0% 0 0)'
+                              : 'inset(0 100% 0 0)',
+                        }}
+                        transition={HOVER_REVEAL}
+                      />
+                      {/* 文字在上层 ✓ */}
+                      <span className="relative">{link.name}</span>
+                    </span>
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         </div>
