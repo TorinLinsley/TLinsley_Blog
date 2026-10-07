@@ -193,19 +193,36 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
   const W = size;
   const H = size;
 
-  // 里面两条线的位置/长度**完全取自原图 file_list.svg**（1024 视图盒 → 16px 换算）
-  //   短的：x 317→534，y 中心 438   |   长的：x 317→703，y 中心 625
-  const lines = [
-    { left: 4.96, top: 6.05, w: 3.40, rot: 45, dx: 1.34, dy: 1.05 },
-    { left: 4.96, top: 8.97, w: 6.03, rot: -45, dx: 0.03, dy: -1.87 },
-  ];
+  /**
+   * ⚠️ 和导航栏那三行**完全同构**的几何（用户要求"先确保默认状态两根线长度和间距
+   *    都是占比正方形的状态，展开后和导航栏那个一样交叉"）：
+   *
+   *   默认（正方形占比）：
+   *     线长 L = 5，两条线的间距也是 5 → 两条线 + 中间空隙 = 一个 5×5 的正方形 ✓
+   *     两条线水平居中：x 5.5 → 10.5（图标盒 16，中心 8）✓
+   *     纵向中心分别落在 y = 5.5 和 10.5（也关于 8 对称）✓
+   *
+   *   展开（交叉）：
+   *     旋转中心 = **每条线的左端** x = 5.5
+   *     枢轴到交叉点的距离 = √(2.5² + 2.5²) = 3.536（由两行间距 5 决定，是定值）
+   *     四臂等长条件 → 右伸 b − 左伸 a = 2 × 3.536 = 7.071
+   *     左伸 a = 0（枢轴就在线的左端）→ 展开态线长 = 7.071，右端 = 5.5 + 7.071 = 12.571
+   *
+   *   校验：叉的包围盒 x 5.5→10.5（中心 8.00 ✓）  y 5.5→10.5（中心 8.00 ✓）
+   *         图标盒中心 = 8 ✓✓ → **两个状态都精确居中，不需要任何偏移** ✓
+   */
+  const PIVOT_X = 5.5;          // 线的左端 = 旋转中心
+  const REST_LEN = 5;           // 默认线长（= 间距 → 正方形）
+  const OPEN_LEN = 7.071;       // 展开线长（保证四臂等长）
+  const LINE_H = 1.2;
+  const restScale = REST_LEN / OPEN_LEN; // ≈ 0.7071
+  const rowCy = [5.5, 10.5];    // 两条线的纵向中心
 
   return (
     <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: W, height: H }}>
       {/*
         外框：**直接用原图 file_list.svg 里那条外框路径抽出来的遮罩**
         （public/file_list-body.svg）—— 这样外框和用户原来看到的**逐像素一致** ✓
-        上一版我是用圆角矩形自己拼的，形状明显不一样，被用户一眼看出来 ✗
       */}
       <span
         className={`absolute inset-0 m-auto block ${BAR}`}
@@ -222,31 +239,39 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
           maskPosition: "center",
         }}
       />
-      {/* 里面两条线：以各自中心旋转并朝文件夹体中心平移，最后交成一个叉 */}
-      {lines.map((l, i) => {
-        // 整条 transform 串在一起写：framer-motion 才能把它交给 GPU 合成（分开写 x/y/rotate 会走主线程）✓
-        const to = { transform: `translate(${l.dx}px, ${l.dy}px) rotate(${l.rot}deg)` };
-        const rest = { transform: "translate(0px, 0px) rotate(0deg)" };
-        return (
+      {/* 里面两条线：父级绕**线左端**旋转，子级（线自己）从 5 长到 7.071 ✓ */}
+      {rowCy.map((cy, i) => (
+        <span
+          key={i}
+          className="absolute left-0 right-0 block"
+          style={{ top: cy - LINE_H / 2, height: LINE_H }}
+        >
           <motion.span
-            key={i}
-            className={`absolute rounded-full ${BAR}`}
-            style={{
-              left: l.left,
-              top: l.top,
-              width: l.w,
-              height: 1.2,
-              transformOrigin: "center center",
-            }}
+            className="absolute inset-0 block"
+            /* 旋转中心必须写在**真正动的那一层**（导航栏那次就是栽在这里 ✗）*/
+            style={{ transformOrigin: `${PIVOT_X}px center` }}
             initial={false}
-            animate={reduce ? { opacity: open ? 0.5 : 1 } : (open ? to : rest)}
+            animate={reduce ? { opacity: open ? 0.5 : 1 } : { rotate: open ? (i === 0 ? 45 : -45) : 0 }}
             transition={reduce ? { duration: D_MORPH, ease: EASE_OUT } : SPRING_MORPH_SOFT}
-          />
-        );
-      })}
+          >
+            <motion.span
+              className={`absolute top-0 rounded-full ${BAR}`}
+              style={{
+                left: PIVOT_X,
+                width: OPEN_LEN,
+                height: LINE_H,
+                // 锚点在左端 → scaleX 只往右长（默认 5 → 展开 7.071）✓
+                transformOrigin: 'left center',
+              }}
+              initial={false}
+              animate={reduce ? { opacity: open ? 0.5 : 1 } : { scaleX: open ? 1 : restScale }}
+              transition={reduce ? { duration: D_MORPH, ease: EASE_OUT } : SPRING_MORPH_SOFT}
+            />
+          </motion.span>
+        </span>
+      ))}
       {reduce && open && (
         // 减少动效时：不转线，直接给一个居中的静态叉做状态提示
-        // （用 inset-0 + flex 居中，别再依赖已经删掉的那个 cy 变量）
         <span
           aria-hidden
           className="absolute inset-0 flex items-center justify-center font-black leading-none text-slate-800 dark:text-slate-100"
