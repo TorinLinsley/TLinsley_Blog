@@ -214,9 +214,21 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
   const PIVOT_X = 5.5;          // 线的左端 = 旋转中心
   const REST_LEN = 5;           // 默认线长（= 间距 → 正方形）
   const OPEN_LEN = 7.071;       // 展开线长（保证四臂等长）
-  const LINE_H = 1.2;
+  /**
+   * 线粗细 1.1（原来 1.2）—— 用户要求"细那么一丢丢，但不要太细不然看不明显" ✓
+   * 只影响视觉粗细，**不影响交叉几何**（枢轴到交叉点只由两行间距决定 ✓）
+   */
+  const LINE_H = 1.1;
   const restScale = REST_LEN / OPEN_LEN; // ≈ 0.7071
-  const rowCy = [5.5, 10.5];    // 两条线的纵向中心
+  /**
+   * 两条线的纵向中心 = 6.1 / 11.1（原来是 5.5 / 10.5）
+   *   ⚠️ 用户反馈"上面那根往下移动一点，感觉都挨着外轮廓了，不协调" ✓
+   *   整组往下 0.6：因为文件夹体在 tab **下方**，它的视觉重心本来就在 8.6 附近，
+   *   而不是图标盒的几何中心 8 ✓
+   *   ⚠️ 间距仍然是 11.1 − 6.1 = 5 = 线长 → **正方形占比保持不变** ✓
+   *   ⚠️ 交叉点也跟着落到 8.6，和默认状态同一个中心 ✓ 两个状态依然是统一的 ✓
+   */
+  const rowCy = [6.1, 11.1];
 
   return (
     <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: W, height: H }}>
