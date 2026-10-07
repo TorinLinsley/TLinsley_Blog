@@ -309,74 +309,46 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ③ 大纲按钮：默认态沿用 outline.svg 遮罩 ⇄ 展开态三条圆角矩形
-      展开：三条从**左边**依次向右"伸"出来（scaleX，左端为锚点），依次错开 45ms
-      收起：原路缩回去（反向错开，读起来像被依次收走）
-   ═══════════════════════════════════════════════════════════════ */
-export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
-  const reduce = useReducedMotion();
-  // 三条的**起点和宽度**都按原图 outline-open.svg 的几何来（1024 视图盒 → 16px）：
-  //   圆角矩形左端 x = 256/1024 × 16 ≈ 4px（**就是圆圈所在的那条竖线上**，不是图标最左边 ✗）
-  //   宽度 640 / 384 / 384
-  const bars = [
-    { top: 2.0, left: 4, w: 0.625 },
-    { top: 6.8, left: 4, w: 0.375 },
-    { top: 11.6, left: 4, w: 0.375 },
-  ];
-  const maskStyle: React.CSSProperties = {
-    WebkitMaskImage: "url(/outline.svg)",
-    maskImage: "url(/outline.svg)",
-    WebkitMaskSize: "contain",
-    maskSize: "contain",
-    WebkitMaskRepeat: "no-repeat",
-    maskRepeat: "no-repeat",
-    WebkitMaskPosition: "center",
-    maskPosition: "center",
-  };
+   ③ 大纲按钮：**暂时回退成原来的「两张 svg 瞬间切换」** ✓
+      （用户要求：先回退，再用新设计重做 ✓）
 
+   📌 新设计规格（已和用户确认，等下一轮实现）：
+      · 把 outline.svg / outline-open.svg 拆成**可动基本元素** ——
+        3 个空心圆圈（各自圆心 + 半径）+ 3 条连接线（各自起点 + 终点）
+      · **展开**：3 个圆圈**各自从自己所在的位置**像进度条一样向右拉伸，
+        变成 outline-open.svg 里对应的那条圆角长条；
+        线则从**自己的断点**朝圆圈方向伸展过去，**刚好接在长条边框上**
+      · **收起**：完全反着来 —— 线反着收回，圆角长条倒着缩回成圆圈
+      · 全员用弹簧（形变），不需要透明度变化（不涉及元素出现/消失）
+
+   ⚠️ 我之前那版错在哪：另起一层、从**图标最左边**往右伸 ✗
+      正确是"**圆圈本身**被拉长" ✓（同一个元素，不是新加图层）
+   ═══════════════════════════════════════════════════════════════ */
+export function TocBars({ open }: { open: boolean; size?: number }) {
+  const maskStyle = (src: string): React.CSSProperties => ({
+    WebkitMaskImage: `url(${src})`,
+    maskImage: `url(${src})`,
+    WebkitMaskSize: 'contain',
+    maskSize: 'contain',
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center',
+    maskPosition: 'center',
+  });
   return (
-    <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: size, height: size }}>
-      {/* 默认态：原样保留那张遮罩图 */}
-      <motion.span
-        className={`absolute inset-0 m-auto block w-4 h-4 ${BAR}`}
-        style={maskStyle}
-        initial={false}
-        animate={{ opacity: open ? 0 : 1 }}
-        transition={{ duration: reduce ? 0.12 : 0.16, ease: EASE_OUT }}
+    <>
+      <span
+        aria-hidden
+        data-icon-state="closed"
+        className={`absolute inset-0 m-auto w-4 h-4 ${BAR} ${open ? 'opacity-0' : 'opacity-100'}`}
+        style={maskStyle('/outline.svg')}
       />
-      {/* 展开态：三个真实圆角矩形，从左边"依次伸"出来（这就是"伸"的那一拍） */}
-      {bars.map((b, i) => {
-        const delay = reduce ? 0 : (open ? i : bars.length - 1 - i) * STAGGER;
-        return (
-          <motion.span
-            key={i}
-            className="absolute rounded-[2px] border-[1.5px] border-slate-800 dark:border-slate-100"
-            style={{
-              // ⚠️ 从**圆圈那条竖线**（x≈4px）开始伸，不是图标最左边 ✗
-              left: b.left,
-              top: b.top,
-              width: size * b.w,
-              height: 3.2,
-              transformOrigin: "left center",
-            }}
-            initial={false}
-            // 展开后**就停在这儿**（不再淡出）—— 之前有个"淡出→淡入原图"的交接，
-            // 那个交接不可靠，用户看到的是"伸出来又没了，伸了个寂寞" ✗ 直接去掉 ✓
-            animate={{ scaleX: open ? 1 : 0, opacity: 1 }}
-            transition={
-              reduce
-                ? { duration: 0.12, ease: EASE_OUT, delay }
-                : { ...SPRING_MORPH, delay }
-            }
-          />
-        );
-      })}
-      {/*
-        ⚠️ 这里原来还有一个"伸完 → 淡入 outline-open.svg"的交接层，已经**删掉**：
-        用户实测看到的是"伸出来又没了，伸了个寂寞"—— 那个交接不可靠（淡出和淡入之间
-        容易出现一段两边都不可见的窗口）。现在三条矩形**展开后就停在原地**当最终状态，
-        不再有任何交接，不可能再出现"伸完就消失" ✓
-      */}
-    </span>
+      <span
+        aria-hidden
+        data-icon-state="open"
+        className={`absolute inset-0 m-auto w-4 h-4 ${BAR} ${open ? 'opacity-100' : 'opacity-0'}`}
+        style={maskStyle('/outline-open.svg')}
+      />
+    </>
   );
 }
