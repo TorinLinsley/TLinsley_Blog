@@ -338,6 +338,26 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
    *    上面的圆环保持原图的 cx 3.90 ✓（它的接缝在**下方**，靠纵线接 ✓）
    */
   const LINK_END_X = 8.02;              // 连接线横枝末端（从原图算出来的 ✓）
+  /**
+   * ⚠️ 上面那根竖线的最高点只到 y = 382÷64 = **5.97** ✓
+   *    而上面圆环的下沿在 3.16 + 1.935 = **5.095** → **缺口 0.87px** ✓
+   *    （用户："上面那个圆圈下面的线你还没延伸上去呢"）
+   *    → 补一小段静态竖线把它俩接起来 ✓
+   *    位置取**连接线自己的 x = 4.12** ✓（不是圆心 x，否则会左右错半格 ✗）
+   *    在 x=4.12 处圆环下沿的 y = 3.16 + √(1.935² − (4.12−3.90)²) = 5.082 ✓
+   */
+  const BRIDGE_X = 4.12;
+  const BRIDGE_Y1 = 5.08;   // 圆环下沿
+  const BRIDGE_Y2 = 6.02;   // 略微压进连接线里一点，保证无缝 ✓
+  /**
+   * ⚠️ 整体动态居中（用户："不管拉伸还是没拉伸，整个图案都始终居中在按钮中心"）
+   *    默认态内容 x 1.965→11.89  中心 6.93  → 要右移 +1.07 才到盒心 8 ✓
+   *    展开态内容 x 1.965→14.575 中心 8.27  → 要左移 −0.27 ✓
+   *    → 把**两层一起**包进一个 motion.span 里做 translateX
+   *      这样动画过程中每一帧都在居中 ✓（不是两个状态各跳一下 ✗）
+   */
+  const SHIFT_CLOSED = 1.07;
+  const SHIFT_OPEN = -0.27;
   const rings = [
     { cx: 3.9, cy: 3.16 },              // 上：在左上方，接纵向那条线 ✓
     { cx: LINK_END_X + OUTER, cy: 7.92 },  // 中：9.955 ✓
@@ -346,7 +366,14 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   const spring = reduce ? { duration: 0.12, ease: EASE_OUT } : SPRING_MORPH;
 
   return (
-    <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: size, height: size }}>
+    <motion.span
+      aria-hidden
+      className="absolute inset-0 m-auto block"
+      style={{ width: size, height: size }}
+      initial={false}
+      animate={{ x: open ? SHIFT_OPEN : SHIFT_CLOSED }}   /* 动态居中：每帧都在修正 ✓ */
+      transition={spring}
+    >
       {/* 静态连接线：直接用原图抽出来的那份 ✓ */}
       <span
         className={`absolute inset-0 m-auto block ${BAR}`}
@@ -373,6 +400,8 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
         stroke="currentColor"
         strokeWidth={SW}
       >
+        {/* ⚠️ 补的那一小段竖线：把上面圆环的下沿接到连接线上 ✓（原图这里有 0.87px 的缺口 ✗）*/}
+        <line x1={BRIDGE_X} y1={BRIDGE_Y1} x2={BRIDGE_X} y2={BRIDGE_Y2} />
         {rings.map((r, i) => {
           const x = r.cx - R;
           const y = r.cy - R;
@@ -397,6 +426,6 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
           );
         })}
       </svg>
-    </span>
+    </motion.span>
   );
 }
