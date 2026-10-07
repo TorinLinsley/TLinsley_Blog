@@ -56,8 +56,17 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
   const FUSED_R = 14.36;
   const FUSED_W = FUSED_R - FUSED_L; // 12.76
   const REST_W = 9.66;               // 未融合时线的长度
-  /** 未融合 / 融合 的长度比（用 scaleX 表达；锚点在右端 → 只往左延伸 ✓） */
-  const REST_SCALE = REST_W / FUSED_W; // ≈ 0.757
+  /**
+   * ⚠️ 展开态的线要**往右拉长**到 16.6（用户反馈："交叉后左右占比和默认状态不一样"）：
+   *   叉的左边界被圆点钉死在 x=2.5，所以右边界必须更长，包围盒中心才能回到盒心附近 ✓
+   *   16.6 是**算出来的上限**：旋转 45° 后右端落在 y = 4.94 + (16.6-2.5)×0.7071 = 14.9 < 18 ✓ 不溢出
+   *   再长就会溢出图标盒 ✗（所以没法做到 100% 精确居中，这是圆点当枢轴的固有代价）
+   */
+  const OPEN_R = 16.6;
+  const OPEN_W = OPEN_R - FUSED_L;   // 15.0 ← 元素本身的宽度
+  /** 未融合状态 = 元素整体缩到 9.66 并右移 3.1 → 落回原图的 [4.7, 14.36] ✓ */
+  const REST_SCALE = REST_W / OPEN_W; // ≈ 0.644
+  const REST_SHIFT = 4.7 - FUSED_L;   // 3.1
   const BAR_H = 1.8;
   const rowCy = [3.94, 8.0, 12.09]; // 上 / 中 / 下
 
@@ -109,12 +118,13 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
           ? { clipPath: 'inset(0 0% 0 0)' }
           : { rotate: 0 };
         /**
-         * ⚠️ 三条线**默认都必须**是 REST_SCALE（点 + 间隙 + 线）—— 中间那条也一样 ✓
-         *   之前我给中间那条写了 1（= 融合后的长度），结果它默认就变成一根长直线了 ✗
-         *   中间的"伸缩"是靠**父级整行 scaleX** 完成的，跟线自己的长度无关 ✓
+         * 线的两个状态（锚点在**左端** FUSED_L，所以 scaleX 只往右长）：
+         *   展开：scaleX 1 + x 0     → 铺满 [1.6, 16.6]，左边盖住圆点完成融合 ✓
+         *   收起：scaleX 0.644 + x 3.1 → 变成 [4.7, 14.36]，**和原图完全一致** ✓
+         * 中间那条两个状态都用收起态（它的伸缩靠父级 clip-path 擦除完成 ✓）
          */
-        const lineTo = isMid ? { scaleX: REST_SCALE } : { scaleX: 1 };
-        const lineRest = { scaleX: REST_SCALE };
+        const lineTo = isMid ? { scaleX: REST_SCALE, x: REST_SHIFT } : { scaleX: 1, x: 0 };
+        const lineRest = { scaleX: REST_SCALE, x: REST_SHIFT };
         return (
           <span
             key={i}
@@ -155,9 +165,9 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
                 className={`absolute top-0 rounded-full ${BAR}`}
                 style={{
                   left: FUSED_L,
-                  width: FUSED_W,
+                  width: OPEN_W,
                   height: BAR_H,
-                  transformOrigin: 'right center',
+                  transformOrigin: 'left center',
                 }}
                 initial={false}
                 animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? lineTo : lineRest)}
