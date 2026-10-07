@@ -228,7 +228,11 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
    *   校验：枢轴 (5, 6.35) 走 7.5、转 36.87° → 位移 (6, 4.5) → 落点 (11, 10.85) = 右下角 ✓
    *         枢轴 (5, 10.85) 反方向      → 位移 (6, -4.5) → 落点 (11, 6.35) = 右上角 ✓
    */
-  const ROW_GAP = 4.5;               // 长方形的高 H = 两条线的间距
+  const ROW_GAP = 3.5;               // 长方形的高 H = 两条线的间距
+                                     // ⚠️ 用户反馈"间距太宽，再挨紧一点，上下比例压缩一点" →
+                                     //    4.5 收到 3.5 ✓ 宽高比从 1.33 变成 1.71（更扁 ✓）
+                                     //    改这一个数就够：下面的倾斜角、展开线长、两行位置
+                                     //    全都是从 REST_LEN / ROW_GAP 自动推导的 ✓ 不用手改 ✓
   const REST_LEN = 6;                // 长方形的宽 W = 默认线长（拉长了 ✓）
   const OPEN_LEN = Math.hypot(REST_LEN, ROW_GAP); // 7.5 = 对角线
   const restScale = REST_LEN / OPEN_LEN;          // 0.8（展开时变长 ✓）
