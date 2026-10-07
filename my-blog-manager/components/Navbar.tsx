@@ -318,7 +318,10 @@ export default function Navbar() {
                       <motion.span
                         aria-hidden
                         className={`absolute left-0 right-0 ${
-                          active ? 'bg-indigo-500' : 'bg-indigo-400'
+                          /* ⚠️ 深色模式把两个紫色**对调** ✓（浅紫在深色导航栏上更明显 ✓） */
+                          active
+                            ? 'bg-indigo-500 dark:bg-indigo-400'
+                            : 'bg-indigo-400 dark:bg-indigo-500'
                         }`}
                         style={{ bottom: 0, height: '0.5em' }}
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
@@ -550,7 +553,7 @@ export default function Navbar() {
                       <span className="relative inline-block">
                         <motion.span
                           aria-hidden
-                          className="absolute left-0 right-0 bg-indigo-500"
+                          className="absolute left-0 right-0 bg-indigo-500 dark:bg-indigo-400"
                           style={{ bottom: 0, height: '0.5em' }}
                           initial={{ clipPath: 'inset(0 100% 0 0)' }}
                           animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
