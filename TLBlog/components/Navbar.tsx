@@ -25,6 +25,14 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   /** 当前鼠标悬停的选项卡 href（null = 没有悬停）—— 桌面端色块用 ✓ 触摸设备不会触发 ✓ */
   const [hovered, setHovered] = useState<string | null>(null);
+  /**
+   * 已经点过、正在等新页面加载的那个选项卡 ✓
+   *   ⚠️ 用户反馈："点了别的选项卡后鼠标迅速移开，色块先缩回了 ✗
+   *      等新页面加载出来又伸出来 ✗ —— 点击后应该**固定住已伸出的状态**" ✓
+   *   → 点过之后把这个 href 记下来，它的色块**不再受鼠标移开影响** ✓
+   *   → 新页面挂载后组件重建，这个状态自然清空 ✓ 不会残留 ✓
+   */
+  const [clicked, setClicked] = useState<string | null>(null);
   const pathname = usePathname();
   const { isDark, toggleTheme } = useTheme();
   /** 抽屉本体 / 汉堡按钮：交给 layerStack 判断"这一下该不该收" */
@@ -171,6 +179,8 @@ export default function Navbar() {
                     /* 鼠标进入/离开驱动色块；触摸设备不会触发这两个事件 ✓ 等于天然只在桌面生效 ✓ */
                     onMouseEnter={() => setHovered(link.href)}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
+                    /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓ */
+                    onClick={() => setClicked(link.href)}
                   >
                     <span className="relative inline-block">
                       {/* 色块：垫在文字下层 ✓
@@ -194,7 +204,7 @@ export default function Navbar() {
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
-                            hovered === link.href || active
+                            hovered === link.href || active || clicked === link.href
                               ? 'inset(0 0% 0 0)'
                               : 'inset(0 100% 0 0)',
                         }}
