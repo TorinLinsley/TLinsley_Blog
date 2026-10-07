@@ -309,46 +309,85 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ③ 大纲按钮：**暂时回退成原来的「两张 svg 瞬间切换」** ✓
-      （用户要求：先回退，再用新设计重做 ✓）
+   ③ 大纲按钮：**重写版** —— 圆圈本身拉伸成长条 + 线从断点伸展过去
 
-   📌 新设计规格（已和用户确认，等下一轮实现）：
-      · 把 outline.svg / outline-open.svg 拆成**可动基本元素** ——
-        3 个空心圆圈（各自圆心 + 半径）+ 3 条连接线（各自起点 + 终点）
-      · **展开**：3 个圆圈**各自从自己所在的位置**像进度条一样向右拉伸，
-        变成 outline-open.svg 里对应的那条圆角长条；
-        线则从**自己的断点**朝圆圈方向伸展过去，**刚好接在长条边框上**
-      · **收起**：完全反着来 —— 线反着收回，圆角长条倒着缩回成圆圈
-      · 全员用弹簧（形变），不需要透明度变化（不涉及元素出现/消失）
+   做法：整个图标是**一个内联 SVG**（viewBox 0 0 16 16），里面：
+     · 3 个 `<motion.rect>`：默认是**空心圆圈**（宽=高=直径、rx=半径 → 正好是圆 ✓），
+       展开变成长条矩形（同时改 x / y / width / height / rx）
+       ⚠️ 用 SVG 属性动画而不是 CSS scaleX：scaleX 会把**边框粗细一起拉变形** ✗
+          SVG 属性动画只重绘、不触发布局，而且 stroke 永远是 1px ✓
+     · 1 条竖线（左边那根"脊柱"，静止 ✓）
+     · 2 条连接线：从**线的断点**（贴着脊柱）朝圆圈方向伸展，
+       展开时正好接到长条的左边框上 ✓（`x2` 从小到大 ✓ = 进度条式 ✓）
 
-   ⚠️ 我之前那版错在哪：另起一层、从**图标最左边**往右伸 ✗
-      正确是"**圆圈本身**被拉长" ✓（同一个元素，不是新加图层）
+   几何取自两个原图（1024 视图盒 ÷ 64 = 16px）：
+     圆环：上 (4.0, 3.5) r 1.9   中 (12.1, 8.5) r 1.9   下 (12.1, 13.5) r 1.9
+     长条：上 x 3→15 y 2→5      中 x 7→15 y 7→10       下 x 7→15 y 12→15
+     竖线：x 1.5, y 3→14
    ═══════════════════════════════════════════════════════════════ */
 export function TocBars({ open }: { open: boolean; size?: number }) {
-  const maskStyle = (src: string): React.CSSProperties => ({
-    WebkitMaskImage: `url(${src})`,
-    maskImage: `url(${src})`,
-    WebkitMaskSize: 'contain',
-    maskSize: 'contain',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-    WebkitMaskPosition: 'center',
-    maskPosition: 'center',
-  });
+  const reduce = useReducedMotion();
+  const STROKE = 1;
+  /** 三条：默认（圆环）⇄ 展开（长条）。rx 用 9999 会在某些浏览器上出问题，所以直接给半径/圆角值 ✓ */
+  const shapes = [
+    { // 上
+      ring: { x: 2.1, y: 1.6, w: 3.8, h: 3.8, rx: 1.9 },
+      bar:  { x: 3,   y: 2,   w: 12,  h: 3,   rx: 1 },
+    },
+    { // 中
+      ring: { x: 10.2, y: 6.6, w: 3.8, h: 3.8, rx: 1.9 },
+      bar:  { x: 7,    y: 7,   w: 8,   h: 3,   rx: 1 },
+    },
+    { // 下
+      ring: { x: 10.2, y: 11.6, w: 3.8, h: 3.8, rx: 1.9 },
+      bar:  { x: 7,    y: 12,  w: 8,   h: 3,   rx: 1 },
+    },
+  ];
+  /** 两条连接线：默认短、展开时长（x2 变大 = 从断点朝形状方向伸 ✓） */
+  const links = [
+    { y: 3.5, from: 1.5, ringTo: 2.1, barTo: 3 },
+    { y: 13.5, from: 1.5, ringTo: 2.1, barTo: 7 },
+  ];
+  const spring = reduce ? { duration: 0.12, ease: EASE_OUT } : SPRING_MORPH;
+
   return (
-    <>
-      <span
-        aria-hidden
-        data-icon-state="closed"
-        className={`absolute inset-0 m-auto w-4 h-4 ${BAR} ${open ? 'opacity-0' : 'opacity-100'}`}
-        style={maskStyle('/outline.svg')}
-      />
-      <span
-        aria-hidden
-        data-icon-state="open"
-        className={`absolute inset-0 m-auto w-4 h-4 ${BAR} ${open ? 'opacity-100' : 'opacity-0'}`}
-        style={maskStyle('/outline-open.svg')}
-      />
-    </>
+    <svg
+      aria-hidden
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      /* 用 currentColor + 主题类名跟随深浅色 ✓（写死颜色会让深色模式下看不清 ✗）*/
+      className="absolute inset-0 m-auto block overflow-visible text-slate-800 dark:text-slate-100"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={STROKE}
+      strokeLinecap="round"
+    >
+      {/* 左侧竖线（脊柱）：静止不动 ✓ */}
+      <line x1={1.5} y1={3} x2={1.5} y2={14} />
+      {/* 两条连接线：从断点朝形状方向伸展 ✓ */}
+      {links.map((l, i) => (
+        <motion.line
+          key={`link-${i}`}
+          y1={l.y}
+          y2={l.y}
+          initial={false}
+          animate={{ x1: l.from, x2: open ? l.barTo : l.ringTo }}
+          transition={spring}
+        />
+      ))}
+      {/* 三个形状：圆环 ⇄ 长条 */}
+      {shapes.map((s, i) => {
+        const t = open ? s.bar : s.ring;
+        return (
+          <motion.rect
+            key={`shape-${i}`}
+            initial={false}
+            animate={{ attrX: t.x, attrY: t.y, width: t.w, height: t.h, rx: t.rx }}
+            transition={spring}
+          />
+        );
+      })}
+    </svg>
   );
 }
