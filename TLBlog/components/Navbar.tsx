@@ -295,17 +295,32 @@ export default function Navbar() {
                 {navLinks.map((link) => {
                   const active = isActivePath(link.href);
                   return (
+                    /*
+                      ⚠️ 手机端选项卡列表（用户要求"和大屏一起改"）✓
+                        · 去掉原来的**实色紫背景 + 白字** ✗（那会改文字颜色 ✗）
+                        · 换成和大屏同一套：文字下层一个高 = 文字 1/3 的色块 ✓
+                          选中时**常驻**（站点原有的紫 indigo-500 ✓）
+                          切换时反着缩回 ✓（本页正常播放 ✓）
+                        · **字号一个字不动** ✓（13px / sm 15px ✓）
+                        · 触摸屏没有悬停 ✓ 所以这里只有"选中"这一个状态 ✓
+                    */
                     <Link
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-200 ${
-                        active
-                          ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                          : 'text-slate-700 dark:text-slate-200 hover:bg-white/70 dark:hover:bg-slate-800/70'
-                      }`}
+                      className="px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate text-slate-700 dark:text-slate-200"
                     >
-                      {link.name}
+                      <span className="relative inline-block">
+                        <motion.span
+                          aria-hidden
+                          className="absolute left-0 right-0 rounded-[3px] bg-indigo-500"
+                          style={{ bottom: 0, height: '0.34em' }}
+                          initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                          animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
+                          transition={HOVER_REVEAL}
+                        />
+                        <span className="relative">{link.name}</span>
+                      </span>
                     </Link>
                   );
                 })}
