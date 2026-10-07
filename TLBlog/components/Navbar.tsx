@@ -173,13 +173,16 @@ export default function Navbar() {
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
                   >
                     <span className="relative inline-block">
-                      {/* 色块：垫在文字下层 ✓ 高 = 文字高度 1/3 ✓ 从左边进度条式揭开 ✓ */}
+                      {/* 色块：垫在文字下层 ✓
+                          ⚠️ 位置：贴齐**文字框的底边、完全落在文字区域之内** ✓
+                             （用户："摆在文本的底部，但处于文本下层，不是在文本像素区域外"）
+                             原来是 bottom:-0.06em ✗ 探到框外去了 ✗ */}
                       <motion.span
                         aria-hidden
                         className={`absolute left-0 right-0 rounded-[3px] ${
                           active ? 'bg-indigo-500' : 'bg-indigo-400'
                         }`}
-                        style={{ bottom: '-0.06em', height: '0.34em' }}
+                        style={{ bottom: 0, height: '0.34em' }}
                         initial={false}
                         animate={{
                           clipPath:
