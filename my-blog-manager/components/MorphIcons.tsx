@@ -107,58 +107,65 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
   const reduce = useReducedMotion();
   const W = size;
   const H = size;
-  const bodyTop = 3.5;
-  const bodyH = H - bodyTop - 0.5;
 
-  // 里面两条线：一短一长（和 file_list.svg 一样不等长）
+  // 里面两条线的位置/长度**完全取自原图 file_list.svg**（1024 视图盒 → 16px 换算）
+  //   短的：x 317→534，y 中心 438   |   长的：x 317→703，y 中心 625
   const lines = [
-    { top: 8.5, w: 6.5, rot: 45 },
-    { top: 11.5, w: 9.5, rot: -45 },
+    { left: 4.96, top: 6.05, w: 3.40, rot: 45, dx: 1.34, dy: 1.05 },
+    { left: 4.96, top: 8.97, w: 6.03, rot: -45, dx: 0.03, dy: -1.87 },
   ];
-  // 两条线交叉的目标点：文件夹体中心
-  const cx = W / 2;
-  const cy = bodyTop + bodyH / 2;
 
   return (
     <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: W, height: H }}>
-      {/* 外框：文件夹体（不参与动效） */}
+      {/*
+        外框：**直接用原图 file_list.svg 里那条外框路径抽出来的遮罩**
+        （public/file_list-body.svg）—— 这样外框和用户原来看到的**逐像素一致** ✓
+        上一版我是用圆角矩形自己拼的，形状明显不一样，被用户一眼看出来 ✗
+      */}
       <span
-        className="absolute left-0 right-0 rounded-[2px] border-[1.5px] border-slate-800 dark:border-slate-100"
-        style={{ top: bodyTop, height: bodyH }}
+        className={`absolute inset-0 m-auto block ${BAR}`}
+        style={{
+          width: W,
+          height: H,
+          WebkitMaskImage: "url(/file_list-body.svg)",
+          maskImage: "url(/file_list-body.svg)",
+          WebkitMaskSize: "contain",
+          maskSize: "contain",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+        }}
       />
-      {/* 左上角那个"文件夹耳朵" */}
-      <span
-        className="absolute left-0 rounded-t-[2px] border-[1.5px] border-b-0 border-slate-800 dark:border-slate-100"
-        style={{ top: bodyTop - 2.5, width: W * 0.42, height: 2.5 }}
-      />
-      {/* 里面两条线：以各自中心旋转并平移，最后交于同一点 */}
+      {/* 里面两条线：以各自中心旋转并朝文件夹体中心平移，最后交成一个叉 */}
       {lines.map((l, i) => {
-        const toY = cy - (l.top + 0.8);
-        const to = { y: toY, rotate: l.rot };
-        const rest = { y: 0, rotate: 0 };
+        // 整条 transform 串在一起写：framer-motion 才能把它交给 GPU 合成（分开写 x/y/rotate 会走主线程）✓
+        const to = { transform: `translate(${l.dx}px, ${l.dy}px) rotate(${l.rot}deg)` };
+        const rest = { transform: "translate(0px, 0px) rotate(0deg)" };
         return (
           <motion.span
             key={i}
             className={`absolute rounded-full ${BAR}`}
             style={{
-              left: (W - l.w) / 2,
+              left: l.left,
               top: l.top,
               width: l.w,
-              height: 1.6,
+              height: 1.2,
               transformOrigin: "center center",
             }}
             initial={false}
-            animate={reduce ? { opacity: open ? 0.6 : 1 } : (open ? to : rest)}
+            animate={reduce ? { opacity: open ? 0.5 : 1 } : (open ? to : rest)}
             transition={reduce ? { duration: D_MORPH, ease: EASE_OUT } : SPRING_MORPH_SOFT}
           />
         );
       })}
       {reduce && open && (
-        // 减少动效时：不转线，直接给一个静态的叉做状态提示
+        // 减少动效时：不转线，直接给一个居中的静态叉做状态提示
+        // （用 inset-0 + flex 居中，别再依赖已经删掉的那个 cy 变量）
         <span
           aria-hidden
-          className="absolute left-0 right-0 m-auto text-center font-black leading-none text-slate-800 dark:text-slate-100"
-          style={{ top: cy - 7, fontSize: 13 }}
+          className="absolute inset-0 flex items-center justify-center font-black leading-none text-slate-800 dark:text-slate-100"
+          style={{ fontSize: 13 }}
         >
           ×
         </span>
