@@ -86,10 +86,15 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
          *      → 结果"线在转、三个点却在慢慢变透明"，而且交点被拖偏 ✓
          */
         const rowTo = isMid
-          ? { scaleX: 0 }                                   // 整行缩进圆心
+          ? { scaleX: 0 }                                   // 整行（含圆点）缩进圆心
           : { rotate: i === 0 ? 45 : -45 };                 // 上顺下逆
-        const lineTo = isMid ? { scaleX: 0 } : { scaleX: 1 }; // 融合（往左长）
-        const lineRest = { scaleX: isMid ? 1 : REST_SCALE };
+        /**
+         * ⚠️ 三条线**默认都必须**是 REST_SCALE（点 + 间隙 + 线）—— 中间那条也一样 ✓
+         *   之前我给中间那条写了 1（= 融合后的长度），结果它默认就变成一根长直线了 ✗
+         *   中间的"伸缩"是靠**父级整行 scaleX** 完成的，跟线自己的长度无关 ✓
+         */
+        const lineTo = isMid ? { scaleX: REST_SCALE } : { scaleX: 1 };
+        const lineRest = { scaleX: REST_SCALE };
         return (
           <span
             key={i}
@@ -97,12 +102,17 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
             style={{
               top: cy - BAR_H / 2,
               height: BAR_H,
-              // 整个"点+线"这一行，绕**圆心**转 / 绕**圆心**缩 ✓
-              transformOrigin: `${DOT_CX}px center`,
             }}
           >
             <motion.span
               className="absolute inset-0 block"
+              /**
+               * ⚠️⚠️ 旋转中心必须写在**这一层**（真正执行 rotate/scaleX 的是它）——
+               *   之前我写到了外层的 span 上，外层根本不动，内层就退回了默认的
+               *   「自身中心」→ 用户看到"上面的线绕着一整行的中间在转" ✗
+               *   锚点 = **默认状态那个圆点的圆心** (2.5px, 行中心) ✓
+               */
+              style={{ transformOrigin: `${DOT_CX}px center` }}
               initial={false}
               animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? rowTo : { rotate: 0, scaleX: 1 })}
               transition={
