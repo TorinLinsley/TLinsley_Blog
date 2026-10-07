@@ -307,7 +307,7 @@ export default function Navbar() {
                     <span className="relative inline-block">
                       <motion.span
                         aria-hidden
-                        className={`absolute left-0 right-0 rounded-[3px] ${
+                        className={`absolute left-0 right-0 ${
                           active ? 'bg-indigo-500' : 'bg-indigo-400'
                         }`}
                         style={{ bottom: 0, height: '0.5em' }}
@@ -540,7 +540,7 @@ export default function Navbar() {
                       <span className="relative inline-block">
                         <motion.span
                           aria-hidden
-                          className="absolute left-0 right-0 rounded-[3px] bg-indigo-500"
+                          className="absolute left-0 right-0 bg-indigo-500"
                           style={{ bottom: 0, height: '0.5em' }}
                           initial={{ clipPath: 'inset(0 100% 0 0)' }}
                           animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
