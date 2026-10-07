@@ -57,6 +57,15 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
   const BAR_W = 9.66;
   const BAR_H = 1.8;
   const rowCy = [3.94, 8.0, 12.09]; // 上 / 中 / 下
+  /**
+   * 展开时上下两条要**同比伸长**到 2 倍（交叉点到左端的距离），
+   * 这样交叉点才落在两条线的**中点**，左右两段等长 ✓
+   *   交叉点到左端 = √(4.075² + 4.075²) = 5.763
+   *   需要的总长   = 2 × 5.763 = 11.526
+   *   所以 scaleX  = 11.526 / 9.66 = 1.193
+   * ⚠️ 锚点仍在左端 → 只往右伸，左端位置不动 ✓
+   */
+  const OPEN_SCALE = 1.193;
 
   return (
     <span
@@ -76,9 +85,20 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
          *   （之前我先平移再绕中心转，结果交点被拖到左边 —— 用户指出"没在中心交叉" ✗）
          * 中间那条：锚点同样在左端，靠 scaleX 缩回圆点里 ✓
          */
+        /**
+         * ⚠️ 这两个状态是按用户的两条实测反馈定的：
+         *  ① 交叉后左右不对称 —— 因为线的起点在 x=4.7、交叉点在 x=8.78，
+         *     交叉点**不在线条中点**，左边那段比右边长 ✗
+         *     → 展开时 `scaleX: OPEN_SCALE`（锚点左端 → 只往右伸），
+         *       线长补齐到 11.53，交叉点正好落在中点 ✓
+         *  ② 中间那条"看不出缩短、只看到变透明" —— 因为 `scaleX: 0` 和 `opacity: 0`
+         *     同时跑，淡出把收缩过程盖住了 ✗
+         *     → **去掉 opacity**，只留 scaleX，就能看到它从右端往左缩回圆点里 ✓
+         *       （scaleX 到 0 时线本身就没了，不需要再淡出）
+         */
         const to = isMid
-          ? { scaleX: 0, opacity: 0 }
-          : { rotate: i === 0 ? 45 : -45, scaleX: 1, opacity: 1 };
+          ? { scaleX: 0 }
+          : { rotate: i === 0 ? 45 : -45, scaleX: OPEN_SCALE, opacity: 1 };
         const rest = { rotate: 0, scaleX: 1, opacity: 1 };
         return (
           <span key={i} className="absolute left-0 right-0 block" style={{ top: cy - BAR_H / 2, height: BAR_H }}>
