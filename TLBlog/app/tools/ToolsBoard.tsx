@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { SPRING_MORPH } from '../../lib/motion';
 
 /**
  * 🧰 工具导航面板（前台展示用，和「杂谈」同一套视觉）：
@@ -63,6 +64,9 @@ export default function ToolsBoard({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTag] = useState('全部');
+  /** 选中态指示器：减少动效时不滑动、直接瞬移 */
+  const reduceMotion = useReducedMotion();
+  const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -116,13 +120,21 @@ export default function ToolsBoard({
               <button
                 key={tag}
                 onClick={() => setActiveTag(tag)}
-                className={`px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all duration-500 border ${
+                className={`relative px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-colors duration-300 border ${
                   activeTag === tag
-                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-md md:shadow-lg md:shadow-indigo-500/30 scale-105'
+                    ? 'text-white border-indigo-500 scale-105'
                     : 'bg-white/30 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-slate-700/60'
                 }`}
               >
-                {tag === '全部' ? tag : `# ${tag}`}
+                {activeTag === tag && (
+                  <motion.span
+                    aria-hidden
+                    layoutId="tools-tag-pill"
+                    className="absolute inset-0 rounded-lg md:rounded-xl bg-indigo-500 shadow-md md:shadow-lg md:shadow-indigo-500/30"
+                    transition={pillTransition}
+                  />
+                )}
+                <span className="relative z-10">{tag === '全部' ? tag : `# ${tag}`}</span>
               </button>
             ))}
           </div>

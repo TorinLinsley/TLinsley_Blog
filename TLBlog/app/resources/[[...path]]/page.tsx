@@ -24,6 +24,7 @@ import PageTransition from '../../../components/PageTransition';
 import ResourceTreeView, { ResourceNode } from '../../../components/ResourceTreeView';
 import ResourceToc from '../../../components/ResourceToc';
 import ResourcePanels from '../../../components/ResourcePanels';
+import ReadingProgress from '../../../components/ReadingProgress';
 import { siteConfig } from '../../../siteConfig';
 
 // 🏷️ 标签页标题：和其它非首页界面一个写法（友链 / 项目矩阵 / 说说… 都是「栏目名 | 站点名」）
@@ -181,6 +182,8 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
       <Navbar />
+      {/* 📊 阅读进度条：只在真正打开一篇文章时出现（资源列表页不显示） */}
+      {requested && <ReadingProgress />}
       {/* 从导航栏进来（/resources）时播入场动画；
           从左侧列表切换文章（/resources/xxx）时跳过，内容瞬间出现 */}
       <PageTransition disabled={Boolean(requested)}>

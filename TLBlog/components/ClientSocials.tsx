@@ -1,7 +1,10 @@
 // src/components/ClientSocials.tsx
 "use client";
 
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { siteConfig } from '../siteConfig'; // 确保路径正确
+import { D_POPOVER, EASE_OUT } from '../lib/motion';
 
 // 这里我们整合了 SocialBtn 和 ClientSocials
 function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick?: () => void }) {
@@ -20,7 +23,7 @@ function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick
   const content = (
     <div
       onClick={onClick}
-      className="w-8 h-8 rounded-lg bg-white/50 dark:bg-slate-700/50 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all duration-300 border border-white/40 dark:border-white/10 shadow-sm cursor-pointer"
+      className="w-8 h-8 rounded-lg bg-white/50 dark:bg-slate-700/50 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition duration-[140ms] active:scale-[0.97] border border-white/40 dark:border-white/10 shadow-sm cursor-pointer"
       title={type}
     >
       {getIcon()}
@@ -30,19 +33,63 @@ function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick
 }
 
 export default function ClientSocials() {
+  /**
+   * 复制成功后的提示：**自带一个小气泡，不再用 `alert()`**
+   *
+   * ⚠️ 为什么不用现成的 `useToast()`：`ToastProvider` 目前只挂在
+   *    `app/page.tsx` 和 `app/timeline/page.tsx` 两处（不是全局），
+   *    而 `useToast()` 在 Provider 外面是**直接 throw** 的 ——
+   *    这个组件别处也在用，换成 useToast 会让那些页面直接崩掉 ✗
+   *    想全站统一成 toast，正确做法是把 Provider 提到 `app/layout.tsx`，
+   *    那是另一件事，不在本次范围内 ✓
+   *
+   * 动效上：提示文字**只淡不位移**（提示类只配 opacity，别叠位移）✓
+   */
+  const [copied, setCopied] = useState('');
+  const timerRef = useRef<number>(0);
+
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    alert(`✨ ${label}已复制到剪贴板: ${text}`);
+    if (!text) return;
+    void navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(`✨ ${label}已复制`);
+        window.clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => setCopied(''), 1800);
+      },
+      () => {
+        setCopied(`复制失败，请手动复制：${text}`);
+        window.clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => setCopied(''), 2600);
+      },
+    );
   };
 
+  // 组件卸载时清掉计时器，避免在已卸载的组件上 setState
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+
   return (
-    <div className="flex gap-2 flex-wrap justify-center mt-4">
+    <div className="relative flex gap-2 flex-wrap justify-center mt-4">
       <SocialBtn type="github" url={siteConfig.social?.github} />
       <SocialBtn type="gitee" url={siteConfig.social?.gitee} />
       <SocialBtn type="google" url={siteConfig.social?.google} />
       <SocialBtn type="email" onClick={() => copyToClipboard(siteConfig.social?.email || '', '邮箱')} />
       <SocialBtn type="qq" onClick={() => copyToClipboard(siteConfig.social?.qq || '', 'QQ号')} />
       <SocialBtn type="wechat" onClick={() => copyToClipboard(siteConfig.social?.wechat || '', '微信号')} />
+
+      <AnimatePresence>
+        {copied && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: D_POPOVER, ease: EASE_OUT }}
+            className="pointer-events-none absolute left-1/2 bottom-full mb-2 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-slate-800/95 dark:bg-slate-700/95 shadow-lg whitespace-nowrap"
+            style={{ x: '-50%' }}
+          >
+            {copied}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

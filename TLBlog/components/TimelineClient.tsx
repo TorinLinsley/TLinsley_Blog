@@ -2,13 +2,17 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import TimelineNode from './TimelineNode';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { SPRING_MORPH } from '../lib/motion';
 import { Search, Sparkles, LayoutGrid, ListTree, Calendar, Hash, ArrowUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TimelineClient({ posts: initialPosts, tags }: { posts: any[], tags: { name: string, count: number }[] }) {
   const [posts, setPosts] = useState(initialPosts);
   const [selectedTag, setSelectedTag] = useState<string>('All');
+  /** 选中态指示器：减少动效时不滑动、直接瞬移（更轻，但状态提示仍在） */
+  const reduceMotion = useReducedMotion();
+  const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -145,12 +149,28 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
 
         <div className="w-full flex flex-col md:flex-row justify-between items-center gap-6 bg-white/30 dark:bg-slate-800/30 backdrop-blur-md p-4 rounded-3xl border border-white/20 dark:border-white/5">
           <div className="flex flex-wrap justify-center md:justify-start gap-2 flex-1">
-            <button onClick={() => setSelectedTag('All')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${selectedTag === 'All' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white/50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:bg-white'}`}>
-              全部档案
+            <button onClick={() => setSelectedTag('All')} className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-colors duration-300 ${selectedTag === 'All' ? 'text-white' : 'bg-white/50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:bg-white'}`}>
+              {selectedTag === 'All' && (
+                <motion.span
+                  aria-hidden
+                  layoutId="tl-tag-pill"
+                  className="absolute inset-0 rounded-xl bg-indigo-500 shadow-md"
+                  transition={pillTransition}
+                />
+              )}
+              <span className="relative z-10">全部档案</span>
             </button>
             {tags.map(tag => (
-              <button key={tag.name} onClick={() => setSelectedTag(tag.name)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${selectedTag === tag.name ? 'bg-indigo-500 text-white shadow-md' : 'bg-white/50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:bg-white'}`}>
-                {tag.name} <span className="opacity-50 ml-1">{tag.count}</span>
+              <button key={tag.name} onClick={() => setSelectedTag(tag.name)} className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-colors duration-300 ${selectedTag === tag.name ? 'text-white' : 'bg-white/50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:bg-white'}`}>
+                {selectedTag === tag.name && (
+                  <motion.span
+                    aria-hidden
+                    layoutId="tl-tag-pill"
+                    className="absolute inset-0 rounded-xl bg-indigo-500 shadow-md"
+                    transition={pillTransition}
+                  />
+                )}
+                <span className="relative z-10">{tag.name} <span className="opacity-50 ml-1">{tag.count}</span></span>
               </button>
             ))}
           </div>

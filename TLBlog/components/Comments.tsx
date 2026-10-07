@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { D_ENTER, EASE_OUT, SPRING_MORPH } from '../lib/motion';
 import GitalkBox from './GitalkBox';
 import GuestComments from './GuestComments';
 
@@ -75,6 +77,8 @@ export default function Comments({ page }: { page?: string } = {}) {
   const [newestFirst, setNewestFirst] = useState(true);
   const [adminKey, setAdminKey] = useState('');
   const [tip, setTip] = useState('');
+  /** 减少动效：入场只留很短的淡入，重排直接瞬移（更轻，而不是完全不动） */
+  const reduceMotion = useReducedMotion();
 
   // 记住上次选的发布方式（只影响发布框 ✓）+ 管理密钥（有就能删本站的评论 ✓）
   useEffect(() => {
@@ -186,10 +190,24 @@ export default function Comments({ page }: { page?: string } = {}) {
             还没有人留言 —— 来做第一个吧 ✓
           </div>
         ) : (
+          <LayoutGroup>
           <ul className="flex flex-col gap-3 mb-6">
             {shown.map((c) => (
-              <li
+              <motion.li
                 key={c.id}
+                /*
+                 * layout="position"：切换「最新在前 / 最早在前」时，让条目**滑到新位置**
+                 * （只做 position 而不是完整 layout —— 更省，也不会让长评论换行时抖）
+                 * 新发的评论则用 initial/animate 淡入 + 轻微上浮
+                 */
+                layout="position"
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0.12, ease: EASE_OUT, layout: { duration: 0 } }
+                    : { duration: D_ENTER, ease: EASE_OUT, layout: SPRING_MORPH }
+                }
                 className="group relative flex gap-3 p-4 rounded-2xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/40 dark:border-white/10"
               >
                 {c.avatar ? (
@@ -222,9 +240,10 @@ export default function Comments({ page }: { page?: string } = {}) {
                     ✕
                   </button>
                 )}
-              </li>
+              </motion.li>
             ))}
           </ul>
+          </LayoutGroup>
         )}
 
         {/*

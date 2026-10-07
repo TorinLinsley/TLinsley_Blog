@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ResourceToc from './ResourceToc';
+import { TocBars } from './MorphIcons';
 import { registerLayer } from './layerStack';
 
 /**
@@ -25,34 +26,9 @@ const NAV_H = '3.25rem';
 /** 按钮行高度：正好卡在导航栏和正文卡片之间那条空档里，不会压住正文 */
 const TOOL_ROW_H = '2.75rem';
 
-/** 两张图标常驻，切换只改透明度（见上面的说明） */
+/** 展开按钮的图标：真实线条形变（三条矩形从左往右依次"伸"出来 → 淡入原图），详见 MorphIcons.tsx */
 function TocIcon({ open }: { open: boolean }) {
-  const maskStyle = (src: string): React.CSSProperties => ({
-    WebkitMaskImage: `url(${src})`,
-    maskImage: `url(${src})`,
-    WebkitMaskSize: 'contain',
-    maskSize: 'contain',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-    WebkitMaskPosition: 'center',
-    maskPosition: 'center',
-  });
-  return (
-    <>
-      <span
-        aria-hidden
-        data-icon-state="closed"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-0' : 'opacity-100'}`}
-        style={maskStyle('/outline.svg')}
-      />
-      <span
-        aria-hidden
-        data-icon-state="open"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-100' : 'opacity-0'}`}
-        style={maskStyle('/outline-open.svg')}
-      />
-    </>
-  );
+  return <TocBars open={open} />;
 }
 
 export default function MobileToc({ contentKey }: { contentKey: string }) {

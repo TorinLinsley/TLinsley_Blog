@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { FolderLines, TocBars } from './MorphIcons';
 import { registerLayer } from './layerStack';
 
 /** 小屏导航栏高度（和 Navbar 里保持一致）。写成 rem，跟着手机上缩小的根字号一起缩。 */
@@ -22,46 +23,20 @@ const TOOL_ROW_H = '3rem';
 let drawerMemory: null | 'left' | 'right' = null;
 
 /**
- * 两个展开按钮的图标：默认 / 展开各一张 svg，**瞬间切换**（没有任何过渡）。
- *   · 文章列表：file_list.svg  ⇄  open-folder.svg
- *   · 大纲：    outline.svg    ⇄  outline-open.svg
+ * 两个展开按钮的图标：都改成了**真实线条的形变**（见 components/MorphIcons.tsx）。
  *
- * ⚠️ 这里是"两张图都常驻，只切换显隐"，而不是"一个 span 换 mask 地址"。
- *    换地址那种写法的毛病：浏览器要为**新地址**取图 + 解码，没命中缓存的那一次
- *    会先渲染一帧没有图标的空白 —— 连点的时候就会偶发"闪一下才出现第二个图标"。
- *    两张图在挂载时就都进 DOM 并解码好，切换只改透明度，所以永远不掉帧、不闪。
- *    另外不加任何 transition，保持"瞬间"；按钮自身也不缩放（active:scale-90 已去掉）。
+ *   · 文章列表：文件夹外框 + 里面两条线 —— 展开时那两条线各自旋转、朝中心靠拢交叉成叉，外框不动
+ *   · 大纲：    默认态**继续用 outline.svg 遮罩**（那份是不规则自定义轮廓，没法用基本图形忠实复刻），
+ *              展开时先由三条真实矩形从左往右"依次伸"出来，动画结束后淡入回 outline-open.svg
+ *
+ * ⚠️ 历史说明：这里原来是「两张 svg 都常驻、只切透明度、刻意不加任何过渡」——
+ *    因为遮罩的内部线条浏览器不允许动画，想"形变"就必须把线画成真实元素。
+ *    这个改动是用户明确要求的，所以覆盖了当初那个"保持瞬间"的决定。
+ *    原来担心的"换遮罩地址会导致闪一下空白"的问题依然不存在：
+ *    大纲那张遮罩**常驻在 DOM 里**，只是改透明度，不会重新取图解码。
  */
 function PanelIcon({ which, open }: { which: 'left' | 'right'; open: boolean }) {
-  const srcOf = (isOpen: boolean) => (which === 'left'
-    ? (isOpen ? '/open-folder.svg' : '/file_list.svg')
-    : (isOpen ? '/outline-open.svg' : '/outline.svg'));
-  const maskStyle = (src: string): React.CSSProperties => ({
-    WebkitMaskImage: `url(${src})`,
-    maskImage: `url(${src})`,
-    WebkitMaskSize: 'contain',
-    maskSize: 'contain',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-    WebkitMaskPosition: 'center',
-    maskPosition: 'center',
-  });
-  return (
-    <>
-      <span
-        aria-hidden
-        data-icon-state="closed"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-0' : 'opacity-100'}`}
-        style={maskStyle(srcOf(false))}
-      />
-      <span
-        aria-hidden
-        data-icon-state="open"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-100' : 'opacity-0'}`}
-        style={maskStyle(srcOf(true))}
-      />
-    </>
-  );
+  return which === 'left' ? <FolderLines open={open} /> : <TocBars open={open} />;
 }
 
 /**
