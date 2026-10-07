@@ -309,101 +309,83 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ③ 大纲按钮：**重写版** —— 圆圈本身拉伸成长条 + 线从断点伸展过去
+   ③ 大纲按钮：**静态连接线 + 只做圆圈的向右伸展** ✓
 
-   做法：整个图标是**一个内联 SVG**（viewBox 0 0 16 16），里面：
-     · 3 个 `<motion.rect>`：默认是**空心圆圈**（宽=高=直径、rx=半径 → 正好是圆 ✓），
-       展开变成长条矩形（同时改 x / y / width / height / rx）
-       ⚠️ 用 SVG 属性动画而不是 CSS scaleX：scaleX 会把**边框粗细一起拉变形** ✗
-          SVG 属性动画只重绘、不触发布局，而且 stroke 永远是 1px ✓
-     · 1 条竖线（左边那根"脊柱"，静止 ✓）
-     · 2 条连接线：从**线的断点**（贴着脊柱）朝圆圈方向伸展，
-       展开时正好接到长条的左边框上 ✓（`x2` 从小到大 ✓ = 进度条式 ✓）
+   · 静态层：`/outline-lines.svg` —— 这是从原图 outline.svg 里把
+     「圆环以外的连接线部分」抽出来做的遮罩 ✓（含那些圆角拐弯 ✓ 逐像素一致 ✓）
+     ⚠️ 抽取时把相对起点 `m-262.144 55.808` 换算成了绝对 `M513 824.8` ✓
+        并做了**闭合自检**（7 个子路径全部回到起点 ✓ 解析可信 ✓）
+   · 动画层：3 个圆环（位置/半径都是从原图算出来的 ✓），
+     展开时**只有宽度变大**（向右伸展 ✓）—— 圆心的 x/y、高度、圆角全都**不变** ✓
 
-   几何取自两个原图（1024 视图盒 ÷ 64 = 16px）：
-     圆环：上 (4.0, 3.5) r 1.9   中 (12.1, 8.5) r 1.9   下 (12.1, 13.5) r 1.9
-     长条：上 x 3→15 y 2→5      中 x 7→15 y 7→10       下 x 7→15 y 12→15
-     竖线：x 1.5, y 3→14
+   圆环几何（16px）：圆心 (3.90,3.16) / (12.11,7.92) / (12.11,13.10)
+                     路径半径 1.51、描边宽 0.85（= 原图外径 1.94 / 内径 1.09 推出的 ✓）
    ═══════════════════════════════════════════════════════════════ */
 export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   const reduce = useReducedMotion();
-  const STROKE = 1;
-  /** 三条：默认（圆环）⇄ 展开（长条）。rx 用 9999 会在某些浏览器上出问题，所以直接给半径/圆角值 ✓ */
-  const shapes = [
-    { // 上：⚠️ 用户要求"不用完全按 outline-open.svg 摆，把圆圈往右边拉出来就行" ✓
-      //     → 展开态**只有 width 变**（y / h / rx 和圆环完全一致 ✓）= 纯向右拉伸 ✓
-      ring: { x: 2.1, y: 1.6, w: 3.8, h: 3.8, rx: 1.9 },
-      bar:  { x: 2.1, y: 1.6, w: 12.9, h: 3.8, rx: 1.9 },
-    },
-    { // 中
-      ring: { x: 10.2, y: 6.6, w: 3.8, h: 3.8, rx: 1.9 },
-      bar:  { x: 7,    y: 7,   w: 8,   h: 3,   rx: 1 },
-    },
-    { // 下
-      ring: { x: 10.2, y: 11.6, w: 3.8, h: 3.8, rx: 1.9 },
-      bar:  { x: 7,    y: 12,  w: 8,   h: 3,   rx: 1 },
-    },
-  ];
-  /**
-   * 两条连接线：默认短、展开时长（x2 变大 = 从断点朝形状方向伸 ✓）
-   *
-   * ⚠️⚠️ 端点必须按**描边宽度换算**才不会接错（用户强调"线一定要接对地方"）：
-   *     strokeWidth = 1 时，路径位置 ± 0.5 才是**看得见的边缘** ✓
-   *       竖线 x=0.9      → 描边占 0.4~1.4
-   *       上圆环 x=2.1    → 描边占 1.6~2.6   ← 外沿 1.6
-   *       下圆环 x=10.2   → 描边占 9.7~10.7  ← 外沿 9.7
-   *       下长条 x=7      → 描边占 6.5~7.5   ← 外沿 6.5
-   *     线的端点就取这些"外沿"值 ✓ 再加上 strokeLinecap="round" 的圆头
-   *     会自然塞到形状描边下面 → **既无缝也不凸出** ✓
-   *     ⚠️ 之前竖线放 1.5、圆环放 2.1，两者描边【重叠 0.4】✗
-   *        而线只有 1.5→2.1、整条埋在重叠区里 ✗ 等于没接上 ✓
-   */
-  const links = [
-    // 上：形状左外沿两个状态都是 1.6（上条是纯拉伸，左边界不动）→ 线也不动 ✓
-    { y: 3.5, from: 0.9, ringTo: 1.6, barTo: 1.6 },
-    // 下：默认接到下圆环外沿 9.7 ✓ 展开接到下长条外沿 6.5 ✓
-    { y: 13.5, from: 0.9, ringTo: 9.7, barTo: 6.5 },
+  const R = 1.51;        // 路径半径
+  const SW = 0.85;       // 描边宽（和原图一致）
+  const RIGHT = 15;      // 展开后的右边界（描边外沿）
+  /** 三个圆环：cx / cy 来自原图；展开只改宽度 ✓ */
+  const rings = [
+    { cx: 3.9, cy: 3.16 },
+    { cx: 12.11, cy: 7.92 },
+    { cx: 12.11, cy: 13.1 },
   ];
   const spring = reduce ? { duration: 0.12, ease: EASE_OUT } : SPRING_MORPH;
 
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 16 16"
-      width={size}
-      height={size}
-      /* 用 currentColor + 主题类名跟随深浅色 ✓（写死颜色会让深色模式下看不清 ✗）*/
-      className="absolute inset-0 m-auto block overflow-visible text-slate-800 dark:text-slate-100"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={STROKE}
-      strokeLinecap="round"
-    >
-      {/* 左侧竖线（脊柱）：x=0.9 → 描边占 0.4~1.4，不会再和圆环描边打架 ✓ */}
-      <line x1={0.9} y1={3} x2={0.9} y2={14} />
-      {/* 两条连接线：从断点朝形状方向伸展 ✓ */}
-      {links.map((l, i) => (
-        <motion.line
-          key={`link-${i}`}
-          y1={l.y}
-          y2={l.y}
-          initial={false}
-          animate={{ x1: l.from, x2: open ? l.barTo : l.ringTo }}
-          transition={spring}
-        />
-      ))}
-      {/* 三个形状：圆环 ⇄ 长条 */}
-      {shapes.map((s, i) => {
-        const t = open ? s.bar : s.ring;
-        return (
-          <motion.rect
-            key={`shape-${i}`}
-            initial={false}
-            animate={{ attrX: t.x, attrY: t.y, width: t.w, height: t.h, rx: t.rx }}
-            transition={spring}
-          />
-        );
-      })}
-    </svg>
+    <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: size, height: size }}>
+      {/* 静态连接线：直接用原图抽出来的那份 ✓ */}
+      <span
+        className={`absolute inset-0 m-auto block ${BAR}`}
+        style={{
+          width: size,
+          height: size,
+          WebkitMaskImage: 'url(/outline-lines.svg)',
+          maskImage: 'url(/outline-lines.svg)',
+          WebkitMaskSize: 'contain',
+          maskSize: 'contain',
+          WebkitMaskRepeat: 'no-repeat',
+          maskRepeat: 'no-repeat',
+          WebkitMaskPosition: 'center',
+          maskPosition: 'center',
+        }}
+      />
+      {/* 三个圆环 ⇄ 向右伸展的长条（只改 width ✓ 其余一律不动 ✓） */}
+      <svg
+        viewBox="0 0 16 16"
+        width={size}
+        height={size}
+        className="absolute inset-0 m-auto block overflow-visible text-slate-800 dark:text-slate-100"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={SW}
+      >
+        {rings.map((r, i) => {
+          const x = r.cx - R;
+          const y = r.cy - R;
+          const wBar = RIGHT - SW / 2 - x;   // 展开后右边界外沿正好到 15 ✓
+          /**
+           * ⚠️ 用户要求：三个圆圈**从上到下依次拉伸**（不是同时 ✗）
+           *    展开：0 → 45 → 90ms（第 1、2、3 个）
+           *    收起：反过来（第 3、2、1 个）—— 读起来像被依次收走 ✓
+           */
+          const delay = reduce ? 0 : (open ? i : rings.length - 1 - i) * STAGGER;
+          return (
+            <motion.rect
+              key={i}
+              x={x}
+              y={y}
+              height={R * 2}
+              rx={R}
+              initial={false}
+              animate={{ width: open ? wBar : R * 2 }}
+              transition={{ ...spring, delay }}
+            />
+          );
+        })}
+      </svg>
+    </span>
   );
 }
