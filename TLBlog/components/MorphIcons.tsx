@@ -212,28 +212,31 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
    *         图标盒中心 = 8 ✓✓ → **两个状态都精确居中，不需要任何偏移** ✓
    */
   /**
-   * ⚠️⚠️ 这一组数完全按用户画的草图定的（草图里：绿框=虚拟占比框，红线=要旋转的线，
-   *      紫圈=正确旋转中心=每条线自己的左端）：
+   * ⚠️⚠️ 按用户澄清的几何（我之前的错误：**死守 45°** ✗ —— 45° 只是正方形的特例 ✓）
    *
-   *   绿框必须是**正方形**（边长 S）✓
-   *     默认：两条红线贴住绿框的上下边 → 线长 = S、间距 = S（正方形占比 ✓）
-   *     展开：各绕自己的左端转 ±45° 并伸长到 **S·√2**
-   *           → 4 个端点正好顶在正方形的 4 个角上 ✓（草图第 2 个状态 = 正确）
+   *   虚拟框 = **长方形 W × H**（W=6, H=4.5，宽高比 1.33）
+   *     默认：两条线贴住长方形的上下边 → 线长 = W = 6、间距 = H = 4.5 ✓
+   *     展开：各绕**自己的左端**（长方形左边的两个角）旋转，
+   *           转角 = **atan(H/W)** = atan(4.5/6) = **36.87°**（不是 45° ✗）
+   *           线长 = **对角线** = √(W²+H²) = √(36+20.25) = **7.5**
+   *           → 两条线的端点正好落到长方形的另外两个角上 ✓✓（= 用户草图第 2 个状态）
    *
-   *   用户反馈"两根线间距太多，挨近一点" ✓ → 把 S 从 5 收到 4：
-   *     ⚠️ 线长必须跟着一起收 —— 因为"端点顶四角"这条要求 线长 = 间距 = S
-   *        （想保住 5 的线长，间距就必须也是 5，两者只能同时满足 ✓）
+   *   ✅ 这么做还白捡一个好处：叉 **就是** 这个长方形的两条对角线，
+   *      所以展开态和默认态的**包围盒完全一样** → 两个状态天然统一居中，
+   *      再也不用在两个状态之间折中偏移了 ✓✓
    *
-   *   校验：枢轴 (6, 6.6) 转 +45° 走 5.657 → (10, 10.6) = 右下角 ✓
-   *         枢轴 (6, 10.6) 转 −45° 走 5.657 → (10, 6.6) = 右上角 ✓✓
+   *   校验：枢轴 (5, 6.35) 走 7.5、转 36.87° → 位移 (6, 4.5) → 落点 (11, 10.85) = 右下角 ✓
+   *         枢轴 (5, 10.85) 反方向      → 位移 (6, -4.5) → 落点 (11, 6.35) = 右上角 ✓
    */
-  const S = 4;                  // 正方形边长（= 默认线长 = 间距）
-  const rowCy = [6.6, 10.6];    // 两条线的纵向中心（组中心 8.6 = 文件夹体的视觉重心 ✓）
-  const PIVOT_X = 6;            // 线的左端 = 旋转中心；让正方形框水平居中于图标（6→10，中心 8 ✓）
-  const REST_LEN = S;           // 默认线长 4
-  const OPEN_LEN = S * Math.SQRT2; // 展开线长 5.657（端点才能顶到四角 ✓）
+  const ROW_GAP = 4.5;               // 长方形的高 H = 两条线的间距
+  const REST_LEN = 6;                // 长方形的宽 W = 默认线长（拉长了 ✓）
+  const OPEN_LEN = Math.hypot(REST_LEN, ROW_GAP); // 7.5 = 对角线
+  const restScale = REST_LEN / OPEN_LEN;          // 0.8（展开时变长 ✓）
+  /** 倾斜角 = atan(H/W)，**不是 45°** ✗ —— 长方形就得按它自己的对角线角度转 ✓ */
+  const TILT = (Math.atan2(ROW_GAP, REST_LEN) * 180) / Math.PI; // 36.87°
+  const PIVOT_X = 5;                 // 线的左端 = 旋转中心（让长方形水平居中于图标：5→11，中心 8 ✓）
+  const rowCy = [8.6 - ROW_GAP / 2, 8.6 + ROW_GAP / 2]; // 6.35 / 10.85
   const LINE_H = 1.1;
-  const restScale = REST_LEN / OPEN_LEN; // ≈ 0.7071
 
   return (
     <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: W, height: H }}>
@@ -268,7 +271,7 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
             /* 旋转中心必须写在**真正动的那一层**（导航栏那次就是栽在这里 ✗）*/
             style={{ transformOrigin: `${PIVOT_X}px center` }}
             initial={false}
-            animate={reduce ? { opacity: open ? 0.5 : 1 } : { rotate: open ? (i === 0 ? 45 : -45) : 0 }}
+            animate={reduce ? { opacity: open ? 0.5 : 1 } : { rotate: open ? (i === 0 ? TILT : -TILT) : 0 }}
             transition={reduce ? { duration: D_MORPH, ease: EASE_OUT } : SPRING_MORPH_SOFT}
           >
             <motion.span
