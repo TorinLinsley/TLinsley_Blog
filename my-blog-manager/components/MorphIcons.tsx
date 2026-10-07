@@ -330,9 +330,10 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   const STROKE = 1;
   /** 三条：默认（圆环）⇄ 展开（长条）。rx 用 9999 会在某些浏览器上出问题，所以直接给半径/圆角值 ✓ */
   const shapes = [
-    { // 上
+    { // 上：⚠️ 用户要求"不用完全按 outline-open.svg 摆，把圆圈往右边拉出来就行" ✓
+      //     → 展开态**只有 width 变**（y / h / rx 和圆环完全一致 ✓）= 纯向右拉伸 ✓
       ring: { x: 2.1, y: 1.6, w: 3.8, h: 3.8, rx: 1.9 },
-      bar:  { x: 3,   y: 2,   w: 12,  h: 3,   rx: 1 },
+      bar:  { x: 2.1, y: 1.6, w: 12.9, h: 3.8, rx: 1.9 },
     },
     { // 中
       ring: { x: 10.2, y: 6.6, w: 3.8, h: 3.8, rx: 1.9 },
@@ -345,7 +346,8 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   ];
   /** 两条连接线：默认短、展开时长（x2 变大 = 从断点朝形状方向伸 ✓） */
   const links = [
-    { y: 3.5, from: 1.5, ringTo: 2.1, barTo: 3 },
+    // 上：形状左边界没动（2.1），所以这条线展开时**不需要动** ✓
+    { y: 3.5, from: 1.5, ringTo: 2.1, barTo: 2.1 },
     { y: 13.5, from: 1.5, ringTo: 2.1, barTo: 7 },
   ];
   const spring = reduce ? { duration: 0.12, ease: EASE_OUT } : SPRING_MORPH;
