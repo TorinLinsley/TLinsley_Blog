@@ -17,10 +17,19 @@ import { navLinks } from '../lib/navLinks';
     和博客前台 Navbar / MobileToc 用的是同一个值，两边观感才一致。 */
 const NAV_HEIGHT = '3.25rem';
 
+/**
+ * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
+ *   和博客前台 Navbar 用的是**同一套参数**（两边观感一致 ✓）
+ *   弹簧 → **可打断** ✓ 时长 ≤0.35s ✓ 非线性 ✓
+ */
+const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
+
 export default function Navbar() {
   const [isOpBoxOpen, setIsOpBoxOpen] = useState(false);
   // 📱 手机端（<1024px）：导航链接平时收进抽屉，靠右上角那个按钮展开
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  /** 当前鼠标悬停的选项卡 href（null = 没有悬停）—— 桌面端色块用 ✓ 触摸设备不会触发 ✓ */
+  const [hovered, setHovered] = useState<string | null>(null);
   /** 抽屉本体 / 汉堡按钮：交给 layerStack 判断"这一下该不该收"，顺带挡住"点空白穿透到正文链接" */
   const menuDrawerRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -275,14 +284,47 @@ export default function Navbar() {
             {/* ⚠️ 选项卡：字体族/字重跟 logo 一致，字号基准 16px、当前栏目 16.3px。
                 三处导航栏（前台 / 控制台 / 工具页注入）用同一组数字。只作用于大屏这条。 */}
             <nav className="flex items-center gap-3 xl:gap-5 2xl:gap-6 text-[16px] font-black whitespace-nowrap overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className={`relative py-1 transition-colors whitespace-nowrap ${isActivePath(link.href) ? 'text-[16.3px] text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-200 hover:text-indigo-600'}`}>
-                  {link.name}
-                  {isActivePath(link.href) && (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-500 rounded-full animate-pulse" />
-                  )}
-                </Link>
-              ))}
+              {/*
+                ⚠️ 悬停/选中样式（和博客前台 Navbar 同一套 ✓）
+                  · **字号一个字不动** ✓（基准 16px ✓ 选中 16.3px ✓）
+                  · **文字颜色完全不动** ✗ → 去掉 text-* / hover:text-* ✓
+                  · 悬停：高 = 文字 1/3 的色块垫在**文字下层** ✓
+                    从左往右**像进度条**揭开（clip-path ✓ 不是拉伸 ✗）移开反着缩回 ✓
+                  · 选中常驻：站点原有的紫 indigo-500 ✓ / 悬停淡紫 indigo-400 ✓
+                  · initial **不能用 false** ✗（每页各自引 Navbar → 切页重新挂载 ✗
+                    用 false 色块一进来就展开好了 ✗ 看不出揭开过程 ✓）
+              */}
+              {navLinks.map((link) => {
+                const active = isActivePath(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`relative py-1 whitespace-nowrap ${active ? 'text-[16.3px]' : ''}`}
+                    onMouseEnter={() => setHovered(link.href)}
+                    onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
+                  >
+                    <span className="relative inline-block">
+                      <motion.span
+                        aria-hidden
+                        className={`absolute left-0 right-0 rounded-[3px] ${
+                          active ? 'bg-indigo-500' : 'bg-indigo-400'
+                        }`}
+                        style={{ bottom: 0, height: '0.34em' }}
+                        initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                        animate={{
+                          clipPath:
+                            hovered === link.href || active
+                              ? 'inset(0 0% 0 0)'
+                              : 'inset(0 100% 0 0)',
+                        }}
+                        transition={HOVER_REVEAL}
+                      />
+                      <span className="relative">{link.name}</span>
+                    </span>
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="relative shrink-0">
@@ -479,6 +521,13 @@ export default function Navbar() {
               style={{ top: NAV_HEIGHT }}
             >
               <nav className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
+                {/*
+                  ⚠️ 手机端选项卡列表（和博客前台同一套 ✓）
+                    · 去掉原来的**实色紫背景 + 白字** ✗（那会改文字颜色 ✗）
+                    · 换成：文字下层高 = 文字 1/3 的色块 ✓ 选中常驻 ✓ 切换反着缩回 ✓
+                    · **字号一个字不动** ✓（13px / sm 15px ✓）
+                    · 触摸屏没有悬停 ✓ 这里只有"选中"一个状态 ✓
+                */}
                 {navLinks.map((link) => {
                   const active = isActivePath(link.href);
                   return (
@@ -486,13 +535,19 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-200 ${
-                        active
-                          ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                          : 'text-slate-700 dark:text-slate-200 hover:bg-white/70 dark:hover:bg-slate-800/70'
-                      }`}
+                      className="px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate text-slate-700 dark:text-slate-200"
                     >
-                      {link.name}
+                      <span className="relative inline-block">
+                        <motion.span
+                          aria-hidden
+                          className="absolute left-0 right-0 rounded-[3px] bg-indigo-500"
+                          style={{ bottom: 0, height: '0.34em' }}
+                          initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                          animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
+                          transition={HOVER_REVEAL}
+                        />
+                        <span className="relative">{link.name}</span>
+                      </span>
                     </Link>
                   );
                 })}
