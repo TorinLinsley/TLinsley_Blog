@@ -310,7 +310,7 @@ export default function Navbar() {
                         className={`absolute left-0 right-0 rounded-[3px] ${
                           active ? 'bg-indigo-500' : 'bg-indigo-400'
                         }`}
-                        style={{ bottom: 0, height: '0.34em' }}
+                        style={{ bottom: 0, height: '0.5em' }}
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
@@ -541,7 +541,7 @@ export default function Navbar() {
                         <motion.span
                           aria-hidden
                           className="absolute left-0 right-0 rounded-[3px] bg-indigo-500"
-                          style={{ bottom: 0, height: '0.34em' }}
+                          style={{ bottom: 0, height: '0.5em' }}
                           initial={{ clipPath: 'inset(0 100% 0 0)' }}
                           animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
                           transition={HOVER_REVEAL}
