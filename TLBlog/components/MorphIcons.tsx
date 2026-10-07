@@ -78,7 +78,16 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
             {/* 长条：左端为锚点（缩回时像被抽回圆点里） */}
             <motion.span
               className={`absolute top-0 rounded-full ${BAR}`}
-              style={{ left: 3, width: r.w, height: 2, transformOrigin: "left center" }}
+              style={{
+                left: 3,
+                width: r.w,
+                height: 2,
+                // ⚠️⚠️ 锚点必须分开：
+                //   中间那条要"缩回圆点里" → 锚点在**左端**（scaleX 才会从左边收回）
+                //   上下两条要绕**自身中心**转 45° → 锚点放左端的话会把交点拖到左边去 ✗
+                // （之前三条都写了 left center，用户一眼看出"没在中心交叉"）
+                transformOrigin: isMid ? "left center" : "center center",
+              }}
               initial={false}
               animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? to : rest)}
               transition={
@@ -181,11 +190,13 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
    ═══════════════════════════════════════════════════════════════ */
 export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   const reduce = useReducedMotion();
-  // 三条的宽度比例，取自 outline-open.svg 的几何（640 / 384 / 384）
+  // 三条的**起点和宽度**都按原图 outline-open.svg 的几何来（1024 视图盒 → 16px）：
+  //   圆角矩形左端 x = 256/1024 × 16 ≈ 4px（**就是圆圈所在的那条竖线上**，不是图标最左边 ✗）
+  //   宽度 640 / 384 / 384
   const bars = [
-    { top: 2.0, w: 1.0 },
-    { top: 6.8, w: 0.62 },
-    { top: 11.6, w: 0.62 },
+    { top: 2.0, left: 4, w: 0.625 },
+    { top: 6.8, left: 4, w: 0.375 },
+    { top: 11.6, left: 4, w: 0.375 },
   ];
   const maskStyle: React.CSSProperties = {
     WebkitMaskImage: "url(/outline.svg)",
@@ -216,47 +227,31 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
             key={i}
             className="absolute rounded-[2px] border-[1.5px] border-slate-800 dark:border-slate-100"
             style={{
-              left: 0,
+              // ⚠️ 从**圆圈那条竖线**（x≈4px）开始伸，不是图标最左边 ✗
+              left: b.left,
               top: b.top,
               width: size * b.w,
               height: 3.2,
               transformOrigin: "left center",
             }}
             initial={false}
-            animate={{ scaleX: open ? 1 : 0, opacity: open ? 0 : 1 }}
-            transition={{
-              // "伸出来 / 缩回去"用弹簧：连点能带着速度接着走，不会重新起步 ✓
-              scaleX: reduce
+            // 展开后**就停在这儿**（不再淡出）—— 之前有个"淡出→淡入原图"的交接，
+            // 那个交接不可靠，用户看到的是"伸出来又没了，伸了个寂寞" ✗ 直接去掉 ✓
+            animate={{ scaleX: open ? 1 : 0, opacity: 1 }}
+            transition={
+              reduce
                 ? { duration: 0.12, ease: EASE_OUT, delay }
-                : { ...SPRING_MORPH, delay },
-              // 透明度用贝塞尔就够（弹簧对纯透明度没意义）
-              opacity: { duration: 0.14, ease: EASE_OUT, delay: open && !reduce ? 0.2 : 0 },
-            }}
+                : { ...SPRING_MORPH, delay }
+            }
           />
         );
       })}
       {/*
-        "伸完"之后的静止态：原样淡入 outline-open.svg。
-        为什么要这一步：outline-open.svg 里除了三条长矩形，还有左侧一根竖条和三个小横头，
-        用基本图形重画会丢细节。所以让真实矩形只负责"伸出来"这一拍，
-        最终停在**和以前完全相同**的那张原图上 ✓
+        ⚠️ 这里原来还有一个"伸完 → 淡入 outline-open.svg"的交接层，已经**删掉**：
+        用户实测看到的是"伸出来又没了，伸了个寂寞"—— 那个交接不可靠（淡出和淡入之间
+        容易出现一段两边都不可见的窗口）。现在三条矩形**展开后就停在原地**当最终状态，
+        不再有任何交接，不可能再出现"伸完就消失" ✓
       */}
-      <motion.span
-        className={`absolute inset-0 m-auto block w-4 h-4 ${BAR}`}
-        style={{
-          WebkitMaskImage: "url(/outline-open.svg)",
-          maskImage: "url(/outline-open.svg)",
-          WebkitMaskSize: "contain",
-          maskSize: "contain",
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskPosition: "center",
-          maskPosition: "center",
-        }}
-        initial={false}
-        animate={{ opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.16, ease: EASE_OUT, delay: open && !reduce ? 0.2 : 0 }}
-      />
     </span>
   );
 }
