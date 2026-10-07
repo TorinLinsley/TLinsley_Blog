@@ -85,9 +85,21 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
          *   ⚠️ 之前错在哪：把圆点当成不动的独立元素、又把线条左端点当旋转中心 ✗
          *      → 结果"线在转、三个点却在慢慢变透明"，而且交点被拖偏 ✓
          */
+        /**
+         * ⚠️ 中间那条：**不能用 scaleX** —— 那会把整行连同圆点一起"压扁" ✗
+         *    用户要的是"从右边往左边平滑擦除，像进度条倒着走" ✓
+         *    → 用 `clip-path: inset()`（右边界从 0 推到 100%）
+         *      clip-path 是唯一不触发布局的第四种安全属性 ✓
+         * 上下两条：旋转 + **往右下平移 (2.3, 1)** —— 这两条转成叉之后，
+         *    包围盒中心本来落在 (6.69, 8.02)，而图标盒中心是 (9, 9)，
+         *    平移这么多之后叉正好居中 ✓（默认状态不平移，汉堡图标保持原样居中 ✓）
+         */
         const rowTo = isMid
-          ? { scaleX: 0 }                                   // 整行（含圆点）缩进圆心
-          : { rotate: i === 0 ? 45 : -45 };                 // 上顺下逆
+          ? { clipPath: 'inset(0 100% 0 0)' }
+          : { rotate: i === 0 ? 45 : -45, x: 2.3, y: 1 };
+        const rowRest = isMid
+          ? { clipPath: 'inset(0 0% 0 0)' }
+          : { rotate: 0, x: 0, y: 0 };
         /**
          * ⚠️ 三条线**默认都必须**是 REST_SCALE（点 + 间隙 + 线）—— 中间那条也一样 ✓
          *   之前我给中间那条写了 1（= 融合后的长度），结果它默认就变成一根长直线了 ✗
@@ -114,7 +126,7 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
                */
               style={{ transformOrigin: `${DOT_CX}px center` }}
               initial={false}
-              animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? rowTo : { rotate: 0, scaleX: 1 })}
+              animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? rowTo : rowRest)}
               transition={
                 reduce
                   ? { duration: D_RETRACT, ease: EASE_OUT }
