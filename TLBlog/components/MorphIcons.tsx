@@ -42,14 +42,21 @@ const BAR = "bg-slate-800 dark:bg-slate-100";
    ═══════════════════════════════════════════════════════════════ */
 export function MenuLines({ open, size = 18 }: { open: boolean; size?: number }) {
   const reduce = useReducedMotion();
-  // 三行的纵向位置、长条宽度（相对 18px 图标盒）
-  const rows = [
-    { top: 3.25, w: 12.5 }, // 上
-    { top: 8.0, w: 12.5 },  // 中
-    { top: 12.75, w: 12.5 },// 下
-  ];
-  // 上下两条要往中心靠（各行间距 4.75px），再转 ±45° 才交于同一点
-  const SHIFT = 4.75;
+  /**
+   * 三行的几何**全部取自原图 menu.svg**（1024 视图盒 → 18px 换算），
+   * 这样默认状态和你原来看到的那个图标一致 ✓
+   *   · 圆点：x 1.60→3.40（直径 1.8）
+   *   · 长条：x 4.70→14.36（宽 9.66）
+   *   · 行中心 y = 3.94 / 8.00 / 12.09
+   * ⚠️ 圆点和长条之间**留 1.3px 间隙**（原图就是这个间距）。
+   *    之前我把长条从 x=3 起画，紧贴圆点，用户说"线和左边圆点挨太近，看起来不协调" ✗
+   */
+  const DOT_X = 1.6;
+  const DOT_D = 1.8;
+  const BAR_X = 4.7;
+  const BAR_W = 9.66;
+  const BAR_H = 1.8;
+  const rowCy = [3.94, 8.0, 12.09]; // 上 / 中 / 下
 
   return (
     <span
@@ -57,36 +64,39 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
       className="absolute inset-0 m-auto block"
       style={{ width: size, height: size }}
     >
-      {rows.map((r, i) => {
-        const isTop = i === 0;
+      {rowCy.map((cy, i) => {
         const isMid = i === 1;
-        // 展开后的目标状态
+        /**
+         * ⚠️⚠️ 旋转锚点（用户明确指定的几何）：
+         *   **上下两条都以各自线条的左端为轴心**，而且**只转不平移** ——
+         *     上面那条：顺时针 45° → 右端指到"右下"
+         *     下面那条：逆时针 45° → 右端指到"右上"
+         *   两条起点各在自己的 y、各转 45° 之后，自然交于 (8.78, 8.02)，
+         *   正好落在图标盒中心附近 ✓ 不需要任何位移补偿 ✓
+         *   （之前我先平移再绕中心转，结果交点被拖到左边 —— 用户指出"没在中心交叉" ✗）
+         * 中间那条：锚点同样在左端，靠 scaleX 缩回圆点里 ✓
+         */
         const to = isMid
-          ? { y: 0, scaleX: 0, opacity: 0 }
-          : { y: isTop ? SHIFT : -SHIFT, rotate: isTop ? 45 : -45, scaleX: 1, opacity: 1 };
-        // 收起后的目标状态
-        const rest = { y: 0, rotate: 0, scaleX: 1, opacity: 1 };
+          ? { scaleX: 0, opacity: 0 }
+          : { rotate: i === 0 ? 45 : -45, scaleX: 1, opacity: 1 };
+        const rest = { rotate: 0, scaleX: 1, opacity: 1 };
         return (
-          <span key={i} className="absolute left-0 right-0 block" style={{ top: r.top, height: 2 }}>
+          <span key={i} className="absolute left-0 right-0 block" style={{ top: cy - BAR_H / 2, height: BAR_H }}>
             {/* 圆点：叉上不要，展开时淡出 */}
             <motion.span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 rounded-full ${BAR}`}
-              style={{ width: 3, height: 3 }}
+              className={`absolute top-1/2 -translate-y-1/2 rounded-full ${BAR}`}
+              style={{ left: DOT_X, width: DOT_D, height: DOT_D }}
               animate={{ opacity: open ? 0 : 1 }}
               transition={{ duration: reduce ? D_RETRACT : D_MORPH, ease: EASE_OUT }}
             />
-            {/* 长条：左端为锚点（缩回时像被抽回圆点里） */}
+            {/* 长条：左端为锚点（既是旋转中心，也是缩回时的锚点）✓ */}
             <motion.span
               className={`absolute top-0 rounded-full ${BAR}`}
               style={{
-                left: 3,
-                width: r.w,
-                height: 2,
-                // ⚠️⚠️ 锚点必须分开：
-                //   中间那条要"缩回圆点里" → 锚点在**左端**（scaleX 才会从左边收回）
-                //   上下两条要绕**自身中心**转 45° → 锚点放左端的话会把交点拖到左边去 ✗
-                // （之前三条都写了 left center，用户一眼看出"没在中心交叉"）
-                transformOrigin: isMid ? "left center" : "center center",
+                left: BAR_X,
+                width: BAR_W,
+                height: BAR_H,
+                transformOrigin: 'left center',
               }}
               initial={false}
               animate={reduce ? { opacity: isMid && open ? 0 : 1 } : (open ? to : rest)}
