@@ -1,7 +1,8 @@
 "use client";
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { SPRING_MORPH } from '../../lib/motion';
 import { siteConfig } from '../../siteConfig';
 import { Plus, Pencil, Trash2, Search, Sparkles, AlertTriangle, X } from 'lucide-react';
 import { useToast } from '../../components/ToastProvider';
@@ -22,6 +23,9 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
   const [chatters, setChatters] = useState(initialChatters);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState("全部");
+  /** 选中态指示器：减少动效时不滑动、直接瞬移 */
+  const reduceMotion = useReducedMotion();
+  const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
   const { showToast } = useToast();
 
   // 👇 控制自定义弹窗的状态
@@ -163,13 +167,21 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
         <div className="flex flex-wrap justify-center gap-2">
           {allTags.map(tag => (
             <button key={tag} onClick={() => setActiveTag(tag)}
-              className={`px-5 py-2 rounded-xl text-xs font-black transition-all duration-500 border ${
+              className={`relative px-5 py-2 rounded-xl text-xs font-black transition-colors duration-300 border ${
                 activeTag === tag 
-                ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/30 scale-105' 
+                ? 'text-white border-indigo-500 scale-105' 
                 : 'bg-white/30 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-slate-700/60'
               }`}
             >
-              {tag === "全部" ? tag : `# ${tag}`}
+              {activeTag === tag && (
+                <motion.span
+                  aria-hidden
+                  layoutId="chatter-tag-pill"
+                  className="absolute inset-0 rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/30"
+                  transition={pillTransition}
+                />
+              )}
+              <span className="relative z-10">{tag === "全部" ? tag : `# ${tag}`}</span>
             </button>
           ))}
         </div>

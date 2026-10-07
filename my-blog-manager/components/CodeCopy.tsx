@@ -755,12 +755,21 @@ const STYLE = `
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     opacity: 0.72;
-    transition: opacity .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+    /* 按下反馈那条 transform 用 140ms 强 ease-out ——
+       和 lib/motion.ts 里的 D_PRESS(0.14) / EASE_OUT(0.23,1,0.32,1) 同值。
+       （CSS 里没法 import TS 常量，所以这里是同一份数值的镜像，改一处记得改两处） */
+    transition: opacity .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease,
+                transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .cc-wrap:hover .cc-bar { opacity: 1; }
   .cc-bar:hover,
   .cc-bar:focus-visible { background: rgba(17, 24, 39, 0.82); color: #ffffff; outline: none; }
-  .cc-bar:active { background: rgba(17, 24, 39, 0.95); }
+  .cc-bar:active { background: rgba(17, 24, 39, 0.95); transform: scale(0.97); }
+  /* 减少动效：颜色反馈照旧，去掉缩放那一下 */
+  @media (prefers-reduced-motion: reduce) {
+    .cc-bar { transition: opacity .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .cc-bar:active { transform: none; }
+  }
   .cc-bar .cc-lang { max-width: 9rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .cc-bar .cc-ic { display: inline-flex; width: 0.9rem; height: 0.9rem; flex: 0 0 auto; }
   .cc-bar .cc-ic svg { display: block; width: 100%; height: 100%; }

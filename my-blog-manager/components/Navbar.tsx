@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MenuLines } from './MorphIcons';
 import { useOperations } from '../context/OperationContext';
 import { useToast } from './ToastProvider';
 import { AlertTriangle } from 'lucide-react';
@@ -437,26 +438,14 @@ export default function Navbar() {
               aria-expanded={isMenuOpen}
               className="relative w-8 h-8 shrink-0 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-slate-700/70 transition-colors duration-300 cursor-pointer"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={isMenuOpen ? 'close' : 'menu'}
-                  initial={{ opacity: 0, rotate: isMenuOpen ? -80 : 80, scale: 0.7 }}
-                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                  exit={{ opacity: 0, rotate: isMenuOpen ? 80 : -80, scale: 0.7 }}
-                  transition={{ duration: 0.16, ease: 'easeOut' }}
-                  className="absolute inset-0 m-auto w-[18px] h-[18px] bg-slate-800 dark:bg-slate-100"
-                  style={{
-                    WebkitMaskImage: `url(${isMenuOpen ? '/close.svg' : '/menu.svg'})`,
-                    maskImage: `url(${isMenuOpen ? '/close.svg' : '/menu.svg'})`,
-                    WebkitMaskSize: 'contain',
-                    maskSize: 'contain',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskPosition: 'center',
-                    maskPosition: 'center',
-                  }}
-                />
-              </AnimatePresence>
+              {/*
+                三行（圆点＋长条）⇄ 叉：**真实线条的形变**（和前台 TLBlog 同一套）。
+                原来这里是「menu.svg / close.svg 两张遮罩切换」，遮罩的内部线条
+                浏览器不允许动画，所以做不出"横线转 45° 交叉"的过程。
+                现在按 menu.svg 的同一套几何把线画成真实元素再动 —— 收起态外观和原来一致。
+                详见 components/MorphIcons.tsx
+              */}
+              <MenuLines open={isMenuOpen} />
             </button>
           </div>
         </div>

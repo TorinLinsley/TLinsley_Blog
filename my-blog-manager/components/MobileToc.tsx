@@ -3,14 +3,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ResourceToc from './resources/ResourceToc';
+import { TocBars } from './MorphIcons';
 import { registerLayer } from './layerStack';
 
 /**
  * 手机端（<1024px）的「大纲」入口 —— 和资源分享页那套完全一致：
  *
  *   · 按钮固定死在视口内部的右上角（导航栏正下方那一行），**不随页面滚动**；
- *   · 图标两份常驻、只切换显隐（outline.svg ⇄ outline-open.svg），所以永远是"瞬间"切换，
- *     不会出现"点了先闪一下空白再出图标"；这里刻意不加任何 transition。
+ *   · 图标改成**真实线条的形变**（和前台 TLBlog 同一套）：默认态继续用 outline.svg 那张遮罩，
+ *     展开时三条真实矩形从左往右依次"伸"出来，伸完再淡入回 outline-open.svg；
+ *     原来"不加任何 transition"是刻意的（遮罩内部线条动不了），这次是用户明确要求形变才改的。
  *   · 点按钮展开右侧抽屉（里面就是资源分享页同款 ResourceToc：序号 1 / 1.1 / 1.2…、
  *     滚动跟随高亮、点条目平滑跳转、刚跳完那一下不让滚动位置抢高亮）；
  *   · 打断逻辑也和资源页一致：按钮行永远露在遮罩外面（展开状态也点得到），
@@ -25,34 +27,9 @@ const NAV_H = '3.25rem';
 /** 按钮行高度：正好卡在导航栏和正文卡片之间那条空档里，不会压住正文 */
 const TOOL_ROW_H = '2.75rem';
 
-/** 两张图标常驻，切换只改透明度（见上面的说明） */
+/** 展开按钮的图标：真实线条形变（三条矩形从左往右依次"伸"出来 → 淡入原图），详见 MorphIcons.tsx */
 function TocIcon({ open }: { open: boolean }) {
-  const maskStyle = (src: string): React.CSSProperties => ({
-    WebkitMaskImage: `url(${src})`,
-    maskImage: `url(${src})`,
-    WebkitMaskSize: 'contain',
-    maskSize: 'contain',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-    WebkitMaskPosition: 'center',
-    maskPosition: 'center',
-  });
-  return (
-    <>
-      <span
-        aria-hidden
-        data-icon-state="closed"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-0' : 'opacity-100'}`}
-        style={maskStyle('/outline.svg')}
-      />
-      <span
-        aria-hidden
-        data-icon-state="open"
-        className={`absolute inset-0 m-auto w-4 h-4 bg-slate-800 dark:bg-slate-100 ${open ? 'opacity-100' : 'opacity-0'}`}
-        style={maskStyle('/outline-open.svg')}
-      />
-    </>
-  );
+  return <TocBars open={open} />;
 }
 
 export default function MobileToc({ contentKey }: { contentKey: string }) {
