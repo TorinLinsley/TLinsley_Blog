@@ -325,7 +325,7 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
      长条：上 x 3→15 y 2→5      中 x 7→15 y 7→10       下 x 7→15 y 12→15
      竖线：x 1.5, y 3→14
    ═══════════════════════════════════════════════════════════════ */
-export function TocBars({ open }: { open: boolean; size?: number }) {
+export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
   const reduce = useReducedMotion();
   const STROKE = 1;
   /** 三条：默认（圆环）⇄ 展开（长条）。rx 用 9999 会在某些浏览器上出问题，所以直接给半径/圆角值 ✓ */
