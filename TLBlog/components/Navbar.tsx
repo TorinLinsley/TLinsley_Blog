@@ -183,7 +183,15 @@ export default function Navbar() {
                           active ? 'bg-indigo-500' : 'bg-indigo-400'
                         }`}
                         style={{ bottom: 0, height: '0.34em' }}
-                        initial={false}
+                        /**
+                         * ⚠️⚠️ initial **不能**用 false ✗（用户反馈"切换选项卡那个条是瞬间出现的"）
+                         *   原因：每个页面都各自 import 了 Navbar ✗ → 切页时导航栏**重新挂载** ✗
+                         *   initial={false} 会让它在挂载瞬间就是"已展开"✗ → 揭开动画没机会播 ✗
+                         *   → 改成"挂载时也从藏起来开始" ✓
+                         *     切到新页面时，那个色块会**重新从左往右揭开一次** ✓
+                         *     （旧的随整页销毁，物理上不可能再播缩回 ✗ 这是各页各自引 Navbar 的必然结果 ✓）
+                         */
+                        initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
                             hovered === link.href || active
