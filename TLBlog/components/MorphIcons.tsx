@@ -65,7 +65,13 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
     <span
       aria-hidden
       className="absolute inset-0 m-auto block"
-      style={{ width: size, height: size }}
+      /**
+       * ⚠️ 整体往右下偏移 (2.3, 1) —— 用户要求的"整个图案往右下角稍微偏移" ✓
+       *    这个量是**算出来的**：两条线转成叉之后，包围盒中心原本落在 (6.69, 8.02)，
+       *    而图标盒中心是 (9, 9)，差 (2.31, 0.98) ✓
+       *    放在容器上 → **默认状态和展开状态一起偏** ✓（之前我只偏了解开态 ✗ 用户指出来了）
+       */
+      style={{ width: size, height: size, transform: 'translate(2.3px, 1px)' }}
     >
       {rowCy.map((cy, i) => {
         const isMid = i === 1;
@@ -90,16 +96,14 @@ export function MenuLines({ open, size = 18 }: { open: boolean; size?: number })
          *    用户要的是"从右边往左边平滑擦除，像进度条倒着走" ✓
          *    → 用 `clip-path: inset()`（右边界从 0 推到 100%）
          *      clip-path 是唯一不触发布局的第四种安全属性 ✓
-         * 上下两条：旋转 + **往右下平移 (2.3, 1)** —— 这两条转成叉之后，
-         *    包围盒中心本来落在 (6.69, 8.02)，而图标盒中心是 (9, 9)，
-         *    平移这么多之后叉正好居中 ✓（默认状态不平移，汉堡图标保持原样居中 ✓）
+         * 上下两条：只旋转（偏移已经统一挪到**图标容器**上了，这里不再重复偏移 ✓）
          */
         const rowTo = isMid
           ? { clipPath: 'inset(0 100% 0 0)' }
-          : { rotate: i === 0 ? 45 : -45, x: 2.3, y: 1 };
+          : { rotate: i === 0 ? 45 : -45 };
         const rowRest = isMid
           ? { clipPath: 'inset(0 0% 0 0)' }
-          : { rotate: 0, x: 0, y: 0 };
+          : { rotate: 0 };
         /**
          * ⚠️ 三条线**默认都必须**是 REST_SCALE（点 + 间隙 + 线）—— 中间那条也一样 ✓
          *   之前我给中间那条写了 1（= 融合后的长度），结果它默认就变成一根长直线了 ✗
