@@ -360,19 +360,35 @@ export function MusicProvider({ children }: { children: ReactNode }) {
      → 上面挂载那段恢复逻辑自然把它当"新打开"：恢复歌曲 + 进度、保持暂停 ✓ 正是用户要的 ✓ */
   useEffect(() => {
     if (!pendingResumeRef.current) return;
-    const kick = () => {
+
+    // 🛟 只试一次是不够的：浏览器**只认"激活类"事件**（指针按下 / 按键 / 触摸…）✗
+    //    → 所以这里广撒网 + 一直挂着，直到某一次真的放起来为止 ✓
+    //    ⚠️ 绝对不能用 { once: true }：万一某个事件浏览器不认，监听器被消耗掉，
+    //       后面真正的点击就再也接不住了 ✗（踩过）
+    let done = false;
+    const EVENTS = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'keydown', 'keyup', 'touchstart', 'touchend'];
+
+    const finish = () => {
+      done = true;
       pendingResumeRef.current = false;
-      const el = audioRef.current;
-      if (el && el.paused) {
-        el.play().then(() => setIsPlaying(true)).catch(() => {});
-      }
+      EVENTS.forEach((e) => window.removeEventListener(e, tryPlay, true));
     };
-    window.addEventListener('pointerdown', kick, { once: true });
-    window.addEventListener('keydown', kick, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', kick);
-      window.removeEventListener('keydown', kick);
+
+    const tryPlay = () => {
+      if (done) return;
+      const a = audioRef.current;
+      if (!a) return;                        // 🎵 歌还没挂上 → 等下一次事件（别当成失败 ✗）
+      if (!a.paused) { finish(); return; }   // 已经在放了 → 收工 ✓
+      a.play()
+        .then(() => { setIsPlaying(true); finish(); })
+        .catch(() => { /* 这一下浏览器还不认，等下一次事件 ✓ */ });
     };
+
+    EVENTS.forEach((e) => window.addEventListener(e, tryPlay, { capture: true, passive: true }));
+    // 页面一加载就先试一次：**媒体参与度(MEI)够高的浏览器这时候就会放行** → 完全无感 ✓
+    tryPlay();
+
+    return () => EVENTS.forEach((e) => window.removeEventListener(e, tryPlay, true));
   }, [currentSong?.src]);
 
   const togglePlay = () => {
