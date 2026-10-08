@@ -243,7 +243,16 @@ export default function Navbar() {
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
-                            hovered === link.href || active || clicked === link.href
+                            /* ⚠️⚠️ 这个条件决定了"旧的缩回"什么时候开始（用户实测反馈过）：
+                               写成 `|| active` 时：点下去之后 active 还是旧的（路由要等新页面
+                               **加载完**才变）→ 旧的色块定住不动、等界面完全切过去才缩回 ✗
+                               现在改成 `active && clicked === null`：
+                               点下去那一刻 clicked 就有值了 → 旧的**立刻**不再算伸出 → 马上开始缩回 ✓
+                               和新那条的揭开**同时进行**，不被页面切换影响 ✓
+                               三个条件：悬停 / 刚点的那条（锁住） / 没有待跳转时的当前栏目 */
+                            hovered === link.href ||
+                            clicked === link.href ||
+                            (active && clicked === null)
                               ? 'inset(0 0% 0 0)'
                               : 'inset(0 100% 0 0)',
                         }}
