@@ -130,6 +130,34 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     -webkit-backdrop-filter: blur(12px);
   }
 
+  /* ============================================================
+     🧱 没有「毛玻璃」的浏览器兜底（OPPO ColorOS 自带浏览器等）
+
+     用户反馈：同一台手机上 Edge 正常、vivo 自带浏览器正常、电脑全部正常，
+     只有 OPPO 自带的那个浏览器 —— 卡片半透明生效了，但**模糊那一步整个被跳过** ✗
+     背景图清清楚楚透上来、字糊在上面，看着像坏了 ✗
+     （那个浏览器设置里只有「无图模式」一项、而且是关着的 → 不是设置问题，
+       是它的内核就不做 backdrop-filter ✗ 服务器端没法让它变出来 ✗）
+
+     所以这里只做一件事：**没有毛玻璃时别难看** ✓
+     把这类卡片的底色换成更实的半透明 → 字不会糊在背景图上，
+     看着像"另一种干净风格"而不是"像坏了" ✓
+
+     ⚠️ 安全性：`@supports not (...)` —— 这一块**只在完全不支持 backdrop-filter
+        的浏览器里生效** ✓ 正常的 Chrome / Edge / Safari / vivo 浏览器一律不受影响 ✓
+     ⚠️ 只改 background-color，**不碰 background-image** ——
+        渐变按钮（bg-gradient-to-*）的渐变属于背景图，照样保留 ✓ 不会被盖掉 ✓
+     ⚠️ 以后哪个元素被这条改得不对：给它加一个 `data-keep-glass` 属性即可排除 ✓
+     ============================================================ */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    [class*="backdrop-blur-"]:not([data-keep-glass]) {
+      background-color: rgba(255, 255, 255, 0.86) !important;
+    }
+    .dark [class*="backdrop-blur-"]:not([data-keep-glass]) {
+      background-color: rgba(15, 23, 42, 0.9) !important;
+    }
+  }
+
   .group:hover img {
     will-change: transform;
   }
