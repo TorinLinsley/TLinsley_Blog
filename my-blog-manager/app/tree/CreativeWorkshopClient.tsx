@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { motion, AnimatePresence } from 'framer-motion';
 import {Beaker, Rocket, Trees, Wrench} from 'lucide-react'; // 🌟 暂时移除了 Sofa 图标
@@ -87,7 +86,6 @@ export default function CreativeWorkshopClient({ posts = [], chatters = [], mome
 
   return (
     <div className="min-h-screen relative pb-32 overflow-x-hidden">
-      <Navbar />
 
       <PageTransition>
         <div className="w-full max-w-7xl mx-auto mt-24 px-4 sm:px-10 relative z-10 flex flex-col items-center">

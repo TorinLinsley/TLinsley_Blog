@@ -25,6 +25,7 @@ import PageKeys from '../components/pageScrollKeys';
 import HoverTip from '../components/HoverTip';
 import InSiteLinks from '../components/InSiteLinks';
 import ApiKeyInjector from '../components/ApiKeyInjector';
+import Navbar from '../components/Navbar';
 
 /**
  * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
@@ -104,6 +105,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <GlobalSnow />
 
                   <div className="relative z-10 flex-1 flex flex-col">
+                    {/*
+                      🧭 导航栏挪到**根布局**里了（原来 17 个页面各自 import 一份）。
+
+                      为什么必须这样：页面各引一份 = 切页时整条导航栏被销毁重建 ✗
+                      表现就是"点选项卡 → 色块刚揭开 → 页面像刷新一样断了"✗
+                      放到这里之后它**全程常驻**（React 不会重建它）：切页只换下面 children 那块 ✓
+                        · 色块能把揭开动画（.32s 弹簧）完整播完 ✓ 不会被切页打断 ✓
+                        · 选中那一条平滑接手：点过的那条 → 新页面的 active ✓ 中间不闪 ✗
+                        · 手机上开着的抽屉、悬停状态也跨页保留 ✓
+                      ⚠️ 高度/留白：导航栏自己是 `fixed`（不占布局空间），
+                         各页面原来的 mt-28 / pt-20 留白**一个像素都不用改** ✓
+                      ⚠️ 博客前台（TLBlog/app/layout.tsx）是同一套写法，改一处记得看另一处 ✓
+                    */}
+                    <Navbar />
                     {children}
                   </div>
 

@@ -1,4 +1,3 @@
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import ToolsAdmin from './ToolsAdmin';
 
@@ -11,7 +10,6 @@ import ToolsAdmin from './ToolsAdmin';
 export default function ToolsPage() {
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
       <PageTransition>
         <ToolsAdmin />
       </PageTransition>

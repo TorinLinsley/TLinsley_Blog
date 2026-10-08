@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { albums as initialAlbums, Album, Photo } from '../../data/albums';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,7 +76,6 @@ export default function PhotoWallPage() {
 
   return (
     <div className="min-h-screen relative pb-32">
-      <Navbar />
 
       {/* 🌟 核心修复 2：加入 key 强制重置状态！只要 isImgToolOpen 变了，组件就完全重生 */}
       <FloatingImageTool

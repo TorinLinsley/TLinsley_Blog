@@ -21,7 +21,6 @@ import rehypeKatex from 'rehype-katex';
 // 🌟 引入神仙代码高亮主题（Atom One Dark）
 import 'highlight.js/styles/atom-one-dark.css';
 
-import Navbar from '../../../components/Navbar';
 import PageTransition from '../../../components/PageTransition';
 import { siteConfig } from '../../../siteConfig';
 import ClientSocials from '../../../components/ClientSocials';
@@ -171,7 +170,6 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
 
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
 
       <PageTransition>
         <main className="w-[95%] md:w-[90%] max-w-6xl mx-auto mt-20 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">

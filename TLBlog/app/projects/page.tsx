@@ -1,4 +1,3 @@
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import ProjectsBoard from './ProjectsBoard';
 import { readProjects } from '../../lib/readProjects';
@@ -15,7 +14,6 @@ export const dynamic = 'force-dynamic';
 export default function ProjectsPage() {
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
       <PageTransition>
         <div className="mt-28">
           <ProjectsBoard projects={readProjects()} />

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOperations } from '../../context/OperationContext';
 import { siteConfig } from '../../siteConfig';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { ToastProvider, useToast } from '../../components/ToastProvider';
 import { registerLayer } from '../../components/layerStack';
@@ -246,7 +245,6 @@ function SettingsContent() {
 
   return (
     <div className="min-h-screen relative pb-10">
-      <Navbar />
 
       <PageTransition>
         <main className="w-[95%] max-w-7xl mx-auto mt-[7rem] lg:mt-24 flex flex-col lg:flex-row gap-4 lg:gap-8 items-start relative z-10">

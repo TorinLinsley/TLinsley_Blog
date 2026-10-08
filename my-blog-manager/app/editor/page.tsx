@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Navbar from '../../components/Navbar';
 import RichTextEditor, { RichTextEditorHandle } from '../../components/editor/RichTextEditor';
 import MetaMatrix from '../../components/editor/MetaMatrix';
 import FloatingImageTool from '../../components/editor/FloatingImageTool';
@@ -209,7 +208,6 @@ function EditorContent() {
         {hasUnsavedChanges && (
           <div className="absolute inset-0 z-50 cursor-pointer" onClick={() => setExitModalOpen(true)}></div>
         )}
-        <Navbar />
       </div>
 
       <PageTransition>

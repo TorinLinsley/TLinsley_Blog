@@ -24,6 +24,22 @@ const NAV_HEIGHT = '3.25rem';
  */
 const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
 
+/**
+ * 选项卡下面那个色块**比文字底边再往下压多少** ✓
+ *   0 = 贴齐文字底边（原来的值） · -0.1em ≈ 再往下 1.6px（"稍微往下偏移一点"）
+ *   ⚠️ 和博客前台 Navbar 是同一个值，两边观感才一致 ✓ 用 em 不用 px（手机端根字号会缩）✓
+ */
+const BLOCK_BOTTOM = '-0.1em';
+
+/**
+ * 选项卡文字颜色 ✓（"未选中的弱化一点 —— 深色别那么白、浅色别那么黑"）
+ *   · 未选中 → slate-500 / slate-400（工具网页那条导航栏一直用的弱化色 ✓ 四处统一）
+ *   · 选中   → 正文强度 slate-900 / slate-100 → 一强一弱，当前栏目一眼看出来 ✓
+ *   ⚠️ 悬停**不参与**变色 ✗ 悬停只负责揭开色块 ✓
+ */
+const TAB_DIM = 'text-slate-500 dark:text-slate-400';
+const TAB_STRONG = 'text-slate-900 dark:text-slate-100';
+
 export default function Navbar() {
   const [isOpBoxOpen, setIsOpBoxOpen] = useState(false);
   // 📱 手机端（<1024px）：导航链接平时收进抽屉，靠右上角那个按钮展开
@@ -59,7 +75,11 @@ export default function Navbar() {
   const pathname = usePathname();
 
   // 切到别的页面后自动收起手机端抽屉（不然点完链接它还盖在页面上）
-  useEffect(() => { setIsMenuOpen(false); }, [pathname]);
+  // ⚠️ 导航栏现在挂在 app/layout.tsx 上，切页**不再重新挂载**了 ——
+  //    clicked 也得自己跟着路由清，不然用浏览器后退回到别的栏目时，
+  //    之前点过的那条色块会一直锁在伸出状态 ✗
+  //    （不会闪：路由一变 active 已经是新的那条了，这个 effect 在 DOM 更新之后才跑 ✓）
+  useEffect(() => { setIsMenuOpen(false); setClicked(null); }, [pathname]);
 
   // 抽屉打开时锁住背景滚动（和博客前台一致）
   useEffect(() => {
@@ -308,7 +328,10 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`relative py-1 whitespace-nowrap ${active ? 'text-[16.3px]' : ''}`}
+                    /* 未选中弱化 / 选中保持正文强度 ✓（和博客前台 Navbar 同一套值）300ms 颜色过渡 ✓ */
+                    className={`relative py-1 whitespace-nowrap transition-colors duration-300 ${
+                      active ? `text-[16.3px] ${TAB_STRONG}` : TAB_DIM
+                    }`}
                     onMouseEnter={() => setHovered(link.href)}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
                     /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓ */
@@ -323,7 +346,7 @@ export default function Navbar() {
                             ? 'bg-indigo-500 dark:bg-indigo-400'
                             : 'bg-indigo-400 dark:bg-indigo-500'
                         }`}
-                        style={{ bottom: 0, height: '0.5em' }}
+                        style={{ bottom: BLOCK_BOTTOM, height: '0.5em' }}
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
@@ -548,13 +571,16 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate text-slate-700 dark:text-slate-200"
+                      /* 手机端和大屏同一条规矩：未选中弱化 ✓ 选中保持正文强度 ✓（触摸屏没有悬停） */
+                      className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-300 ${
+                        active ? TAB_STRONG : TAB_DIM
+                      }`}
                     >
                       <span className="relative inline-block">
                         <motion.span
                           aria-hidden
                           className="absolute left-0 right-0 bg-indigo-500 dark:bg-indigo-400"
-                          style={{ bottom: 0, height: '0.5em' }}
+                          style={{ bottom: BLOCK_BOTTOM, height: '0.5em' }}
                           initial={{ clipPath: 'inset(0 100% 0 0)' }}
                           animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
                           transition={HOVER_REVEAL}

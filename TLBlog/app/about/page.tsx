@@ -21,7 +21,6 @@ import rehypeRepoCard from '../../lib/rehypeRepoCard';
 import 'highlight.js/styles/atom-one-dark.css';
 import 'katex/dist/katex.min.css';
 
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import AboutClient from '../../components/AboutClient';
 import { Suspense } from 'react';
@@ -120,7 +119,6 @@ export default async function AboutPage() {
 
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
       <PageTransition>
         <main className="w-[95%] md:w-[90%] max-w-4xl mx-auto mt-24 md:mt-28 relative z-10">
 

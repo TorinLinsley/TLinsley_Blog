@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { ToastProvider, useToast } from '../../components/ToastProvider';
 import { AlertTriangle, Search, Trash2, X, Sparkles, Pencil } from 'lucide-react';
@@ -96,7 +95,6 @@ function DraftsContent() {
 
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
 
       {/* ---------------------------------------------------------
           💎 自定义绝美确认弹窗 (与杂谈页保持高度统一)

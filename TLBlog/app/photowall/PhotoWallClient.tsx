@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { Album } from '../../data/albums';
 import FadeInImage from '../../components/FadeInImage';
@@ -47,7 +46,6 @@ export default function PhotoWallClient({ albums }: { albums: Album[] }) {
 
   return (
     <div className="min-h-screen relative pb-32">
-      <Navbar />
 
       <PageTransition>
         <div className="w-full max-w-7xl mx-auto mt-28 px-4 sm:px-10 relative z-10">

@@ -21,7 +21,6 @@ import rehypeKatex from 'rehype-katex';
 import 'highlight.js/styles/atom-one-dark.css';
 import 'katex/dist/katex.min.css';
 
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { siteConfig } from '../../siteConfig';
 
@@ -126,7 +125,6 @@ export default async function AdminAboutPage() {
 
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
 
       <PageTransition>
         {/* 📱 只动布局：小屏顶部留白收一档（mt-20）；从 md（≥768px）到桌面端仍是原来的 mt-28 */}

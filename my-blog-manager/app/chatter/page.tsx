@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import ChatterBoard from './ChatterBoard';
 import { siteConfig } from '../../siteConfig';
@@ -107,7 +106,6 @@ export default async function ChatterPage() {
 
   return (
     <div className="min-h-screen relative pb-10">
-      <Navbar />
       <PageTransition>
         <ChatterBoard chatters={chatters} />
       </PageTransition>

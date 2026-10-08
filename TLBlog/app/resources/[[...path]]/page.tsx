@@ -19,7 +19,6 @@ import rehypeKatex from 'rehype-katex';
 
 import 'highlight.js/styles/atom-one-dark.css';
 
-import Navbar from '../../../components/Navbar';
 import PageTransition from '../../../components/PageTransition';
 import ResourceTreeView, { ResourceNode } from '../../../components/ResourceTreeView';
 import ResourceToc from '../../../components/ResourceToc';
@@ -181,7 +180,6 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
 
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
-      <Navbar />
       {/* 📊 阅读进度条：只在真正打开一篇文章时出现（资源列表页不显示） */}
       {requested && <ReadingProgress />}
       {/* 从导航栏进来（/resources）时播入场动画；

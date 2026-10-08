@@ -21,6 +21,24 @@ const NAV_HEIGHT = '3.25rem';
  */
 const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
 
+/**
+ * 选项卡下面那个色块**比文字底边再往下压多少** ✓
+ *   0    = 色块底边正好贴齐文字底边（原来的值）
+ *   -0.1em ≈ 再往下 1.6px（用户："把选项卡下面的条稍微往下偏移一点"）
+ *   → 以后想让它再低一点/再高一点，只改这一个数就行 ✓
+ *   ⚠️ 用 em 不用 px：手机端根字号会缩，写 px 在大屏小屏上偏移量就不一样了 ✓
+ */
+const BLOCK_BOTTOM = '-0.1em';
+
+/**
+ * 选项卡文字颜色 ✓（用户："未选中的弱化一点 —— 深色别那么白、浅色别那么黑"）
+ *   · 未选中 → slate-500 / slate-400（就是工具网页那条导航栏一直在用的弱化色 ✓ 四处统一）
+ *   · 选中   → 正文那个强度 slate-900 / slate-100 → 一强一弱，当前栏目一眼看出来 ✓
+ *   ⚠️ 悬停**不参与**变色 ✗ 悬停只负责揭开色块 ✓
+ */
+const TAB_DIM = 'text-slate-500 dark:text-slate-400';
+const TAB_STRONG = 'text-slate-900 dark:text-slate-100';
+
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   /** 当前鼠标悬停的选项卡 href（null = 没有悬停）—— 桌面端色块用 ✓ 触摸设备不会触发 ✓ */
@@ -75,6 +93,11 @@ export default function Navbar() {
   // 换页自动收起
   useEffect(() => {
     setIsMenuOpen(false);
+    /* ⚠️ 导航栏现在挂在 app/layout.tsx 上，切页**不再重新挂载**了 ——
+       clicked 得自己跟着路由清，不然用浏览器后退回到别的栏目时，
+       之前点过的那条色块会一直锁在伸出状态 ✗
+       （不会闪：路由一变 active 已经是新的那条了，这个 effect 在 DOM 更新之后才跑 ✓） */
+    setClicked(null);
   }, [pathname]);
 
   // 菜单打开时锁住背景滚动
@@ -175,7 +198,10 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`relative py-1 ${active ? 'text-[16.3px]' : ''}`}
+                    /* 未选中弱化 / 选中保持正文强度 ✓ 300ms 颜色过渡：切页时和色块一起变化，不突兀 ✓ */
+                    className={`relative py-1 transition-colors duration-300 ${
+                      active ? `text-[16.3px] ${TAB_STRONG}` : TAB_DIM
+                    }`}
                     /* 鼠标进入/离开驱动色块；触摸设备不会触发这两个事件 ✓ 等于天然只在桌面生效 ✓ */
                     onMouseEnter={() => setHovered(link.href)}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
@@ -184,9 +210,8 @@ export default function Navbar() {
                   >
                     <span className="relative inline-block">
                       {/* 色块：垫在文字下层 ✓
-                          ⚠️ 位置：贴齐**文字框的底边、完全落在文字区域之内** ✓
-                             （用户："摆在文本的底部，但处于文本下层，不是在文本像素区域外"）
-                             原来是 bottom:-0.06em ✗ 探到框外去了 ✗ */}
+                          位置 = BLOCK_BOTTOM（文件顶部那个常量）：贴齐**文字底边**，再往下压一点点 ✓
+                          高 0.5em = 文字的一半 —— 尺寸和颜色这次都不动 ✓ */}
                       <motion.span
                         aria-hidden
                         className={`absolute left-0 right-0 ${
@@ -197,7 +222,7 @@ export default function Navbar() {
                             ? 'bg-indigo-500 dark:bg-indigo-400'
                             : 'bg-indigo-400 dark:bg-indigo-500'
                         }`}
-                        style={{ bottom: 0, height: '0.5em' }}
+                        style={{ bottom: BLOCK_BOTTOM, height: '0.5em' }}
                         /**
                          * ⚠️⚠️ initial **不能**用 false ✗（用户反馈"切换选项卡那个条是瞬间出现的"）
                          *   原因：每个页面都各自 import 了 Navbar ✗ → 切页时导航栏**重新挂载** ✗
@@ -323,13 +348,16 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate text-slate-700 dark:text-slate-200"
+                      /* 手机端和大屏同一条规矩：未选中弱化 ✓ 选中保持正文强度 ✓（触摸屏没有悬停） */
+                      className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-300 ${
+                        active ? TAB_STRONG : TAB_DIM
+                      }`}
                     >
                       <span className="relative inline-block">
                         <motion.span
                           aria-hidden
                           className="absolute left-0 right-0 bg-indigo-500 dark:bg-indigo-400"
-                          style={{ bottom: 0, height: '0.5em' }}
+                          style={{ bottom: BLOCK_BOTTOM, height: '0.5em' }}
                           initial={{ clipPath: 'inset(0 100% 0 0)' }}
                           animate={{ clipPath: active ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
                           transition={HOVER_REVEAL}

@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import ToolsBoard from './ToolsBoard';
 import { siteConfig } from '../../siteConfig';
@@ -49,7 +48,6 @@ export default function ToolsPage() {
 
   return (
     <div className="min-h-screen relative pb-10">
-      <Navbar />
       <PageTransition>
         {/* 标题和副标题先写在这里；想改文案直接改这两行即可 */}
         <ToolsBoard

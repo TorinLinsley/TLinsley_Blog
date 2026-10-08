@@ -3,7 +3,6 @@ import path from 'path';
 import matter from 'gray-matter';
 import Link from 'next/link';
 
-import Navbar from '../components/Navbar';
 import PageTransition from '../components/PageTransition';
 import SearchBar from '../components/SearchBar';
 import { siteConfig } from '../siteConfig';
@@ -140,7 +139,6 @@ export default function Home() {
   return (
     <ToastProvider>
       <div className="min-h-screen relative pb-10">
-        <Navbar />
         <PageTransition>
           <div className="w-full max-w-6xl mx-auto mt-28 px-4 sm:px-10 relative z-10">
             <SearchBar

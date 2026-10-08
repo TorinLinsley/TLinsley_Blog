@@ -65,8 +65,13 @@
          `a{font-weight:400}` 之类的全局规则，不挡的话选项卡会变细 ✗）。 */
       '.toolnav{--tn-font:"Noto Serif SC","Source Han Serif SC","Songti SC","SimSun",serif;}',
       '.toolnav,.toolnav *{font-family:var(--tn-font) !important;}',
-      '.toolnav{--tn-bg:rgba(255,255,255,.62);--tn-fg:#1e293b;--tn-fg-dim:#64748b;--tn-border:rgba(15,23,42,.08);--tn-accent:#6366f1;}',
-      '.toolnav[data-theme="dark"]{--tn-bg:rgba(15,23,42,.55);--tn-fg:#e2e8f0;--tn-fg-dim:#94a3b8;--tn-border:rgba(255,255,255,.10);--tn-accent:#818cf8;}',
+      '.toolnav{--tn-bg:rgba(255,255,255,.62);--tn-fg:#1e293b;--tn-fg-dim:#64748b;--tn-border:rgba(15,23,42,.08);--tn-accent:#6366f1;',
+      /* 🟪 选项卡下面那个色块（和站内导航栏**同款**）：
+             浅色 → 选中深紫 indigo-500 / 悬停浅紫 indigo-400
+             深色 → **对调**（选中浅紫 400 / 悬停深紫 500）：浅紫压在深色导航栏上才看得清 ✓ */
+      '--tn-block:#6366f1;--tn-block-hover:#818cf8;}',
+      '.toolnav[data-theme="dark"]{--tn-bg:rgba(15,23,42,.55);--tn-fg:#e2e8f0;--tn-fg-dim:#94a3b8;--tn-border:rgba(255,255,255,.10);--tn-accent:#818cf8;',
+      '--tn-block:#818cf8;--tn-block-hover:#6366f1;}',
       /* 不透明档：浅色 = 纯白，深色 = 实底（配上毛玻璃就是标准导航栏观感） */
       '.toolnav.tn-opaque[data-theme="light"]{--tn-bg:#ffffff;}',
       '.toolnav.tn-opaque[data-theme="dark"]{--tn-bg:#0f172a;}',
@@ -115,11 +120,29 @@
       'transition:color .25s ease;padding:2px 0;}',
       '@media (min-width:1280px){.tn-links{gap:20px;}}',
       '@media (min-width:1536px){.tn-links{gap:24px;}}',
-      '.tn-links a:hover{color:var(--tn-accent);}',
-      '.tn-links a.tn-active{color:var(--tn-accent);font-size:16.3px;}',
-      '.tn-links a.tn-active:after{content:"";position:absolute;left:50%;bottom:-4px;width:4px;height:4px;margin-left:-2px;',
-      'border-radius:9999px;background:var(--tn-accent);animation:tn-pulse 1.6s ease-in-out infinite;}',
-      '@keyframes tn-pulse{0%,100%{opacity:1}50%{opacity:.35}}',
+      /* ⚠️ 悬停**不改文字颜色** ✗ —— 悬停只负责把下面那个色块揭开 ✓
+            未选中弱化 = --tn-fg-dim（浅色 slate-500 / 深色 slate-400 ）
+            选中        = --tn-fg（正文那个强度）→ 一强一弱，当前栏目一眼看出来 ✓
+            —— 和站内导航栏同一条规矩："深色别那么白、浅色别那么黑" ✓ */
+      '.tn-links a.tn-active{font-size:16.3px;color:var(--tn-fg);}',
+      /* 🟪 选项卡下面那个色块（和站内导航栏**同一套**）：
+            结构：<a> → .tn-lbl（inline-block + relative）→ 里面装 .tn-blk（色块）+ .tn-txt（文字）
+              · 色块挂在**文字那一层**上 → 它的左右 = **文字宽度**（不是整条选项卡的宽度 ✓）
+                底边 = **文字底边**（不是带 2px 内边距的整框 ✓）——和站内那个内层 span 的 bottom:0 等价 ✓
+              · 高 0.5em = 文字高度的一半 ✓ 垫在**文字下层** ✓
+              · bottom 写 -.1em：在文字底边的基础上再**往下压一点点**（用户要求"稍微往下偏移一点"）✓
+                以后想让它再低/再高，就调这个 -.1em ✓
+            揭开：clip-path 从**左往右像进度条** ✓（不是 scaleX 拉伸 ✗ 那会把字也拉变形）
+            曲线和站内 spring{duration:.32, bounce:0} 对齐 → .32s cubic-bezier(.23,1,.32,1) ✓ 非线性 ✓
+            ⚠️ 文字那层必须是 position:relative，否则色块会画到文字**上面**把字盖住 ✗ */
+      '.tn-lbl{position:relative;display:inline-block;}',
+      '.tn-blk{position:absolute;left:0;right:0;bottom:-.1em;height:.5em;background:var(--tn-block);',
+      'clip-path:inset(0 100% 0 0);transition:clip-path .32s cubic-bezier(.23,1,.32,1);pointer-events:none;}',
+      '.tn-txt{position:relative;}',
+      /* 悬停 → 浅紫（触摸设备不触发 ✓ 和站内一样只在真悬停的设备上生效 ✓） */
+      '@media (hover:hover){.tn-links a:hover .tn-blk{clip-path:inset(0 0% 0 0);background:var(--tn-block-hover);}}',
+      /* 选中 → 常驻。写在悬停**后面**：悬停一个已选中的选项卡时保持选中色（和站内 active 优先一致）✓ */
+      '.tn-links a.tn-active .tn-blk{clip-path:inset(0 0% 0 0);background:var(--tn-block);}',
       /* 手机：一行空白 + 右上角按钮 */
       '.tn-mobilebar{position:fixed;left:0;right:0;top:0;height:' + MOBILE_PAD + 'px;z-index:9998;display:flex;',
       'align-items:center;justify-content:flex-end;padding:0 12px;background:var(--tn-bg);',
@@ -143,7 +166,10 @@
       'color:var(--tn-fg-dim);padding:10px 12px;border-radius:12px;',
       'transition:background .2s ease,color .2s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
       '.tn-panel a:hover{background:rgba(127,127,127,.12);}',
-      '.tn-panel a.tn-active{background:var(--tn-accent);color:#fff;}',
+      /* ⚠️ 选中**不再是"整块紫底 + 白字"** ✗（那等于把文字颜色也改了 ✗）——
+             和站内手机抽屉保持一致：文字下层一个 0.5em 的色块，选中时常驻 ✓ 文字颜色不动 ✓ */
+      '.tn-panel a.tn-active{color:var(--tn-fg);}',
+      '.tn-panel a.tn-active .tn-blk{clip-path:inset(0 0% 0 0);}',
       /* 抽屉背后的遮罩（网站那个也有）：点它收起 */
       '.tn-mask{position:fixed;left:0;right:0;bottom:0;top:' + MOBILE_PAD + 'px;z-index:9997;',
       'background:rgba(15,23,42,.5);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);',
@@ -318,8 +344,16 @@
 
   function buildLinks(container) {
     LINKS.forEach(function (l) {
-      var a = el('a', isActive(l.href) ? 'tn-active' : '', l.name);
+      var a = el('a', isActive(l.href) ? 'tn-active' : '');
       a.href = l.href;
+      /* 选项卡 = 「色块 + 文字」两层（和站内导航栏**同一套结构**）：
+           ⚠️ 文字必须单独包一层 position:relative —— 色块是绝对定位的，
+              不包的话它会画到文字**上面**把字盖住 ✗（绝对定位的盒子在行内文字之后绘制）
+           外层 .tn-lbl 是 inline-block：色块的左右边界 = **文字宽度**，而不是整条选项卡的宽度 ✓ */
+      var lbl = el('span', 'tn-lbl');
+      lbl.appendChild(el('span', 'tn-blk'));
+      lbl.appendChild(el('span', 'tn-txt', l.name));
+      a.appendChild(lbl);
       container.appendChild(a);
     });
   }

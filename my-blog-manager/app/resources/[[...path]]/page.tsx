@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Navbar from '../../../components/Navbar';
 import PageTransition from '../../../components/PageTransition';
 import { ToastProvider, useToast } from '../../../components/ToastProvider';
 import RichTextEditor, { RichTextEditorHandle } from '../../../components/editor/RichTextEditor';
@@ -749,7 +748,6 @@ function ResourcesContent() {
 
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
-      <Navbar />
       {/* 🏁 onlyOnDocumentLoad：站内点链接跳进来的这一页直接显示，不重播那 0.8s 入场动画
           （真的刷新 / 首次打开才播）。这样从首页卡片、搜索结果、正文里的超链接点进某篇资源文章，
           就是"瞬间出现"，和左边列表点文章一个手感。 */}

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, RefreshCcw, ListMusic, Mic2, Disc3, Volume2, VolumeX, Search, X, MessageSquare } from 'lucide-react';
-import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { useMusic } from '../../components/MusicProvider';
 import Comments from '../../components/Comments';
@@ -118,7 +117,6 @@ export default function MusicClient() {
   if (isLoading || !currentSong) {
     return (
       <div className="min-h-screen relative pb-32 flex flex-col">
-        <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center animate-pulse gap-4">
           <Disc3 size={48} className="text-indigo-500 animate-spin" />
           <span className="font-black text-slate-500 tracking-widest text-sm">唤醒音频引擎中...</span>
@@ -136,7 +134,6 @@ export default function MusicClient() {
         <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-sm" />
       </div>
 
-      <Navbar />
 
       <PageTransition>
         <div className="w-full max-w-7xl mx-auto mt-24 md:mt-28 px-4 sm:px-6 md:px-10 relative z-10">

@@ -3,7 +3,6 @@ import path from 'path';
 import matter from 'gray-matter';
 import Link from 'next/link';
 
-import Navbar from '../components/Navbar';
 import PageTransition from '../components/PageTransition';
 import SearchBar from '../components/SearchBar';
 import { siteConfig } from '../siteConfig';
@@ -137,7 +136,6 @@ export default function Home() {
   return (
     <ToastProvider>
       <div className="min-h-screen relative pb-10">
-        <Navbar />
         <PageTransition>
           {/* 🌟 调整整体容器的内边距，适应手机端更小的屏幕 */}
           <div className="w-full max-w-6xl mx-auto mt-24 sm:mt-28 px-4 sm:px-6 lg:px-10 relative z-10">

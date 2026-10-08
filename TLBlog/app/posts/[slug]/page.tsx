@@ -21,7 +21,6 @@ import rehypeKatex from 'rehype-katex';
 // 引入高亮主题
 import 'highlight.js/styles/atom-one-dark.css';
 
-import Navbar from '../../../components/Navbar';
 import PageTransition from '../../../components/PageTransition';
 import { siteConfig } from '../../../siteConfig';
 import ClientSocials from '../../../components/ClientSocials';
@@ -165,7 +164,6 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
 
   return (
     <div className="min-h-screen relative pb-20">
-      <Navbar />
       <PageTransition>
         {/* ⚠️ 这个 max-w 只管大屏幕：小屏走 w-[95%]/w-[90%]，根本到不了这个上限，行为不变。
             以前卡在 max-w-6xl(1152px)，中间正文板只有 ~800px；现在放宽到 1900px，
