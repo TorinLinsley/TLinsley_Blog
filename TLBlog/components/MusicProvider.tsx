@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
 
 // 【增强版 LRC 歌词解析】
 function parseLrc(lrcText: string) {
@@ -158,9 +157,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const readyRef = useRef(false);                     // 恢复完成前，一律不许往存档里写（免得用初始值把存档覆盖了 ✗）
   const seekDoneRef = useRef(false);                  // 位置只恢复一次
   const lastSaveRef = useRef(0);                      // 写入节流用的时间戳
-  const firstPathRef = useRef(true);                  // 首次挂载不算"站内跳转"
-
-  const pathname = usePathname();
+  /**
+   * 🛟 「刷新后想接着放，但被浏览器自动播放策略拦下」时挂的标记 ✓
+   *    用户在这个页面上第一次点击/按键（= 浏览器认可的用户手势）就立刻接着放 ✓
+   *    为什么需要：刷新出来的新文档里没有"用户手势"，带声音的自动播放会被拒绝 ✗
+   *    —— 这是浏览器的规矩，不是我们能绕过去的 ✗
+   */
+  const pendingResumeRef = useRef(false);
 
   /**
    * 当前歌曲 —— 💾 存档、恢复、渲染都要用它，所以**必须在这里提前声明** ✓
@@ -207,8 +210,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setIsMuted(s.muted);
       setPlayMode(s.mode);
       // 只有「刷新」且上次确实在放 → 自动接着放 ✓
-      // 其它情况（站内跳转过来 / 新打开 / 后退）→ 恢复歌曲和进度，但保持暂停 ✓
-      if (s.playing && isPageReload()) setIsPlaying(true);
+      // 其它情况（站内跳转过来 / 新打开 / 从别的网站回来）→ 恢复歌曲和进度，但保持暂停 ✓
+      if (s.playing && isPageReload()) {
+        pendingResumeRef.current = true;   // 万一被浏览器拦了，用户一碰页面就接着放 ✓
+        setIsPlaying(true);
+      }
     }
     readyRef.current = true;   // 从这里开始才允许写存档 ✓
   }, []);
@@ -307,8 +313,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (isPlaying && audioRef.current) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
-        // ⚠️ 浏览器可能拦下自动播放（新打开的页面几乎一定会拦）→ 那就老老实实保持暂停 ✓
-        playPromise.catch(() => setIsPlaying(false));
+        playPromise
+          .then(() => { pendingResumeRef.current = false; })   // 放起来了 → 撤掉兜底标记 ✓
+          // ⚠️ 浏览器可能拦下自动播放（刷新出来的新文档没有用户手势，几乎一定会拦）✗
+          //    → 保持暂停，但**兜底标记留着**：用户一碰页面就自动接着放 ✓
+          .catch(() => setIsPlaying(false));
       }
     }
     return () => { isMounted = false; };
@@ -340,18 +349,31 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
   }, [volume, isMuted, playMode, currentIndex, currentSong]);
 
-  /* ── ④ 站内跳转 → 暂停播放（用户要求） ✓ ────────────────────────────────
-     "通过网站内的超链接跳转把当前标签页替换进行跳转的方式，是暂停播放；
-      回来后用户自己点击继续播放就行" ✓
-     ⚠️ 刷新（F5）**不会**走到这里（路径没变）→ 刷新那条路的"接着放"不受影响 ✓ */
+  /* ── ④ 🛟 自动播放被浏览器拦下时的兜底：用户一碰页面就接着放 ✓ ──────────────
+     ⚠️⚠️ 这里**绝对不能**再做"站内跳转就暂停"✗ —— 那是我上一版理解错了用户的意思：
+        用户要的是"**从当前标签页跳到网站之外的网页**才暂停"✓
+        而站内跳转现在是客户端路由（InSiteLinks 把站内链接全改成 SPA 了），
+        音乐本来就**应该继续放** ✓ 上一版加了暂停 → 变成"翻一页停一次" ✗ 用户已经骂过 ✗ 别再改回去 ✗
+
+     "跳到站外再回来"为什么不用管：同一标签页跳到站外 → 整页卸载，音乐自然停 ✓
+     回来那次加载的 navigation.type 是 'navigate' / 'back_forward'（不是 'reload'）
+     → 上面挂载那段恢复逻辑自然把它当"新打开"：恢复歌曲 + 进度、保持暂停 ✓ 正是用户要的 ✓ */
   useEffect(() => {
-    if (firstPathRef.current) { firstPathRef.current = false; return; }
-    if (audioRef.current && !audioRef.current.paused) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-    saveNow(true);
-  }, [pathname]);
+    if (!pendingResumeRef.current) return;
+    const kick = () => {
+      pendingResumeRef.current = false;
+      const el = audioRef.current;
+      if (el && el.paused) {
+        el.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('keydown', kick);
+    };
+  }, [currentSong?.src]);
 
   const togglePlay = () => {
     if (audioRef.current) {
