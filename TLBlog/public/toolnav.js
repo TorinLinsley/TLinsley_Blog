@@ -133,11 +133,14 @@
               · bottom 写 -.1em：在文字底边的基础上再**往下压一点点**（用户要求"稍微往下偏移一点"）✓
                 以后想让它再低/再高，就调这个 -.1em ✓
             揭开：clip-path 从**左往右像进度条** ✓（不是 scaleX 拉伸 ✗ 那会把字也拉变形）
-            曲线和站内 spring{duration:.32, bounce:0} 对齐 → .32s cubic-bezier(.23,1,.32,1) ✓ 非线性 ✓
+            曲线 = **慢 → 快 → 慢**（两头紧、中间一把扫过去），收尾比起手**略快一丢丢** ✓
+                0.28s cubic-bezier(.55, 0, .5, 1) —— 和站内 lib/motion.ts 的 EASE_WIPE **同值** ✓
+                两头慢各只占 ~15% 的时间，中间 31% 的时间走掉 57% 的行程 → 快、但不线性 ✓
+                ⚠️ 原来是 cubic-bezier(.23,1,.32,1)（快起步 → 慢收尾，进度条那种），节奏正好相反 ✗
             ⚠️ 文字那层必须是 position:relative，否则色块会画到文字**上面**把字盖住 ✗ */
       '.tn-lbl{position:relative;display:inline-block;}',
       '.tn-blk{position:absolute;left:0;right:0;bottom:-.1em;height:.5em;background:var(--tn-block);',
-      'clip-path:inset(0 100% 0 0);transition:clip-path .32s cubic-bezier(.23,1,.32,1);pointer-events:none;}',
+      'clip-path:inset(0 100% 0 0);transition:clip-path .28s cubic-bezier(.55,0,.5,1);pointer-events:none;}',
       '.tn-txt{position:relative;}',
       /* 悬停 → 浅紫（触摸设备不触发 ✓ 和站内一样只在真悬停的设备上生效 ✓） */
       '@media (hover:hover){.tn-links a:hover .tn-blk{clip-path:inset(0 0% 0 0);background:var(--tn-block-hover);}}',

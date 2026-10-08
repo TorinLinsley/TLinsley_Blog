@@ -19,10 +19,22 @@ let documentEntryPlayed = false;
 export default function PageTransition({
   children,
   onlyOnDocumentLoad = false,
+  fadeOnly = false,
 }: {
   children: ReactNode;
   /** true = 只有「整篇文档刚加载」的那一次才播入场动画，站内跳转一律直接显示（不传则完全保持原样） */
   onlyOnDocumentLoad?: boolean;
+  /**
+   * 🚫 **只淡入、不要位移** —— 页内有 `position: fixed` 元素时必须用它。
+   *
+   * ⚠️ 原因：framer 只要给这层 div 动 `transform`，它立刻成为内部所有 fixed 元素的
+   *    **定位参照物** ✗ —— 控制台资源分享页那条「按钮行」（左右两个展开按钮）
+   *    会跟着入场动画一起往下飘，动画播完才"啪"地跳回顶部 ✗
+   *    （用户反馈："进界面后按钮先在下面一段距离，过了一会才变到顶部"）
+   * ✅ 只动 `opacity` 不会这样（opacity 不改变 containing block ✓）
+   *    详细说明见博客前台那份 TLBlog/components/PageTransition.tsx
+   */
+  fadeOnly?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // 首帧就定下来：false → 直接渲染成最终状态，免得先透明再补显示（那反而要多闪一下）
@@ -68,11 +80,12 @@ export default function PageTransition({
     <motion.div
       ref={ref}
       // 刚加载页面时：往下偏 20px，完全透明（站内跳转时 initial=false：直接就是最终状态，不演）
-      initial={animate ? { y: 20, opacity: 0 } : false}
+      // ⚠️ fadeOnly 时不传 y：只留 opacity —— 页内有 fixed 元素时不能动 transform ✗（见上面 props 说明）
+      initial={animate ? (fadeOnly ? { opacity: 0 } : { y: 20, opacity: 0 }) : false}
       // 加载完毕后：回到原位，完全不透明
-      animate={{ y: 0, opacity: 1 }}
-      // 动画怎么演：用优雅的弹性物理动画，持续 0.8 秒
-      transition={animate ? { ease: "easeOut", duration: 0.8 } : { duration: 0 }}
+      animate={fadeOnly ? { opacity: 1 } : { y: 0, opacity: 1 }}
+      // 动画怎么演：fadeOnly 就纯淡入 0.4s；否则还是原来那条 0.8s 的位移入场
+      transition={animate ? { ease: "easeOut", duration: fadeOnly ? 0.4 : 0.8 } : { duration: 0 }}
     >
       {children}
     </motion.div>

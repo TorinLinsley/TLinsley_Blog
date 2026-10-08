@@ -6,10 +6,26 @@ import { ReactNode, useEffect, useRef } from "react";
 export default function PageTransition({
   children,
   disabled = false,
+  /**
+   * 🚫 **只淡入、不要位移** —— 给"这一页里有 position:fixed 元素"的页面用（目前是资源分享页）。
+   *
+   * ⚠️ 为什么必须单独有这么一档（用户实测反馈）：framer 只要给这个 div 动 `transform`，
+   *    它立刻就成了内部**所有 fixed 元素的定位参照物** ✗ ——
+   *    资源页那两个展开按钮（fixed + top:3.25rem）于是跟着入场动画一起往下飘，
+   *    等动画播完 transform 被移除，它们才"啪"地跳回导航栏正下方 ✗
+   *    （表现就是："进页面后按钮先在下面一段距离，过一会才变到顶部"）
+   *
+   * ✅ 只动 `opacity` 不会有这个问题：opacity 不改变 containing block ✓
+   *    所以这一档的代价仅仅是少了那 20px 的上滑，淡入效果照旧 ✓
+   *    —— 宁可少一个位移，也不能让 fixed 的按钮乱跑（那是影响操作的 ✗）
+   */
+  fadeOnly = false,
 }: {
   children: ReactNode;
   /** 跳过入场动画，直接显示内容（用于页内切换，例如资源分享里切换文章） */
   disabled?: boolean;
+  /** 只淡入、不做 20px 上滑（页内有 fixed 元素时必须用它，理由见上） */
+  fadeOnly?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,12 +73,21 @@ export default function PageTransition({
   // 资源分享页那个小屏抽屉的开合状态就是这么被"自动收起"的（从 /resources 点进
   // /resources/xxx 时 disabled 从 false 变 true，抽屉当场复位）。
   // 现在统一都用 motion.div，只用参数把入场动画关掉，DOM 结构保持稳定。
+  //
+  // ⚠️ fadeOnly 同理：**只是不传 transform 相关的值**，元素本身还是 motion.div ✓
+  //    （framer 在没有 transform 值可动时不会写 transform，containing block 就不会变 ✓）
   return (
     <motion.div
       ref={ref}
-      initial={disabled ? false : { y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={disabled ? { duration: 0 } : { ease: "easeOut", duration: 0.8 }}
+      initial={disabled ? false : fadeOnly ? { opacity: 0 } : { y: 20, opacity: 0 }}
+      animate={fadeOnly ? { opacity: 1 } : { y: 0, opacity: 1 }}
+      transition={
+        disabled
+          ? { duration: 0 }
+          : fadeOnly
+            ? { ease: 'easeOut', duration: 0.4 }
+            : { ease: "easeOut", duration: 0.8 }
+      }
     >
       {children}
     </motion.div>

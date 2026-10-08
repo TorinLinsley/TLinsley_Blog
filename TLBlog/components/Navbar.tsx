@@ -9,6 +9,7 @@ import { siteConfig } from '../siteConfig';
 import { useTheme } from './ThemeProvider';
 import { registerLayer } from './layerStack';
 import { navLinks } from '../lib/navLinks';
+import { EASE_WIPE } from '../lib/motion';
 
 /** 小屏导航栏高度：3.25rem = 原来的 52px（大屏仍是 h-16 = 64px）。
     写成 rem 是为了跟着手机上的根字号一起缩，见 globals.css 里的手机缩放。 */
@@ -16,10 +17,18 @@ const NAV_HEIGHT = '3.25rem';
 
 /**
  * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
- *   弹簧 → **可打断** ✓（鼠标快速划过时不会卡在半路 ✗）
- *   时长 ≤0.35s ✓ 非线性 ✓
+ *
+ * ⚠️ 原来是弹簧（快起步 → 慢慢停下）—— 和现在要的节奏**正好相反** ✗
+ *    用户要的是「**慢 → 快 → 慢**」，而且收尾那一段比'起手那一段慢'**略快一丢丢** ✓
+ *    → 换成 EASE_WIPE 这条贝塞尔（数值、行程对照、怎么微调都写在 lib/motion.ts 里）✓
+ *
+ * ⚠️ 代价（这是换节奏必然要付的）：贝塞尔被中途打断时是"从当前位置**重新起步**"，
+ *    不像弹簧能带着当前速度接着走 —— 鼠标极快地划过时，收尾会有一点点顿 ✓
+ *    实测观感可接受；真觉得顿就再把 duration 往下调一点 ✓
+ * ⚠️ 0.28s 是**故意压短**的：曲线两头都有一小段"慢"，
+ *    时长不压短的话整体就会显拖 —— 压到 0.28 之后，中间那把扫过去才是主导观感 ✓
  */
-const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
+const HOVER_REVEAL = { duration: 0.28, ease: EASE_WIPE };
 
 /**
  * 选项卡下面那个色块**比文字底边再往下压多少** ✓

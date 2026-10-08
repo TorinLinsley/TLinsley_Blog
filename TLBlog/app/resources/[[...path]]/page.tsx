@@ -184,7 +184,12 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
       {requested && <ReadingProgress />}
       {/* 从导航栏进来（/resources）时播入场动画；
           从左侧列表切换文章（/resources/xxx）时跳过，内容瞬间出现 */}
-      <PageTransition disabled={Boolean(requested)}>
+      {/* ⚠️ fadeOnly：这一页里有 **fixed 的「按钮行」**（左右两个展开按钮，见 ResourcePanels）——
+          入场动画只要动 transform，那个 div 就成了 fixed 的定位参照物：
+          按钮会跟着动画往下飘，动画播完才"啪"地跳回导航栏正下方 ✗
+          （用户反馈："进界面后按钮先在下面一段距离，过了一会才变到顶部"）
+          → 这一页改成只淡入、不做 20px 上滑 ✓ 详见 components/PageTransition.tsx */}
+      <PageTransition disabled={Boolean(requested)} fadeOnly>
         {/* 大屏三栏常驻；小屏只留正文 + 左右两个展开抽屉，都交给这个客户端容器 */}
         <ResourcePanels
           left={<ResourceTreeView tree={tree} selectedPath={targetPath} />}

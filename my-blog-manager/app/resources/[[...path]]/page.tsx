@@ -751,7 +751,11 @@ function ResourcesContent() {
       {/* 🏁 onlyOnDocumentLoad：站内点链接跳进来的这一页直接显示，不重播那 0.8s 入场动画
           （真的刷新 / 首次打开才播）。这样从首页卡片、搜索结果、正文里的超链接点进某篇资源文章，
           就是"瞬间出现"，和左边列表点文章一个手感。 */}
-      <PageTransition onlyOnDocumentLoad>
+      {/* 🚫 fadeOnly：这一页里有 **fixed 的「按钮行」**（左右两个展开按钮，见 ResourcePanels）——
+          入场动画只要动 transform，那层 div 就成了 fixed 的定位参照物：
+          按钮会跟着动画往下飘，动画播完才"啪"地跳回导航栏正下方 ✗
+          → 这一页改成只淡入、不做 20px 上滑 ✓（和博客前台同一处改动） */}
+      <PageTransition onlyOnDocumentLoad fadeOnly>
         {/* 📱 小屏是「App 式」三栏：中间正文铺满，左右两栏收进抽屉（按钮在导航栏正下方那一行）。
             大屏和原来一模一样：左列表 / 中正文 / 右大纲 并排。 */}
         <ResourcePanels

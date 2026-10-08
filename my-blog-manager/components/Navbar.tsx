@@ -12,6 +12,7 @@ import { siteConfig } from '../siteConfig';
 import { useTheme } from './ThemeProvider';
 import { registerLayer } from './layerStack';
 import { navLinks } from '../lib/navLinks';
+import { EASE_WIPE } from '../lib/motion';
 
 /** 小屏导航栏高度：3.25rem = 52px（大屏仍是 h-16 = 64px）。
     和博客前台 Navbar / MobileToc 用的是同一个值，两边观感才一致。 */
@@ -19,10 +20,18 @@ const NAV_HEIGHT = '3.25rem';
 
 /**
  * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
- *   和博客前台 Navbar 用的是**同一套参数**（两边观感一致 ✓）
- *   弹簧 → **可打断** ✓ 时长 ≤0.35s ✓ 非线性 ✓
+ *
+ * ⚠️ 原来是弹簧（快起步 → 慢慢停下）—— 和现在要的节奏**正好相反** ✗
+ *    要的是「**慢 → 快 → 慢**」，而且收尾那一段比'起手那一段慢'**略快一丢丢** ✓
+ *    → 换成 EASE_WIPE 这条贝塞尔（数值、行程对照、怎么微调都写在 lib/motion.ts 里）✓
+ *    ⚠️ 和博客前台 Navbar 用**同一个常量**，两边才是同一套节奏 ✓
+ *
+ * ⚠️ 代价：贝塞尔被中途打断是"从当前位置**重新起步**"，
+ *    不像弹簧能带着当前速度接着走 —— 鼠标极快地划过时收尾会有一点点顿 ✓ 实测可接受
+ * ⚠️ 0.28s 是**故意压短**的：曲线两头都有一小段"慢"，
+ *    时长不压短的话整体就会显拖 —— 压到 0.28 之后，中间那把扫过去才是主导观感 ✓
  */
-const HOVER_REVEAL = { type: 'spring' as const, duration: 0.32, bounce: 0 };
+const HOVER_REVEAL = { duration: 0.28, ease: EASE_WIPE };
 
 /**
  * 选项卡下面那个色块**比文字底边再往下压多少** ✓
