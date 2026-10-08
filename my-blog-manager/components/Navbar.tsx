@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MenuLines } from './MorphIcons';
 import { useOperations } from '../context/OperationContext';
@@ -13,6 +13,7 @@ import { useTheme } from './ThemeProvider';
 import { registerLayer } from './layerStack';
 import { navLinks } from '../lib/navLinks';
 import { EASE_OUT } from '../lib/motion';
+import { signalNavStart } from './NavSwitchDim';
 
 /** 小屏导航栏高度：3.25rem = 52px（大屏仍是 h-16 = 64px）。
     和博客前台 Navbar / MobileToc 用的是同一个值，两边观感才一致。 */
@@ -84,6 +85,13 @@ export default function Navbar() {
   const [targetBlogPath, setTargetBlogPath] = useState("");
 
   const pathname = usePathname();
+  /**
+   * ⚡ 用来**预取页面**（见下面选项卡的 onMouseEnter），和博客前台完全同一套做法。
+   * 这些页面的内容要等服务器/后端返回，点下去才开始要 → 必然有等待 ✗
+   * 悬停就预取 → 真按下去时数据已经在浏览器里 → 内容**当帧就换** ✓
+   * 这才是"条在动"和"界面在换"**真正同时**的关键（光调动画曲线做不到 ✗）
+   */
+  const router = useRouter();
 
   // 切到别的页面后自动收起手机端抽屉（不然点完链接它还盖在页面上）
   // ⚠️ 导航栏现在挂在 app/layout.tsx 上，切页**不再重新挂载**了 ——
@@ -343,10 +351,11 @@ export default function Navbar() {
                     className={`relative py-1 whitespace-nowrap transition-colors duration-300 ${
                       active ? `text-[16.3px] ${TAB_STRONG}` : TAB_DIM
                     }`}
-                    onMouseEnter={() => setHovered(link.href)}
+                    /* ⚡ 悬停即预取：鼠标移到选项卡上一定早于点击 → 点下去内容当帧就换 ✓ */
+                    onMouseEnter={() => { setHovered(link.href); router.prefetch(link.href); }}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
                     /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓ */
-                    onClick={() => setClicked(link.href)}
+                    onClick={() => { setClicked(link.href); signalNavStart(); }}
                   >
                     <span className="relative inline-block">
                       <motion.span
@@ -590,7 +599,7 @@ export default function Navbar() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => { setIsMenuOpen(false); signalNavStart(); }}
                       /* 手机端和大屏同一条规矩：未选中弱化 ✓ 选中保持正文强度 ✓（触摸屏没有悬停） */
                       className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-300 ${
                         active ? TAB_STRONG : TAB_DIM

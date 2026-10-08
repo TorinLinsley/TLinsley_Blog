@@ -26,6 +26,7 @@ import HoverTip from '../components/HoverTip';
 import InSiteLinks from '../components/InSiteLinks';
 import ApiKeyInjector from '../components/ApiKeyInjector';
 import Navbar from '../components/Navbar';
+import NavSwitchDim from '../components/NavSwitchDim';
 
 /**
  * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
@@ -119,7 +120,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                       ⚠️ 博客前台（TLBlog/app/layout.tsx）是同一套写法，改一处记得看另一处 ✓
                     */}
                     <Navbar />
-                    {children}
+                    {/* ⚡ 内容区包这一层，是为了"条和界面**真正同时**开始动"：
+                        ① 真正的解法在 Navbar 里 —— 鼠标悬停到选项卡上就 router.prefetch，
+                           等你真按下去时数据已经在浏览器里 → 内容**当帧就换** ✓
+                        ② 这层只是兜底：没预取到（没悬停就点 / 后端慢）时，
+                           等超过 110ms 才变暗告诉用户"在切了" ✓ 预取命中时一次都不闪 ✓
+                        详见 components/NavSwitchDim.tsx（和博客前台是同一份）*/}
+                    <NavSwitchDim>{children}</NavSwitchDim>
                   </div>
 
                   {/* 📱 小屏不显示这些悬浮物（和博客前台 layout.tsx 完全同一套写法：

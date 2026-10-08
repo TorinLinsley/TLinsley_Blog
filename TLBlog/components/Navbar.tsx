@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MenuLines } from './MorphIcons';
 import { siteConfig } from '../siteConfig';
@@ -10,6 +10,7 @@ import { useTheme } from './ThemeProvider';
 import { registerLayer } from './layerStack';
 import { navLinks } from '../lib/navLinks';
 import { EASE_OUT } from '../lib/motion';
+import { signalNavStart } from './NavSwitchDim';
 
 /** 小屏导航栏高度：3.25rem = 原来的 52px（大屏仍是 h-16 = 64px）。
     写成 rem 是为了跟着手机上的根字号一起缩，见 globals.css 里的手机缩放。 */
@@ -65,6 +66,13 @@ export default function Navbar() {
    */
   const [clicked, setClicked] = useState<string | null>(null);
   const pathname = usePathname();
+  /**
+   * ⚡ 用来**预取页面**（见下面选项卡的 onMouseEnter）。
+   * 为什么非要它：这些页面的内容都是服务器现读磁盘出来的，点下去才开始要 → 必然有等待 ✗
+   * 悬停就预取 → 真按下去时数据已经在浏览器里了 → 内容**当帧就换** ✓
+   * 这才是"条在动"和"界面在换"**真正同时**的关键（光调动画曲线是做不到的 ✗）
+   */
+  const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   /** 抽屉本体 / 汉堡按钮：交给 layerStack 判断"这一下该不该收" */
   const menuDrawerRef = useRef<HTMLElement | null>(null);
@@ -215,11 +223,15 @@ export default function Navbar() {
                     className={`relative py-1 transition-colors duration-300 ${
                       active ? `text-[16.3px] ${TAB_STRONG}` : TAB_DIM
                     }`}
-                    /* 鼠标进入/离开驱动色块；触摸设备不会触发这两个事件 ✓ 等于天然只在桌面生效 ✓ */
-                    onMouseEnter={() => setHovered(link.href)}
+                    /* 鼠标进入/离开驱动色块；触摸设备不会触发这两个事件 ✓ 等于天然只在桌面生效 ✓
+                       ⚡ 悬停的同时**预取这一页**：鼠标移到选项卡上就一定早于点击，
+                          这段时间足够把内容取回来 → 点下去内容当帧就换 ✓ 和条同一帧开始 ✓ */
+                    onMouseEnter={() => { setHovered(link.href); router.prefetch(link.href); }}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
-                    /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓ */
-                    onClick={() => setClicked(link.href)}
+                    /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓
+                       ⚡ 同时通知内容区"要切了"——内容区只在**真的等超时**时才变暗，
+                          预取命中的正常情况一次都不会闪 ✓（见 components/NavSwitchDim.tsx） */
+                    onClick={() => { setClicked(link.href); signalNavStart(); }}
                   >
                     <span className="relative inline-block">
                       {/* 色块：垫在文字下层 ✓
@@ -369,7 +381,7 @@ export default function Navbar() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => { setIsMenuOpen(false); signalNavStart(); }}
                       /* 手机端和大屏同一条规矩：未选中弱化 ✓ 选中保持正文强度 ✓（触摸屏没有悬停） */
                       className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-300 ${
                         active ? TAB_STRONG : TAB_DIM
