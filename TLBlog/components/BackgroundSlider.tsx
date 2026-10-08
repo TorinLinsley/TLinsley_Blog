@@ -120,26 +120,6 @@ export default function BackgroundSlider() {
     return () => { alive = false; };
   }, [images, loadedCount]);
 
-  /**
-   * 🧱 给「没有毛玻璃的浏览器」用：把**当前显示的那张图**写成 CSS 变量 `--bg-now` ✓
-   *
-   * 为什么要它：OPPO 自带浏览器那种内核不做 backdrop-filter ✗
-   * 于是 app/globals.css 里的 `.no-glass` 规则会在玻璃卡片里叠一层
-   * "同一张图 + filter: blur()" 来**伪造毛玻璃** ✓ —— 那一层要image地址，就是从这儿拿 ✓
-   *
-   * ⚠️ 用的一定是"**真正画在背景上的那个地址**" ✓：
-   *    站外图床有时会被换成 blob 地址（见上面 loadOriginal 的说明 ✓），
-   *    这里沿用它 → 伪造层和真背景取的是同一份字节 ✓ 不会一张模糊前一张模糊后 ✓
-   */
-  useEffect(() => {
-    const img = images[index];
-    if (!img) return;
-    const r = resolved[img];
-    const url = !isRemote(img) ? img : r?.ok && r.src ? r.src : r ? img : '';
-    if (!url) return;
-    document.documentElement.style.setProperty('--bg-now', `url(${url})`);
-  }, [index, resolved, images]);
-
   return (
     <div className="absolute inset-0 z-[-10] overflow-hidden">
       {images.slice(0, loadedCount).map((img, i) => {

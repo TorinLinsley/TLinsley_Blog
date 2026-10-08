@@ -145,7 +145,13 @@ export default function SiteDashboard() {
 
   return (
     // 横向铺满 12 列的长条矩阵
-    <div className="md:col-span-12 rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-xl overflow-hidden flex flex-col md:flex-row items-stretch transition-colors duration-700 h-auto md:h-20 group">
+    // ⚠️ 这条时间条的底色改成**完全不透明**了（用户要求 ✓ 2026-10-08）：
+    //    原来是 bg-white/40 + dark:bg-slate-800/50 + backdrop-blur-md（毛玻璃 ✗）
+    //    → 在半透明底上，OPPO 那种不做 backdrop-filter 的浏览器里背景图会直接透上来、字发糊 ✗
+    //    现在换成实底 bg-white / dark:bg-slate-800 ✓ 顺手把 backdrop-blur-md 去掉
+    //    （底都不透明了，模糊本来也看不出效果，去掉还能省那台手机的 GPU ✓）
+    //    ⚠️ 只改这一条卡片 ✓ 其它组的毛玻璃一个字都没动 ✓
+    <div className="md:col-span-12 rounded-3xl bg-white dark:bg-slate-800 border border-white/40 dark:border-white/10 shadow-xl overflow-hidden flex flex-col md:flex-row items-stretch transition-colors duration-700 h-auto md:h-20 group">
 
       {/* 左侧：翻页时钟特效 (使用等宽字体) */}
       <div className="bg-slate-900 dark:bg-black text-white px-8 py-4 md:py-0 flex items-center justify-center font-mono text-2xl md:text-3xl font-black tracking-widest shadow-inner relative overflow-hidden group-hover:text-indigo-400 transition-colors">

@@ -166,45 +166,11 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
      所以只能"点名"：UA 命中就在 <html> 上挂 .no-glass（见 app/layout.tsx 里那段内联脚本 ✓
      它跑在 <head> 里、body 绘制之前 ✓ 不会有先正常一下再变实的闪动 ✓）
      规则和 @supports 那段**完全一样**，只是换个触发条件 ✓ */
-  /* 🧱 没有毛玻璃的浏览器 → **伪造一层毛玻璃**（用户确认要试 ✓ 2026-10-08）
-
-     原理（不用一行 JS 算坐标 ✓）：
-       · 卡片自己变成下面那个 fixed 层的**包含块**（transform ✓）+ overflow:hidden
-         → 里面那层固定满屏的模糊背景就**正好被裁在卡片范围内** ✓
-       · 那层固定在**视口**上 ✓ 而你的页面背景本来就是 fixed 的 ✓
-         → 两者永远对齐 ✓ 滚动也不会有偏差 ✓
-       · 数据来源：--bg-now（由 components/BackgroundSlider.tsx 写 ✓ 就是当前那张图 ✓）
-
-     ⚠️ 已知的不足（说清楚，别当成 bug ✗）：
-       轮播**交叉淡入的那 2 秒**里，伪造层只有一张图 ✗ 会有一点点不吻合 ✓
-       其余 8 秒基本一致 ✓ 背景上那层"色膜 + 光晕"复刻不了，颜色会比真背景淡一点 ✓
-
-     ⚠️ 只对 .no-glass 生效（= 只有那个浏览器 ✓）其他浏览器一个像素都不动 ✓
-
-     ⚠️⚠️ 选择器里的三个 :not(...) 是**保命的**，千万别删 ✗：
-        `[class*="backdrop-blur-"]` 会连**导航栏**（fixed + backdrop-blur-xl ✗）、
-        布局里那层 **fixed 色膜**（absolute inset-0 + backdrop-blur-md ✗）一起选中 ✗
-        给它们加上 overflow:hidden / transform 会直接把页面布局搞坏 ✗✗
-        Tailwind 的定位类名就写在 class 里 ✓ 所以直接用 :not([class*="fixed"]) 之类排除掉 ✓
-        → 这条规则只落在**文档流里的玻璃卡片**上（那才是需要伪造毛玻璃的地方 ✓）✓ */
-  .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]):not([class*="fixed"]):not([class*="absolute"]):not([class*="sticky"]) {
-    overflow: hidden;
-    transform: translateZ(0);                                  /* 关键：成为 fixed 子层的包含块 ✓ */
-    background-color: rgba(255, 255, 255, 0.12) !important;     /* 底色只留一点点，主要靠伪造层 ✓ */
+  .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
+    background-color: rgba(255, 255, 255, 0.86) !important;
   }
-  .dark.no-glass [class*="backdrop-blur-"]:not([data-keep-glass]):not([class*="fixed"]):not([class*="absolute"]):not([class*="sticky"]) {
-    background-color: rgba(15, 23, 42, 0.2) !important;
-  }
-  .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]):not([class*="fixed"]):not([class*="absolute"]):not([class*="sticky"])::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: var(--bg-now, none);
-    background-size: cover;
-    background-position: center;
-    filter: blur(16px);                                        /* 伪造的"毛玻璃"就是这一步 ✓ */
-    z-index: -1;                                               /* 垫在卡片文字下面 ✓ */
-    pointer-events: none;
+  .dark.no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
+    background-color: rgba(15, 23, 42, 0.9) !important;
   }
 
   .group:hover img {
