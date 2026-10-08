@@ -158,6 +158,21 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     }
   }
 
+  /* ⚠️⚠️ 上面那段 @supports **抓不住 OPPO 自带浏览器** ✗
+     实测：CSS 确实已经上线 ✓ 缓存也清了 ✓ 但它就是一点变化都没有 ✗
+     原因：那个浏览器**嘴上说支持 backdrop-filter**（CSS.supports 返回 true ✗）
+           渲染的时候又整个跳过 ✗ —— 它撒谎 ✗ @supports 自然判不出来 ✗
+
+     所以只能"点名"：UA 命中就在 <html> 上挂 .no-glass（见 app/layout.tsx 里那段内联脚本 ✓
+     它跑在 <head> 里、body 绘制之前 ✓ 不会有先正常一下再变实的闪动 ✓）
+     规则和 @supports 那段**完全一样**，只是换个触发条件 ✓ */
+  .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
+    background-color: rgba(255, 255, 255, 0.86) !important;
+  }
+  .dark.no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+  }
+
   .group:hover img {
     will-change: transform;
   }

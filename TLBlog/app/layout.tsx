@@ -49,6 +49,28 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        {/*
+          🧱 没有「毛玻璃」的浏览器兜底（目前只点名 OPPO 自带浏览器）
+
+          为什么不用纯 CSS 的 @supports：实测过 ✗ 那个浏览器**嘴上说支持** backdrop-filter
+          （CSS.supports 返回 true ✗）渲染时又整个跳过 ✗ —— 它撒谎，@supports 判不出来 ✗
+          （证据：CSS 确实已经上线 ✓ 缓存也清了 ✓ 依然一点变化都没有 ✓）
+
+          所以这里直接点名：UA 命中就先给 <html> 挂 .no-glass ✓
+          · 这段脚本在 <head> 里、**body 绘制之前**执行 ✓ 不会出现"先正常一下再变实"的闪动 ✓
+          · 具体样式在 app/globals.css 的 .no-glass 那两条 ✓
+          · ⚠️ 它只能做到"没有毛玻璃时别难看"（卡片变实、字不糊）✓ **造不出模糊** ✗
+            模糊是它内核的能力问题，任何前端代码都变不出来 ✗
+
+          以后要是又发现别的浏览器同样"撒谎"，把它的 UA 特征加进下面的正则就行 ✓
+        */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `try{var u=navigator.userAgent||'';if(/HeyTapBrowser|OppoBrowser|HeyTap|OPPOBrowser/i.test(u)){document.documentElement.classList.add('no-glass')}}catch(e){}`,
+          }}
+        />
+
         {/* 启动画面已移除：刷新/进站不再有过场遮罩，页面直接显示 */}
         {/* 🚀 首屏那张背景图提前预加载：CSS 里的 background 图浏览器发现得晚，
             预加载能让它从 HTML 一起开始下，首屏更快（换图不用改这里，自动跟着 bgImages[0] 走） */}
