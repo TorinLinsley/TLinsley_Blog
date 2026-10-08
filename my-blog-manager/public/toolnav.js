@@ -133,14 +133,17 @@
               · bottom 写 -.1em：在文字底边的基础上再**往下压一点点**（用户要求"稍微往下偏移一点"）✓
                 以后想让它再低/再高，就调这个 -.1em ✓
             揭开：clip-path 从**左往右像进度条** ✓（不是 scaleX 拉伸 ✗ 那会把字也拉变形）
-            曲线 = **慢 → 快 → 慢**（两头紧、中间一把扫过去），收尾比起手**略快一丢丢** ✓
-                0.28s cubic-bezier(.55, 0, .5, 1) —— 和站内 lib/motion.ts 的 EASE_WIPE **同值** ✓
-                两头慢各只占 ~15% 的时间，中间 31% 的时间走掉 57% 的行程 → 快、但不线性 ✓
-                ⚠️ 原来是 cubic-bezier(.23,1,.32,1)（快起步 → 慢收尾，进度条那种），节奏正好相反 ✗
+            曲线 = 0.32s cubic-bezier(.23,1,.32,1) —— **和站内 EASE_OUT 令牌同值** ✓
+                用户拿 8 条曲线现场对比后挑的就是这一条（对比页 Downloads/nav-curve-compare.html 的 D）✓
+                手感：起步就冲出去、剩下大半时间一路减速 → "伸出来是快" + "丝滑" ✓
+                ⚠️ 试过「慢 → 快 → 慢」的 S 形（.62,0,.42,1 / .55,0,.5,1 / .7,0,.4,1）——
+                   时长压到 0.2~0.3s 时两头各只有 **2 帧**，人眼分辨不出来 ✗
+                   （用户原话："感觉不出快与慢的变化…像线性的"）要做出三段节奏
+                   至少得 0.4s 以上 ✗ 别再换回去
             ⚠️ 文字那层必须是 position:relative，否则色块会画到文字**上面**把字盖住 ✗ */
       '.tn-lbl{position:relative;display:inline-block;}',
       '.tn-blk{position:absolute;left:0;right:0;bottom:-.1em;height:.5em;background:var(--tn-block);',
-      'clip-path:inset(0 100% 0 0);transition:clip-path .28s cubic-bezier(.55,0,.5,1);pointer-events:none;}',
+      'clip-path:inset(0 100% 0 0);transition:clip-path .32s cubic-bezier(.23,1,.32,1);pointer-events:none;}',
       '.tn-txt{position:relative;}',
       /* 悬停 → 浅紫（触摸设备不触发 ✓ 和站内一样只在真悬停的设备上生效 ✓） */
       '@media (hover:hover){.tn-links a:hover .tn-blk{clip-path:inset(0 0% 0 0);background:var(--tn-block-hover);}}',

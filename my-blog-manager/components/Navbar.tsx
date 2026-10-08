@@ -12,7 +12,7 @@ import { siteConfig } from '../siteConfig';
 import { useTheme } from './ThemeProvider';
 import { registerLayer } from './layerStack';
 import { navLinks } from '../lib/navLinks';
-import { EASE_WIPE } from '../lib/motion';
+import { EASE_OUT } from '../lib/motion';
 
 /** 小屏导航栏高度：3.25rem = 52px（大屏仍是 h-16 = 64px）。
     和博客前台 Navbar / MobileToc 用的是同一个值，两边观感才一致。 */
@@ -21,17 +21,19 @@ const NAV_HEIGHT = '3.25rem';
 /**
  * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
  *
- * ⚠️ 原来是弹簧（快起步 → 慢慢停下）—— 和现在要的节奏**正好相反** ✗
- *    要的是「**慢 → 快 → 慢**」，而且收尾那一段比'起手那一段慢'**略快一丢丢** ✓
- *    → 换成 EASE_WIPE 这条贝塞尔（数值、行程对照、怎么微调都写在 lib/motion.ts 里）✓
- *    ⚠️ 和博客前台 Navbar 用**同一个常量**，两边才是同一套节奏 ✓
+ * 📌 这条是**用户拿 8 条曲线现场对比之后挑的**（对比页：Downloads/nav-curve-compare.html 里的 D）
+ *    · 0.32s + cubic-bezier(.23,1,.32,1)，和博客前台 Navbar **同一组数值** ✓
+ *    · 手感：**起步就冲出去，剩下大半时间一路减速** → "伸出来是快" + "丝滑" ✓
+ *    · 数值直接复用站里的 **EASE_OUT** 令牌（和进场/按下反馈同一条）✓
  *
- * ⚠️ 代价：贝塞尔被中途打断是"从当前位置**重新起步**"，
- *    不像弹簧能带着当前速度接着走 —— 鼠标极快地划过时收尾会有一点点顿 ✓ 实测可接受
- * ⚠️ 0.28s 是**故意压短**的：曲线两头都有一小段"慢"，
- *    时长不压短的话整体就会显拖 —— 压到 0.28 之后，中间那把扫过去才是主导观感 ✓
+ * ⚠️ 试过、但**被否掉**的写法，别再改回去 ✗：
+ *    ① 弹簧 {type:'spring', duration:.32, bounce:0} —— 手感接近，但被打断时会带着速度走 ✓
+ *    ② 「慢 → 快 → 慢」的 S 形（EASE_WIPE）：数学上两头确实慢、中间确实快，
+ *       但时长压到 0.2~0.3s 时**两头各只有 2 帧**，人眼分辨不出来 ✗
+ *       （用户原话："感觉不出快与慢的变化…像线性的"）✗
+ *    ③ 想微调只动 duration（0.28 更脆 / 0.36 更从容），曲线一个字都不用动 ✓
  */
-const HOVER_REVEAL = { duration: 0.28, ease: EASE_WIPE };
+const HOVER_REVEAL = { duration: 0.32, ease: EASE_OUT };
 
 /**
  * 选项卡下面那个色块**比文字底边再往下压多少** ✓
