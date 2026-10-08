@@ -167,16 +167,17 @@ export default function PhotoWallPage() {
             {/* 🌟 核心修复 1：同样去掉 onClick 误触关闭 */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative w-full max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[40px] border border-white/20 p-8 shadow-2xl">
-              <h2 className="text-2xl font-black mb-6 dark:text-white">{photoModal.mode === 'add' ? '添加新照片' : '修改照片描述'}</h2>
+              <h2 className="text-2xl font-black mb-6 dark:text-white">{photoModal.mode === 'add' ? '添加新照片' : '修改照片'}</h2>
               <div className="space-y-5">
-                {photoModal.mode === 'add' && (
-                  <div className="relative group">
-                    <input type="text" value={photoModal.data.url || ''} onChange={e => setPhotoModal({...photoModal, data: {...photoModal.data, url: e.target.value}})} className="w-full bg-slate-100 dark:bg-black/20 rounded-2xl px-5 py-3.5 pr-14 dark:text-white outline-none border border-transparent focus:border-indigo-500" placeholder="照片直链 URL" />
-                    <button onClick={() => { setImgToolTarget('photo'); setIsImgToolOpen(true); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors shadow-md">
-                        <CloudUpload size={18} />
-                    </button>
-                  </div>
-                )}
+                {/* 📷 图片链接 + 图片工具：**添加和编辑共用这一套** ✓
+                    用户要求："图片单个编辑那个编辑窗口和添加图片那个一样就好了" ——
+                    以前这段只在"添加"时渲染 ✗ 编辑态只能改描述、换不了图 → 只能删了重加，太麻烦 ✗ */}
+                <div className="relative group">
+                  <input type="text" value={photoModal.data.url || ''} onChange={e => setPhotoModal({...photoModal, data: {...photoModal.data, url: e.target.value}})} className="w-full bg-slate-100 dark:bg-black/20 rounded-2xl px-5 py-3.5 pr-14 dark:text-white outline-none border border-transparent focus:border-indigo-500" placeholder="照片直链 URL" />
+                  <button onClick={() => { setImgToolTarget('photo'); setIsImgToolOpen(true); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors shadow-md">
+                    <CloudUpload size={18} />
+                  </button>
+                </div>
                 <textarea value={photoModal.data.caption || ''} onChange={e => setPhotoModal({...photoModal, data: {...photoModal.data, caption: e.target.value}})} className="w-full bg-slate-100 dark:bg-black/20 rounded-2xl px-5 py-3.5 dark:text-white h-24 outline-none border border-transparent focus:border-indigo-500 resize-none" placeholder="为这张照片写点什么..." />
               </div>
               <div className="mt-8 flex gap-3">
@@ -186,7 +187,15 @@ export default function PhotoWallPage() {
                   const album = editableAlbums.find(a => a.id === currentAlbum.id);
                   if(!album) return;
                   if(photoModal.mode === 'add') album.photos = [{...photoModal.data}, ...album.photos];
-                  else album.photos[photoModal.index!] = { ...album.photos[photoModal.index!], caption: photoModal.data.caption };
+                  // ⚠️ 编辑时 **url 也要一起写回** ✓
+                  //    （以前只写回 caption ✗ → 描述能改、图片链接改不了 → 只能删了重加 ✗ 用户反馈过）
+                  //    编辑窗口打开时传进来的就是整张照片对象（data: photo ✓），所以 url 本来就是原值，
+                  //    用户不动它就等于没改，动了就直接换图 ✓ 不会误清空 ✓
+                  else album.photos[photoModal.index!] = {
+                    ...album.photos[photoModal.index!],
+                    url: photoModal.data.url,
+                    caption: photoModal.data.caption,
+                  };
                   const next = [...editableAlbums];
                   setEditableAlbums(next); setCurrentAlbum({...album}); syncToQueue(next);
                   setPhotoModal({ ...photoModal, isOpen: false });
