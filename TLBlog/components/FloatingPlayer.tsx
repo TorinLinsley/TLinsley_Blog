@@ -21,10 +21,10 @@ export default function FloatingPlayer() {
   const isHidden = pathname === '/';
 
   return (
-    /* ↔️ 默认在**左下角**（和猫同一侧），右下角让给计算器
+    /* ↔️ 默认在**右下角**（和猫同一侧），右下角让给计算器
        🎵 left 用 max(0px, calc(1.5rem - 2vw))：在原来的左边距上再往左偏 2% 屏宽。
           它本来就只离左边 24px（1.5rem），1920 的屏减 38px 会变负数 → 用 max() 夹住，最多贴到最左 0px。 */
-    <div className="fixed bottom-6 z-[9999]" style={{ pointerEvents: 'none', left: 'max(0px, calc(1.5rem - 2vw))' }}>
+    <div className="fixed bottom-6 z-[9999]" style={{ pointerEvents: 'none', right: 'max(0px, calc(1.5rem - 2vw))' }}>
       <motion.div
         drag
         dragMomentum={false} // 取消惯性
