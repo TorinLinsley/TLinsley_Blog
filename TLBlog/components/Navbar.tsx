@@ -103,11 +103,26 @@ export default function Navbar() {
    * 现在按「同一个栏目」判断：完全相等、或者以 `href/` 开头都算 ✓
    * （带 `/` 边界是为了别让 `/post` 误匹配 `/posts-archive` ✓）
    * 根路径 `/` 只能精确匹配，否则所有页面都会算首页 ✓
+   *
+   * ⚠️⚠️ 但**文章详情页 `/posts/文章名` 在导航里根本没有同名项** ✗：
+   *    导航里那一项是「归档」= `/timeline`，而详情页的 URL 是 `/posts/xxx`
+   *    → 按上面那套规则它谁都不匹配 → 一点进详情页**所有标签全灰** ✗（用户反馈过两次）
+   *    所以这里再补一张「子路由 → 它归属的导航项」的映射表 ✓
    */
+  const ROUTE_PARENT: Record<string, string> = {
+    '/posts': '/timeline',   // 文章详情页属于「归档」
+  };
+  /** 把当前路径换算成「它归属的那个栏目路径」（没有映射就原样返回 ✓） */
+  const groupPath = (() => {
+    for (const child of Object.keys(ROUTE_PARENT)) {
+      if (pathname === child || pathname.startsWith(`${child}/`)) return ROUTE_PARENT[child];
+    }
+    return pathname;
+  })();
   const isActivePath = (href: string) =>
     href === '/'
-      ? pathname === '/'
-      : pathname === href || pathname.startsWith(`${href}/`) || pathname === `${href}/`;
+      ? groupPath === '/'
+      : groupPath === href || groupPath.startsWith(`${href}/`) || groupPath === `${href}/`;
 
   const currentTab = navLinks.find((l) => isActivePath(l.href))?.name || '菜单';
 
