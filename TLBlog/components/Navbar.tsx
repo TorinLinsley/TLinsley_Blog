@@ -229,7 +229,7 @@ export default function Navbar() {
                     悬停：淡一点的紫 indigo-400 ✓
               */}
               {navLinks.map((link) => {
-                const active = isActivePath(link.href);
+                const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                 return (
                   <Link
                     key={link.href}
@@ -382,7 +382,7 @@ export default function Navbar() {
             >
               <nav className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
                 {navLinks.map((link) => {
-                  const active = isActivePath(link.href);
+                  const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                   return (
                     /*
                       ⚠️ 手机端选项卡列表（用户要求"和大屏一起改"）✓

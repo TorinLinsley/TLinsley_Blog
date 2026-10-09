@@ -181,7 +181,19 @@ export default function Navbar() {
   // 🧰 「工具」紧跟在资源分享后面；归档和项目按用户要求换了位置（归档在前、项目在后）
   // ⚠️ 列表本体在 lib/navLinks.ts —— 控制台里预览工具网页时注入的那条导航栏也用同一份。
 
-  const isActivePath = (href: string) => pathname === href || pathname === `${href}/` || (href !== '/' && pathname.startsWith(`${href}/`));
+  // ⚠️ 文章编辑页 /posts/xxx 在导航里没有同名项（导航里那一项是「归档」= /timeline）✗
+  //    不映射的话，进编辑页**所有标签全灰** ✓（和前台同一个病 ✓）
+  const ROUTE_PARENT: Record<string, string> = {
+    '/posts': '/timeline',
+  };
+  const groupPath = (() => {
+    for (const child of Object.keys(ROUTE_PARENT)) {
+      if (pathname === child || pathname.startsWith(`${child}/`)) return ROUTE_PARENT[child];
+    }
+    return pathname;
+  })();
+  const isActivePath = (href: string) =>
+    href === '/' ? groupPath === '/' : groupPath === href || groupPath.startsWith(`${href}/`) || groupPath === `${href}/`;
   /** 手机端导航栏右上角显示的那两个字：当前在哪个栏目 */
   const currentTab = navLinks.find((l) => isActivePath(l.href))?.name || '菜单';
 
@@ -342,7 +354,7 @@ export default function Navbar() {
                     用 false 色块一进来就展开好了 ✗ 看不出揭开过程 ✓）
               */}
               {navLinks.map((link) => {
-                const active = isActivePath(link.href);
+                const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                 return (
                   <Link
                     key={link.href}
@@ -594,7 +606,7 @@ export default function Navbar() {
                     · 触摸屏没有悬停 ✓ 这里只有"选中"一个状态 ✓
                 */}
                 {navLinks.map((link) => {
-                  const active = isActivePath(link.href);
+                  const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                   return (
                     <Link
                       key={link.href}
