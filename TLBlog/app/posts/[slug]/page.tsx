@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
@@ -67,7 +68,16 @@ export async function generateStaticParams() {
 
 async function getPostData(slug: string) {
   const fullPath = path.join(process.cwd(), 'posts', `${slug}.md`);
-  const fileContents = fs.readFileSync(fullPath, 'utf8');
+  let fileContents: string;
+  try {
+    fileContents = fs.readFileSync(fullPath, 'utf8');
+  } catch {
+    // 📄 文章不存在（链接打错 / 文章已删 / 下划线与连字符对不上…）
+    //    ⚠️ 以前这里直接抛 ENOENT ✗ → 渲染阶段崩 → 浏览器收到 **500** ✗
+    //       （搜索引擎爬到旧链接也会看到服务器错误，日志里还多一堆堆栈 ✗）
+    //    现在交给 Next 的 notFound() ✓ → 正常返回 **404** ✓
+    notFound();
+  }
   let { data, content } = matter(fileContents);
 
   // ==========================================
