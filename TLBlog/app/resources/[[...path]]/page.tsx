@@ -41,6 +41,25 @@ export const revalidate = 30;
 const RES_DIR = path.join(process.cwd(), 'resources');
 const CONTENT_ID = 'resource-content';
 
+/**
+ * 🏗️ 让「资源分享」这一页也能被**预取**（= 点击瞬开 ✓）
+ *
+ * 病根：这个路由是 `[[...path]]` 这种**可选 catch-all** ✗
+ *   不告诉 Next 有哪些路径 → 构建时**一个静态产物都不生成** ✗
+ *   （你能在服务器上看到：.next/server/app/ 里有 about.html / music.html / photowall.html …
+ *     唯独**没有** resources.html ✓ 就是这个原因 ✓）
+ *   → 别的页面悬停一下就被预取好了 ✓ 只有它点下去还得现渲染（约 1 秒）✗
+ *
+ * 做法：只预生成**根路径** `/resources` ✓（也就是导航栏「资源分享」点过去的那个地址 ✓）
+ *   ⚠️ 故意**不去猜**深层文件路径 ✗：那套命名规则（带不带 .md、文件夹怎么算）
+ *      属于渲染逻辑 ✓ 猜错会让**构建直接失败** ✗✗ 代价太大 ✓
+ *      深层的那些路径仍然"第一次访问时生成 + 缓存" ✓（revalidate=30 ✓）之后一样快 ✓
+ */
+export function generateStaticParams() {
+  return [{ path: [] as string[] }];
+}
+
+
 function readTitle(file: string): string {
   try {
     const { data } = matter(fs.readFileSync(file, 'utf8'));
