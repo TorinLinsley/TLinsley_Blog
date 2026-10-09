@@ -123,7 +123,7 @@ export default function CyberCat() {
          所以按钮的左边缘会**正好和播放器的左边缘对齐**，不会被推到屏幕外面去。
          = max(0px, 1.5rem - 2vw) + 3rem = max(3rem, 4.5rem - 2vw)
          （1920 的屏：max(48px, 33.6px) = 48px → 猫在 48px，按钮左边缘落在 0，和播放器齐平） */
-      style={{ touchAction: 'none', right: 'max(3rem, calc(4.5rem - 2vw))' }}
+      style={{ touchAction: 'none', right: 'max(1.5rem, calc(2.5rem - 2vw))' }}
       /* 拖完紧接着那一次 click 要忽略：拖猫不该等于摸猫 */
       onPointerDownCapture={() => { draggedRef.current = false; }}
       onDragStart={() => { draggedRef.current = true; }}
@@ -140,11 +140,11 @@ export default function CyberCat() {
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-              className="absolute bottom-0 bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-4 py-3 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 text-sm max-w-[240px] break-words text-center leading-relaxed"
+              className="absolute bottom-0 right-0 bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-4 py-3 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 text-sm max-w-[240px] break-words text-center leading-relaxed"
               style={{ pointerEvents: 'none', transformOrigin: 'bottom center' }}
             >
               {speech}
-              <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-800 border-b border-r border-gray-100 dark:border-slate-700 transform rotate-45"></div>
+              <div className="absolute -bottom-[6px] right-[54px] w-3 h-3 bg-white dark:bg-slate-800 border-b border-r border-gray-100 dark:border-slate-700 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
