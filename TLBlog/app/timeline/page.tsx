@@ -8,7 +8,11 @@ import TimelineClient from '../../components/TimelineClient';
 import { ToastProvider } from '../../components/ToastProvider';
 
 // 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
-export const dynamic = 'force-dynamic';
+// ⚡ 改成 ISR（静态化 + 定时刷新）：
+//   以前是 force-dynamic → 每次点击都要等服务端现渲染（首字节约 1 秒 ✗）而且**无法被预取** ✗
+//   现在页面是静态的 → <Link> 的预取生效 ✓ 悬停就取好 ✓ 点下去几乎瞬开 ✓
+//   内容更新最多延迟 30 秒 ✓（文章/相册这类"偶尔变一次"的数据完全够 ✓）
+export const revalidate = 30;
 
 export const metadata = {
   title: "归档与探索 | " + siteConfig.title,
