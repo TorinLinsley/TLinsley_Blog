@@ -28,6 +28,7 @@ import MobileToc from '../../../components/MobileToc';
 import BackButton from '../../../components/BackButton';
 import Comments from '../../../components/Comments';
 import SidebarLyric from '../../../components/SidebarLyric';
+import { extractToc } from '../../../lib/extractToc';
 
 // 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
 export const dynamic = 'force-dynamic';
@@ -61,20 +62,6 @@ export async function generateStaticParams() {
     .map((name) => ({
       slug: name.replace(/\.md$/, ''),
     }));
-}
-
-function extractToc(content: string) {
-  const headingRegex = /^(#{1,6})\s+(.+)$/gm;   // 1~6 级都要能进大纲
-  const toc = [];
-  let match;
-  while ((match = headingRegex.exec(content)) !== null) {
-    toc.push({
-      level: match[1].length,
-      text: match[2].trim(),
-      id: match[2].trim().toLowerCase().replace(/\s+/g, '-')
-    });
-  }
-  return toc;
 }
 
 async function getPostData(slug: string) {
@@ -211,7 +198,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                   .prose h1 { font-size: 1.8rem !important; font-weight: 900 !important; margin-bottom: 1.2rem !important; margin-top: 2rem !important; line-height: 1.3 !important; color: inherit !important; }
                   .prose h2 { font-size: 1.5rem !important; font-weight: 800 !important; margin-bottom: 1rem !important; margin-top: 1.5rem !important; color: inherit !important; }
                   .prose h3 { font-size: 1.2rem !important; font-weight: 700 !important; margin-bottom: 0.8rem !important; color: inherit !important; }
-                  .prose p { font-size: 0.95rem !important; line-height: 1.75 !important; color: inherit !important; }
+                  .prose p, .prose hr { font-size: 0.95rem !important; line-height: 1.75 !important; color: inherit !important; }
                   
                   .prose a { color: #6366f1 !important; text-decoration: none !important; font-weight: 600 !important; border-bottom: 1px dashed #6366f1 !important; transition: all 0.3s ease !important; }
                   .prose a:hover { color: #4f46e5 !important; border-bottom-style: solid !important; background-color: rgba(99, 102, 241, 0.1) !important; padding: 0 0.2rem !important; border-radius: 0.2rem !important; }
@@ -268,7 +255,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                   .prose code::before, .prose code::after { content: none !important; }
                   .prose p code, .prose li code { background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.1rem 0.3rem !important; border-radius: 0.25rem !important; font-weight: 600 !important; font-size: 0.85em !important; }
                   .dark .prose p code, .dark .prose li code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
-                  .prose img { display: block !important; margin: 1.5rem auto !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 1.5rem 0 !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
                   .prose pre code .hljs-doctag, .prose pre code .hljs-keyword, .prose pre code .hljs-formula { color: #c678dd !important; }
@@ -284,14 +271,14 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                     .prose h1 { font-size: 3rem !important; font-weight: 950 !important; margin-bottom: 2rem !important; margin-top: 3rem !important; line-height: 1.1 !important; }
                     .prose h2 { font-size: 2.2rem !important; margin-bottom: 1.5rem !important; margin-top: 2rem !important; }
                     .prose h3 { font-size: 1.5rem !important; margin-bottom: 1rem !important; }
-                    .prose p { font-size: 1.15rem !important; line-height: 1.85 !important; }
+                    .prose p, .prose hr { font-size: 1.15rem !important; line-height: 1.85 !important; }
                     
                     .prose ul, .prose ol { padding-left: 2rem !important; font-size: 1.1rem !important; }
                     
                     .prose pre { padding: 1.25rem !important; margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
                     .prose pre code { font-size: 0.9em !important; }
                     .prose p code, .prose li code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
-                    .prose img { margin: 2rem auto !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
+                    .prose img { margin: 2rem 0 !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
                   }
                 `}</style>
 

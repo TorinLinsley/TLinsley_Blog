@@ -858,7 +858,7 @@ function ResourcesContent() {
                     .resource-preview h1 { font-size: 2.2rem !important; font-weight: 900 !important; margin: 2rem 0 1.2rem !important; line-height: 1.25 !important; color: inherit !important; }
                     .resource-preview h2 { font-size: 1.6rem !important; font-weight: 800 !important; margin: 1.6rem 0 1rem !important; color: inherit !important; }
                     .resource-preview h3 { font-size: 1.25rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.8rem !important; color: inherit !important; }
-                    .resource-preview p { font-size: 1rem !important; line-height: 1.8 !important; margin-bottom: 1rem !important; color: inherit !important; }
+                    .resource-preview p, .resource-preview hr { font-size: 1rem !important; line-height: 1.8 !important; margin-bottom: 1rem !important; color: inherit !important; }
                     .resource-preview ul { list-style-type: disc !important; padding-left: 1.5rem !important; }
                     .resource-preview ol { list-style-type: decimal !important; padding-left: 1.5rem !important; }
                     .resource-preview li { display: list-item !important; margin-bottom: 0.4rem !important; }

@@ -27,6 +27,7 @@ import InSiteLinks from '../components/InSiteLinks';
 import ApiKeyInjector from '../components/ApiKeyInjector';
 import Navbar from '../components/Navbar';
 import NavSwitchDim from '../components/NavSwitchDim';
+import BackToTop from '../components/BackToTop';
 
 /**
  * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
@@ -140,6 +141,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <div className="hidden md:block">
                     <ClickEffect />
                   </div>
+
+                  {/* 📱 手机端右下角「返回顶部」按钮（大屏不显示，靠组件自己的 lg:hidden）。
+                      往下滑过一段才出现，点一下瞬间回顶；和博客前台那份是同一个组件 ✓ */}
+                  <BackToTop />
                 </div>
 
                 <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `

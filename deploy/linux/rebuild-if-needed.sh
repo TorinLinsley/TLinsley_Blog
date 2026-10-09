@@ -9,6 +9,10 @@
 # 请求时直接读磁盘 —— 内容文件一落就生效，**不需要重新构建**；
 # 只有代码、样式、data/*.ts、siteConfig.ts、package.json 这些改了才要 build。
 # （tools/ 里是网页工具本体 + tools.json，控制台里加/改工具都写这里，也不该触发重建。）
+#
+# ⚠️ 但**一旦决定要重建**，会先把整个 .next 删掉再做冷构建 ——
+#    因为 Next/Turbopack 的产物会跨版本复用，只增量构建的话，
+#    可能".tsx 更新了、CSS 还是上一版的"（详见下面那一步的注释）。
 
 set -euo pipefail
 
@@ -64,7 +68,22 @@ if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CODE_HASH" ] && [ "${FORCE
   exit 0
 fi
 
-log "代码/配置有变化 → npm ci + build + 重启 $SERVICE"
+log "代码/配置有变化 → 清 .next + npm ci + build + 重启 $SERVICE"
+
+# 🧹 构建前先删掉整个 .next —— 和 rebuild-console.sh 里那一步是同一个理由。
+#
+# 为什么必须删：Next/Turbopack 的构建**产物会跨版本复用**。2026-10-08 踩过一次：
+#   只改了 app/globals.css（分割线样式）时，.tsx 那部分重新编译了、页面内联样式是新的，
+#   但打出来的 CSS chunk 里仍然是缓存里的旧内容 —— 表现就是
+#   "代码明明传上去了、页面样式还是旧的"，而且怎么刷新、怎么清缓存都没用。
+#   当时控制台没事（rebuild-console.sh 每次都 rm -rf .next），前台就中招了。
+#
+# ⚠️ 这一步必须放在上面"指纹没变 → exit 0"**之后**：
+#    只有确定要重建时才删，否则会出现「删完 .next 却不重建 → 站点直接没有产物」。
+# 代价：每次重建都是冷构建，多花一两分钟；换来的是不再出现"改了跟没改一样"。
+log "清掉 .next（避免和上一版产物/缓存混用）"
+rm -rf "$WORK/.next"
+
 run_as "$NPM" config set registry https://registry.npmmirror.com >/dev/null 2>&1 || true
 run_as "$NPM" ci
 run_as "$NPM" run build

@@ -27,6 +27,9 @@ import ClientSocials from '../../../components/ClientSocials';
 import SidebarLyric from '../../../components/SidebarLyric';
 import BackButton from '../../../components/BackButton';
 import Comments from '../../../components/Comments';
+import ClientTOC from '../../../components/ClientTOC';
+import MobileToc from '../../../components/MobileToc';
+import { extractToc } from '../../../lib/extractToc';
 
 // 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
 export const dynamic = 'force-dynamic';
@@ -121,6 +124,8 @@ async function getChatterData(slug: string) {
   return {
     slug,
     contentHtml: processedContent.toString(),
+    // 📑 大纲数据：提取规则和归档文章页共用 lib/extractToc.ts（会自动跳过代码块）
+    toc: extractToc(content),
     title: data.title || '碎片记录',
     date: data.date,
     mood: data.mood,
@@ -172,7 +177,11 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
     <div className="min-h-screen relative pb-20">
 
       <PageTransition>
-        <main className="w-[95%] md:w-[90%] max-w-6xl mx-auto mt-20 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
+        {/* ⚠️ 这个 max-w 只管大屏幕：小屏走 w-[95%]/w-[90%]，根本到不了这个上限，行为不变。
+            以前卡在 max-w-6xl(1152px)，中间正文板只有 ~800px；现在放宽到 1900px，
+            和归档文章页 app/posts/[slug]/page.tsx 完全对齐，1080p 屏上正文板 ≈1376px。
+            右侧 aside 固定 320px 不变，两栏继续由 mx-auto 整体水平居中。 */}
+        <main className="w-[95%] md:w-[90%] max-w-[1900px] mx-auto mt-20 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
 
           <article className="flex-1 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
             {chatterData.cover && (
@@ -223,7 +232,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   .prose h1 { font-size: 1.8rem !important; font-weight: 900 !important; margin-bottom: 1.2rem !important; margin-top: 2rem !important; line-height: 1.3 !important; color: inherit !important; }
                   .prose h2 { font-size: 1.5rem !important; font-weight: 800 !important; margin-bottom: 1rem !important; margin-top: 1.5rem !important; color: inherit !important; }
                   .prose h3 { font-size: 1.2rem !important; font-weight: 700 !important; margin-bottom: 0.8rem !important; color: inherit !important; }
-                  .prose p { font-size: 0.95rem !important; line-height: 1.75 !important; color: inherit !important; }
+                  .prose p, .prose hr { font-size: 0.95rem !important; line-height: 1.75 !important; color: inherit !important; }
                   
                   .prose a { color: #6366f1 !important; text-decoration: none !important; font-weight: 600 !important; border-bottom: 1px dashed #6366f1 !important; transition: all 0.3s ease !important; }
                   .prose a:hover { color: #4f46e5 !important; border-bottom-style: solid !important; background-color: rgba(99, 102, 241, 0.1) !important; padding: 0 0.2rem !important; border-radius: 0.2rem !important; }
@@ -301,7 +310,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   /* 🌟 确保前台生成的 <br> 占据真实的垂直空间 */
                   .prose br { display: block !important; content: "" !important; margin-top: 0.5em !important; }
 
-                  .prose img { display: block !important; margin: 1.5rem auto !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 1.5rem 0 !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   /* 🌟 Atom One Dark 顶级补丁 */
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
@@ -318,18 +327,21 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                     .prose h1 { font-size: 3rem !important; font-weight: 950 !important; margin-bottom: 2rem !important; margin-top: 3rem !important; line-height: 1.1 !important; }
                     .prose h2 { font-size: 2.2rem !important; margin-bottom: 1.5rem !important; margin-top: 2rem !important; }
                     .prose h3 { font-size: 1.5rem !important; margin-bottom: 1rem !important; }
-                    .prose p { font-size: 1.15rem !important; line-height: 1.85 !important; }
+                    .prose p, .prose hr { font-size: 1.15rem !important; line-height: 1.85 !important; }
                     
                     .prose ul, .prose ol { padding-left: 2rem !important; font-size: 1.1rem !important; }
                     
                     .prose pre { padding: 1.25rem !important; margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; border-radius: 1.5rem !important; }
                     .prose pre code { font-size: 0.9em !important; }
                     .prose p code, .prose li code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
-                    .prose img { margin: 2rem auto !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
+                    .prose img { margin: 2rem 0 !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
                   }
                 `}</style>
 
+                {/* ⚠️ 这个 id 是大纲的锚点：ClientTOC / MobileToc 里的 ResourceToc
+                    都是靠 document.getElementById('article-content') 找正文标题的，别删 */}
                 <div
+                  id="article-content"
                   className="prose prose-slate dark:prose-invert prose-base md:prose-lg max-w-none text-slate-800 dark:text-slate-200 font-serif transition-colors duration-700 leading-relaxed scroll-smooth"
                   dangerouslySetInnerHTML={{ __html: chatterData.contentHtml }}
                 />
@@ -386,9 +398,22 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                 ))}
               </div>
             </div>
+
+            {/* 大屏：右侧常驻大纲卡片（sticky：滚到导航栏下面就顶住不动）；
+                手机端由下面的 MobileToc 提供右上角按钮 + 抽屉 —— 隐藏手机端的活由
+                ClientTOC 自己（max-lg:hidden）干 ✓
+                ⚠️ 千万不要在这里再套一层 div 来隐藏手机端：那层 div 会变成 sticky 的
+                   「包含块」，而它的高度正好等于大纲卡片本身 → sticky 顶不动，就变成
+                   跟着页面一起滚了 ✗（这个坑在归档文章页踩过一次） */}
+            {chatterData.toc.length > 0 && (
+              <ClientTOC toc={chatterData.toc} />
+            )}
           </aside>
         </main>
       </PageTransition>
+
+      {/* 手机端：右上角固定的大纲按钮 + 抽屉（复用资源分享页那套大纲） */}
+      {chatterData.toc.length > 0 && <MobileToc contentKey={resolvedParams.slug} />}
     </div>
   );
 }

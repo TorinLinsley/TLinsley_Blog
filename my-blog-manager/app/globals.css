@@ -199,6 +199,59 @@ input[type="number"] {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.2); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
 /* ========================================================
+   分割线 <hr>：让它像「一行文字」那样独占一个行盒
+   （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
+
+   以前：<hr> 身上只有一条 1px 的 border-top，border-box 高度就是 1px，margin 又是 0 ——
+   于是整条线被**塞进相邻两行的行距缝里**，看着像"夹在两行之间"，而不是自己占一行。
+   编辑器那边更明显：行号是按「整块的行盒高度」定位的（见 RichTextEditor 的 measureLineBox），
+   1px 高 → 那条线的行号只有 14px 高，位置还和下一行的行号重叠在一起（538 vs 539）✗
+
+   现在：高度取「一个行盒」（1lh；不支持 lh 单位的老浏览器退回 1.8em），
+   border 归零、线挪到 ::before 画在行盒正中间；字号/行高/外边距都跟着段落走
+   （下面各处 ".prose p, .prose hr" 那几条），所以它占的空间和一行普通文字完全相同 ✓
+   行号也就自然拿到和文字行同样高的行盒，上下对齐 ✓
+   ======================================================== */
+.prose hr,
+.resource-preview hr,
+.editor-content-area hr {
+  position: relative;
+  box-sizing: border-box;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  /* 兜底：不认识 lh 单位的老内核（按行高 1.75~1.85 取中值，近似一个行盒）。
+     ⚠️ 不能在这个规则里连着写两条 height（先 1.8em 再 1lh）—— 压缩器会把重复的
+     height 合并掉、只留最后一条，兜底就没了（线上产物里 1.8em 就是这么消失的）。
+     所以首选值放到下面 @supports 里单独写，两条都能活下来。 */
+  height: 1.8em;
+}
+
+
+@supports (height: 1lh) {
+  .prose hr,
+  .resource-preview hr,
+  .editor-content-area hr {
+    height: 1lh;   /* 首选：正好等于本元素的行高 = 一个行盒 */
+  }
+}
+/* 真正画出来的那条线：落在自己这个行盒的垂直正中间。
+   颜色沿用 currentColor（和改动前 <hr> 的 border-top 取色完全一致，观感不变） */
+.prose hr::before,
+.resource-preview hr::before,
+.editor-content-area hr::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;                    /* 给它一个实在的 1px 盒子 —— 高度为 0 的话下面的 translateY(-50%) 是空转 */
+  transform: translateY(-50%);    /* 于是这 1px 的**中心**正好压在行盒的 50% 处（不是上边、也不是下边） */
+  border-top: 1px solid currentColor;
+  pointer-events: none;
+}
+
+/* ========================================================
    表格：Obsidian 那种观感 —— 完整网格 + 隔行底色 + 表头着色
    （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
    ======================================================== */
@@ -479,7 +532,7 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
         .editor-content-area h4, .editor-content-area.prose h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; color: inherit; } 
         .editor-content-area h5, .editor-content-area.prose h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
         .editor-content-area h6, .editor-content-area.prose h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
-        .editor-content-area p { font-size: 1rem !important; line-height: 1.8 !important; margin: 0 0 1rem !important; } 
+        .editor-content-area p, .editor-content-area hr { font-size: 1rem !important; line-height: 1.8 !important; margin: 0 0 1rem !important; } 
         .editor-content-area ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; } 
         .editor-content-area ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; }
         .editor-content-area li { margin-bottom: 0.4rem !important; line-height: 1.5 !important; }

@@ -14,8 +14,9 @@
  * 这里的做法不看 z-index、也不等任何动画：在 window 的**捕获阶段**盯 pointerdown，
  * 直接问"现在最上面那一层是谁"，然后：
  *   · 手指落在**任何一层**的面板内部 / 按钮行上 → 什么都不做（面板里正常操作、按钮随便连点）
- *   · 手指落在导航栏、或任何按钮/链接/输入框上 → 什么都不做
- *   · 其它位置（遮罩 / 空白）→ **只收最上面这一层**
+ *   · 手指落在任何**按钮 / 链接 / 输入框**上 → 什么都不做
+ *     （⚠️ 导航栏的**空白处**不算：它跟页面空白一视同仁，照样收层）
+ *   · 其它位置（遮罩 / 空白 / 导航栏的空白）→ **只收最上面这一层**
  *
  * 并且这一次手势的 click 会**按落点判断**：click 的位置和刚才按下去的位置对不上
  * （说明中间那层被收掉、DOM 换了），就把这次 click 掐掉，绝不让它穿到正文的链接上 ✓
@@ -108,8 +109,16 @@ function onPointerDown(event: PointerEvent) {
   // ① 面板内部 / 按钮行：不拦（抽屉开着照样能开导航栏菜单，两层可以同时开着）
   if (insideLayerChrome(target)) return;
 
-  // ② 导航栏本身、以及任何按钮/链接/输入框：不拦（否则点主题开关、点导航项都会被吞掉）
-  if (target.closest('header') || target.closest(INTERACTIVE)) return;
+  // ② 按钮 / 链接 / 输入框：不拦（否则点主题开关、点导航项都会被吞掉）
+  //
+  // ⚠️ 这里以前写的是 `target.closest('header') || …` —— 只要落在导航栏里就一律放行，
+  //    于是导航栏上那些**没绑任何点击的空白处**（logo 和右侧图标之间那一大片）也被
+  //    当成了交互区：菜单 / 抽屉开着的时候点那儿毫无反应，用户会觉得
+  //    "这块明明是空的，怎么不算空白处"。现在导航栏的空白跟页面空白一视同仁，
+  //    点了照样收最上面那层 ✓
+  //    导航项是 <Link>、主题开关和菜单键是 <button>，都在 INTERACTIVE 里，不受影响 ✓
+  //    （导航栏 z-[60] 盖在遮罩之上、永远不会被遮罩挡住，所以也不存在"穿透到正文"的问题）
+  if (target.closest(INTERACTIVE)) return;
 
   // ③ 剩下的就是"遮罩 / 空白处"：只收最上面那一层，并掐掉这次事件
   event.stopPropagation();
@@ -152,7 +161,7 @@ function onClickCapture(event: MouseEvent) {
 
   if (!lastCloseAt || performance.now() - lastCloseAt > CLICK_GUARD_MS) return;
   if (insideLayerChrome(target)) return;                 // 面板里的正常点击要放行
-  if (target.closest('header') || target.closest(INTERACTIVE)) return; // 按钮/链接/导航栏放行
+  if (target.closest(INTERACTIVE)) return;               // 按钮/链接放行（导航栏的空白不算）
   event.stopPropagation();
   event.preventDefault();
 }

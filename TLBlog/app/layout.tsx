@@ -22,6 +22,7 @@ import PageKeys from '../components/pageScrollKeys';
 import ContentLiveRefresh from '../components/ContentLiveRefresh';
 import Navbar from '../components/Navbar';
 import NavSwitchDim from '../components/NavSwitchDim';
+import BackToTop from '../components/BackToTop';
 
 /**
  * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
@@ -152,7 +153,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <GlobalToolbox />
               </div>
 
-              {/* 手机端右下角那个返回按钮已按需求移除 */}
+              {/* 📱 手机端右下角「返回顶部」按钮（大屏不显示，靠组件自己的 lg:hidden）。
+                  往下滑过一段才出现，点一下瞬间回顶；和控制台那份是同一个组件 ✓ */}
+              <BackToTop />
 
               {/* 隐藏手机端点击粒子 */}
               <div className="hidden md:block">
