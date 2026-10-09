@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 
 /**
- * 🔗 正文（markdown 渲染出来的）里的**所有超链接，一律新标签页打开** ✓
+ * 🔗 正文（markdown 渲染出来的）里的超链接：**站内路径原地跳，其他一律新标签页** ✓
+ *    —— 用户 2026-10-09 追加：/chatter/…、/resources/… 这种「域名后面一段开头」的，只在本标签页跳 ✓
  *    —— 用户 2026-10-08 明确要求："帮我把网站markdown超链接的跳转方式全部改成新建标签页"
  *
  * ⚠️ 文件名是历史原因：这个组件原来是"**站内**链接走客户端路由"（点一下 SPA 切页），
@@ -40,6 +41,9 @@ export default function InSiteLinks() {
         const raw = a.getAttribute('href') || '';
         if (!raw || raw.startsWith('#')) return;              // 页内锚点留在原地 ✓
         if (/^(mailto:|tel:|javascript:|data:)/i.test(raw)) return;
+        // 🏠 站内相对路径（/chatter/… /resources/… 这种）→ **本标签页**跳转 ✓
+        //    ⚠️ 必须排掉 //example.com（协议相对外链，它也以 / 开头）✗
+        if (raw.startsWith('/') && !raw.startsWith('//')) return;
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
