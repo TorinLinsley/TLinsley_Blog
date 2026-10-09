@@ -123,13 +123,13 @@ export default function CyberCat() {
          所以按钮的左边缘会**正好和播放器的左边缘对齐**，不会被推到屏幕外面去。
          = max(0px, 1.5rem - 2vw) + 3rem = max(3rem, 4.5rem - 2vw)
          （1920 的屏：max(48px, 33.6px) = 48px → 猫在 48px，按钮左边缘落在 0，和播放器齐平） */
-      style={{ touchAction: 'none', left: 'max(3rem, calc(4.5rem - 2vw))' }}
+      style={{ touchAction: 'none', right: 'max(3rem, calc(4.5rem - 2vw))' }}
       /* 拖完紧接着那一次 click 要忽略：拖猫不该等于摸猫 */
       onPointerDownCapture={() => { draggedRef.current = false; }}
       onDragStart={() => { draggedRef.current = true; }}
       whileDrag={{ scale: 1.1, cursor: "grabbing" }}
       /* 📱 小屏的显示/隐藏由 layout.tsx 里那层 hidden md:block 统一控制（和博客前台一致），这里不管 */
-      /* ↔️ 默认在**左下角**（和悬浮播放器同一侧、叠在它上面），右下角让给计算器 */
+      /* ↔️ 默认在**右下角**（和悬浮播放器同一侧、叠在它上面），右下角让给计算器 */
       className="fixed bottom-20 z-[9999] flex flex-col items-center group cursor-grab active:cursor-grabbing"
     >
       {/* 💬 聊天气泡 */}
@@ -154,7 +154,7 @@ export default function CyberCat() {
       <div className="relative">
 
         {/* 🌟 核心修改区：去掉了 opacity-0 和 group-hover，让按钮常驻显示 */}
-        <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
+        <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
 
             {/* 💬 聊天按钮 */}
             <button

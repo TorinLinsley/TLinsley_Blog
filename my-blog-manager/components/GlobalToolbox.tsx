@@ -22,8 +22,8 @@ export default function GlobalToolbox() {
   const activeTool = TOOL_REGISTRY.find(t => t.id === activeToolId);
 
   return (
-    /* ↔️ 默认在**右下角**（计算器挪到右边，左边让给猫和悬浮播放器） */
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3">
+    /* ↔️ 默认在**左下角**（计算器挪到右边，左边让给猫和悬浮播放器） */
+    <div className="fixed bottom-6 left-6 z-[9999] flex flex-col items-start gap-3">
 
       {/* 展开的面板区域 */}
       <AnimatePresence>
