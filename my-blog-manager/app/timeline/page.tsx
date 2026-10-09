@@ -6,7 +6,12 @@ import { siteConfig } from '../../siteConfig';
 import TimelineClient from '../../components/TimelineClient';
 
 // 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-export const dynamic = 'force-dynamic';
+// ⚡ 改成 ISR（静态化 + 30 秒刷新）——只对**只读**页面这么干 ✓
+//   以前 force-dynamic → 每次切页都要服务端现渲染（实测首字节 1.155 秒 ✗）而且无法预取 ✗
+//   现在静态化 → 悬停预取 ✓ 切页几乎瞬开 ✓
+//   内容更新最多延迟 30 秒 ✓（看数据够用 ✓）
+//   ⚠️ 编辑页（posts/[slug]、chatter/[slug]）**故意保持动态** ✗ 那里必须永远看到最新数据 ✓
+export const revalidate = 30;
 
 // 🏷️ 标签页标题：栏目页 = 「栏目名 | 站点名」（和导航栏、其它栏目页同一套规则）
 export const metadata = {
