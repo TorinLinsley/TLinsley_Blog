@@ -164,6 +164,28 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     .body;
   tidyPasteWhitespace(body);
   convertTaskLists(body);
+  /* ⌨️ 代码块：砍掉 markdown-it 在收尾前多输出的**那一个**换行 ✓
+   *
+   * 病根：按规范它会输出 `<pre><code>第一行\n第二行\n</code></pre>` ✗
+   *   最后那个 \n 是规范行为 ✓ 但交给 ProseMirror 后就变成代码块里多一个空行 ✗
+   *   → 表现：**每粘贴一次 Markdown 源码，每个代码块末尾都多一行空行** ✓（用户实测反馈 ✓）
+   *
+   * ⚠️⚠️ 为什么只能写在这条支路里 ✓：
+   *   上面那个 tidyPasteWhitespace 是**所有粘贴方式公用**的清洗器 ✗
+   *   上次图省事改在那里 → 把表格单元格的换行判定带偏 ✗ 表格被拆成裸文本 ✓（踩过的坑 ✓）
+   *   而 markdownToSlice 只服务「粘贴 Markdown 源码」这一条路 ✓ 影响面最小 ✓
+   *
+   * 为什么只砍**一个** ✓：作者若**有意**留了结尾空行 ✓ markdown-it 会输出 …\n\n ✓
+   *   砍一个还剩一个 ✓ 作者本意完整保留 ✓
+   * 为什么碰不到表格 ✓：只查 `<pre>` ✓ `<td>` / `<br>` / 列表一个字都不动 ✓✓
+   */
+  body.querySelectorAll('pre').forEach(pre => {
+    const walker = pre.ownerDocument.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+    let lastText: Text | null = null;
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) lastText = n as Text;
+    const value = lastText?.nodeValue || '';
+    if (lastText && value.endsWith('\n')) lastText.nodeValue = value.slice(0, -1);
+  });
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
