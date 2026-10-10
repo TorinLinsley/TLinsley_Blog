@@ -258,13 +258,20 @@ async def sync_local_operations(request: Request):
             raw_html, tables = stash_tables(raw_html)
             raw_html, callouts = stash_callouts(raw_html)
             md_content = md(raw_html, heading_style="ATX", keep=['img', 'br'], code_language_callback=code_language_callback)
+
+            # 3. markdownify 可能把 <br> 留下来；为在 MD 里形成真实空行，全部换成纯 \n\n ✓
+            #    ⚠️⚠️ 这一步**必须在放回表格之前**做 ✗→✓（原来是放回表格之后才做 ✗）
+            #       原因：表格此时已经是 Markdown 文本了 ✗ 一旦某个单元格里还留着 `<br>`，
+            #             这个全局替换会把它变成**真换行** → 表格那一行被劈成两行 ✗
+            #             → 刷新读回来就是「表格散了 + 后面几行变成裸文本带 |」✗（用户实测反馈 ✓）
+            #       resources.py 那边本来就是这个顺序 ✓（实测转换结果里表格行完好 ✓）✓
+            #       这里只是把顺序对齐 ✓ 表格、callout、空行保护的做法一个字都没改 ✗
+            md_content = re.sub(r'<br\s*\/?>', '\n\n', md_content)
+
             md_content = restore_tables(md_content, tables)
             md_content = restore_callouts(md_content, callouts)
             md_content = collapse_blank_lines(md_content)
 
-            # 3. 转换完毕后，markdownify 可能会把 <br> 留下来，
-            # 为了在 MD 中形成真实的空行，我们把保留下来的 <br> 或者 <br/> 全部替换为纯粹的 \n\n
-            md_content = re.sub(r'<br\s*\/?>', '\n\n', md_content)
             # 4. 引用块：连成一片的 callout 拆开
             #    ⚠️ 但**不往 .md 里插** `<!-- -->` 分隔符 —— 那是读取时该干的事 ✓
             md_content = split_callout_blockquotes(md_content)
