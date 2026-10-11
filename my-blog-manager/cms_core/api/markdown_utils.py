@@ -202,6 +202,9 @@ def glue_image_blocks(markdown_text: str) -> str:
 
 _BR_IMG_END_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)\s*</p>", re.I)
 _BR_IMG_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)", re.I)
+# 老文件里"零宽标记黏在图片前面"（.md 那一行长成 `‍![](x)`）—— 标记是空行用的，
+# 不许黏在图片上（编辑器里它会自己变成图片上面的一行空白 ✗）
+_INV_BEFORE_IMG_RE = re.compile(r"[" + _INVISIBLE + r"]+(?=<img\b)", re.I)
 _P_RE = re.compile(r"<p\b[^>]*>[\s\S]*?</p>", re.I)
 _EMPTY_P_BEFORE_IMG_RE = re.compile(
     r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<p\b[^>]*>\s*<img\b)",
@@ -210,13 +213,16 @@ _EMPTY_P_BEFORE_IMG_RE = re.compile(
 
 
 def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
-    """单个 <p>…</p>：把紧贴图片的 <br> 换成段落分界（没有图片就原样返回）"""
+    """单个 <p>…</p>：把紧贴图片的 <br>/零宽标记清掉（没有图片就原样返回）"""
     block = match.group(0)
     if "<img" not in block:
         return block
-    # 图片正好收尾：`<p>文字<br><img></p>` → 两段
+    # ① 图片前面黏着的零宽标记（空行标记）先去掉 —— 它在编辑器里就是图片上面那一行空白
+    #    ⚠️ 必须在拆 <br> 之前做：`文字<br>‍<img>` 去掉标记后才露出"<br> 紧贴图片"
+    block = _INV_BEFORE_IMG_RE.sub("", block)
+    # ② 图片正好收尾：`<p>文字<br><img></p>` → 两段
     block = _BR_IMG_END_RE.sub(r"</p>\n<p>\1</p>", block)
-    # 图片后面还有内容：`<p>文字<br><img><br>后面的字</p>` → 先断开，后面的内容另起一段
+    # ③ 图片后面还有内容：`<p>文字<br><img><br>后面的字</p>` → 先断开，后面的内容另起一段
     block = _BR_IMG_RE.sub(r"</p>\n<p>\1</p>\n<p>", block)
     return block
 
