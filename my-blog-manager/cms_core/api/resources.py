@@ -15,6 +15,7 @@ from .markdown_utils import (
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
+    glue_image_blocks,
     render_callouts,
     restore_callouts,
     restore_tables,
@@ -491,6 +492,8 @@ def html_to_markdown(raw_html: str) -> str:
     out = restore_tables(out, tables)
     out = restore_callouts(out, callouts)
     out = collapse_blank_lines(out)
+    # 🖼️ 图片上面那个凭空多出来的空行去掉（图片紧贴上一段正文）
+    out = glue_image_blocks(out)
     # 🧩 落盘前把连成一片的 callout 拆成独立引用块（不然下次读出来只有第一个是 callout）
     out = split_callout_blockquotes(out)
     # ⚠️ 这里**不**再往 .md 里插 `<!-- -->` 分隔符：

@@ -11,6 +11,7 @@ from .markdown_utils import (
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
+    glue_image_blocks,
     render_callouts,
     restore_callouts,
     restore_tables,
@@ -271,6 +272,8 @@ async def sync_local_operations(request: Request):
             md_content = restore_tables(md_content, tables)
             md_content = restore_callouts(md_content, callouts)
             md_content = collapse_blank_lines(md_content)
+            # 🖼️ 图片上面那个凭空多出来的空行去掉（图片紧贴上一段正文，和资源分享同一套）
+            md_content = glue_image_blocks(md_content)
 
             # 4. 引用块：连成一片的 callout 拆开
             #    ⚠️ 但**不往 .md 里插** `<!-- -->` 分隔符 —— 那是读取时该干的事 ✓

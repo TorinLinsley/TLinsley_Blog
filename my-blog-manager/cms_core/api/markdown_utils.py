@@ -92,6 +92,89 @@ def collapse_blank_lines(markdown_text: str) -> str:
     return "\n".join(out)
 
 
+# ═════════════════════════════════════════════════════════════
+# 🖼️ 图片紧贴上一段正文（去掉图片上面凭空多出来的那个空行）
+#
+# 病根：编辑器里图片是**块级节点**，而插入图片时 ProseMirror 还会在它前面留下
+#   一个空段落（插入前光标所在的那个空行）。落盘时两边一起放大：
+#     · 空段落 → 本文件规定的"空行"写法 `<br>&zwj;` → 变成「一个空行 + 一行零宽字符」
+#     · 块级图片 → markdownify 前后各补一个空行
+#   于是图片上面凭空多出**两个空行 + 一行看不见的零宽字符** ✗
+#   刷新一读，那行零宽字符还变成编辑器里**真的空段落** —— 删掉再存又回来 ✗
+#   （用户实测："插入图片后保存，图片上一行明明没有空行，保存之后就有了；
+#     给它删了再保存还是看见有，预览和编辑器都一样，前台也一样"）
+#
+# 做法（只在**顶层正文**里动）：图片行上面那一个空行去掉；
+#   若上面还压着"空行标记行"（整行都是零宽字符），连它和它下面的空行一起去掉。
+#
+# ⚠️ 只认「上一行是普通正文段落」。标题 / 列表 / 引用·callout / 表格 / 围栏
+#    上面的图片一个字都不动 —— 那些空行是**语法必需**的：
+#    去掉图片就会变成标题的一部分、或被吞进上一个列表项 ✗
+# ⚠️ 围栏（```/~~~）里的内容完全不看；表格行以 | 开头、callout 行以 > 开头，
+#    天然不可能匹配成"图片行" ✓（表格/代码块/callout 一个字都不会被碰 ✓）
+# ═════════════════════════════════════════════════════════════
+
+# 空行的零宽标记字符（编辑器用 <br>&zwj; 表示空行）
+_INVISIBLE = "\u200b\u200d\ufeff"
+
+# 整行就是一张图（行首允许残留的零宽标记 —— 老文件里黏在图片前的那种）
+_IMG_LINE_RE = re.compile(r"^[" + _INVISIBLE + r"]*!\[[^\]]*\]\([^)]*\)\s*$")
+# 整行都是零宽标记（= 编辑器里的一个空段落；允许前后带空白）
+_MARKER_LINE_RE = re.compile(
+    r"^[\s" + _INVISIBLE + r"]*[" + _INVISIBLE + r"][\s" + _INVISIBLE + r"]*$"
+)
+# 「上一行不是普通正文」的判据：标题 / 引用 / callout / 表格 / 围栏 / 列表 / 分隔线 / 裸 HTML / 图片
+_BAD_LEAD_RE = re.compile(
+    r"^(?:#{1,6}(?:\s|$)|>|\||```|~~~|[-*+](?:\s|$)|\d+[.)](?:\s|$)|<|!\[|(?:[-*_]\s*){3,}$)"
+)
+
+
+def glue_image_blocks(markdown_text: str) -> str:
+    """图片单独成行时，把它**上面那个空行**去掉（和编辑器里看到的一样紧贴上一段）。
+
+    只处理顶层正文；标题/列表/引用/表格/围栏上面的图片、以及围栏内部，一律原样保留。
+    """
+    lines = markdown_text.split("\n")
+    out: List[str] = []
+    fence: Optional[str] = None
+
+    for line in lines:
+        stripped = line.lstrip()
+        marker = stripped[:3]
+
+        if fence is None and marker in ("```", "~~~"):
+            fence = marker
+            out.append(line)
+            continue
+        if fence is not None:
+            out.append(line)
+            if stripped.startswith(fence):
+                fence = None
+            continue
+
+        if _IMG_LINE_RE.match(stripped) and out and (
+            out[-1].strip() == "" or _MARKER_LINE_RE.match(out[-1])
+        ):
+            # 往回剥：图片上面连着的空行 / 空行标记行（都是编辑器留下的空段落）
+            popped: List[str] = []
+            while out and (out[-1].strip() == "" or _MARKER_LINE_RE.match(out[-1])):
+                popped.append(out.pop())
+
+            prev = out[-1] if out else ""
+            if prev.strip() and not _BAD_LEAD_RE.match(prev.lstrip()):
+                # ✓ 上一行是普通正文 → 这些空行不要了（图片行首残留的零宽标记也一起清掉）
+                out.append(re.sub(r"^[" + _INVISIBLE + r"]+", "", stripped))
+            else:
+                # 标题/列表/引用/表格/围栏上面：空行是语法必需的，原样放回 ✓
+                out.extend(reversed(popped))
+                out.append(line)
+            continue
+
+        out.append(line)
+
+    return "\n".join(out)
+
+
 def _cell_to_md(cell) -> str:
     """单元格内容 → 一行 Markdown 文本（单元格里不能出现换行和裸竖线，否则表格会散架）"""
     from markdownify import markdownify as md
