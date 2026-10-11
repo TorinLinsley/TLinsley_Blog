@@ -739,7 +739,10 @@ const CustomImage = Image.extend({
       width: {
         default: '100%',
         renderHTML: attributes => ({
-          style: `width: ${attributes.width}; height: auto; display: block; margin: 2rem 0; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.15);`
+          // ⚠️ 上边距必须是 0：图片上面顶着的那点空白原来是 `margin: 2rem 0` 的**一半**，
+          //    看着就跟"凭空多了一个空行"一模一样（用户反馈："图片上面明明没有空行"）✗
+          //    下边距保持 2rem（图片和下面的正文之间该有的间距一个字没动 ✓）
+          style: `width: ${attributes.width}; height: auto; display: block; margin: 0 0 2rem 0; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.15);`
         })
       }
     };
@@ -1262,6 +1265,28 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     insertImage: (url: string) => {
       if (editor) {
         editor.chain().focus().setImage({ src: url }).run();
+
+        /* 🖼️ 图片上面那个空段落：ProseMirror 插入块级图片时，会在图片前面留下**插入前光标所在的那个空段落**
+         *    （你按过回车换到下一行再插图，那一行就留在了图片上面）——
+         *    它在编辑器里就是图片上面多出来的一行空行，落盘也会变成空行标记 ✗
+         *    这里插完立刻检查一下：图片前面紧挨着的是**空段落**就删掉它（有内容的段落、别的节点一律不动 ✓）
+         */
+        try {
+          const { state } = editor;
+          const from = state.selection.from;
+          const $from = state.doc.resolve(from);
+          const img = $from.nodeBefore;
+          if (img && img.type.name === 'image') {
+            const imgStart = from - img.nodeSize;
+            const before = state.doc.resolve(imgStart).nodeBefore;
+            if (before && before.type.name === 'paragraph' && before.content.size === 0) {
+              editor.view.dispatch(state.tr.delete(imgStart - before.nodeSize, imgStart).scrollIntoView());
+            }
+          }
+        } catch {
+          /* 位置算不出来就按原样保留，不影响插图本身 */
+        }
+
         if (onChange) onChange();
       }
     },

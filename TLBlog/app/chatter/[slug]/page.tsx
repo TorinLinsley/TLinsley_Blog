@@ -288,7 +288,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   .prose code::before, .prose code::after { content: none !important; }
                   .prose p code, .prose li code { background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.1rem 0.3rem !important; border-radius: 0.25rem !important; font-weight: 600 !important; font-size: 0.85em !important; }
                   .dark .prose p code, .dark .prose li code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
-                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 1.5rem 0 !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
                   .prose pre code .hljs-doctag, .prose pre code .hljs-keyword, .prose pre code .hljs-formula { color: #c678dd !important; }
@@ -311,7 +311,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                     .prose pre { padding: 1.25rem !important; margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
                     .prose pre code { font-size: 0.9em !important; }
                     .prose p code, .prose li code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
-                    .prose img { margin: 2rem 0 !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
+                    .prose img { margin: 0 0 2rem !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
                   }
                 `}</style>
 

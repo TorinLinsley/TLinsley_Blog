@@ -206,6 +206,9 @@ _BR_IMG_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)", re.I)
 # 不许黏在图片上（编辑器里它会自己变成图片上面的一行空白 ✗）
 _INV_BEFORE_IMG_RE = re.compile(r"[" + _INVISIBLE + r"]+(?=<img\b)", re.I)
 _P_RE = re.compile(r"<p\b[^>]*>[\s\S]*?</p>", re.I)
+# 图片独自占一个 <p>（`<p><img …></p>`）—— 编辑器里图片是**块级节点**，装不进段落：
+# 这个 <p> 壳会让 ProseMirror 就地留下一个**空段落**，显示出来就是"图片上面多一行" ✗
+_IMG_ONLY_P_RE = re.compile(r"<p\b[^>]*>\s*(<img\b[^>]*>)\s*</p>", re.I)
 _EMPTY_P_BEFORE_IMG_RE = re.compile(
     r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<p\b[^>]*>\s*<img\b)",
     re.I,
@@ -237,6 +240,8 @@ def unbreak_image_lines(html: str) -> str:
         if trimmed == out:
             break
         out = trimmed
+    # 图片独自占一个 <p> → 去掉这层壳（给编辑器裸 <img>，免得留下一个空段落；预览里渲染结果一样 ✓）
+    out = _IMG_ONLY_P_RE.sub(r"\1", out)
     return out
 
 

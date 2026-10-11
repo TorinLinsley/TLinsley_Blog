@@ -310,7 +310,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   /* 🌟 确保前台生成的 <br> 占据真实的垂直空间 */
                   .prose br { display: block !important; content: "" !important; margin-top: 0.5em !important; }
 
-                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 1.5rem 0 !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   /* 🌟 Atom One Dark 顶级补丁 */
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
@@ -334,7 +334,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                     .prose pre { padding: 1.25rem !important; margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; border-radius: 1.5rem !important; }
                     .prose pre code { font-size: 0.9em !important; }
                     .prose p code, .prose li code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
-                    .prose img { margin: 2rem 0 !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
+                    .prose img { margin: 0 0 2rem !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
                   }
                 `}</style>
 
