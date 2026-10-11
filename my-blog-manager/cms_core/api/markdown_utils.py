@@ -230,8 +230,13 @@ def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
 def unbreak_image_lines(html: str) -> str:
     """读回来时去掉「图片上面那一行空白」（<br> 顶出来的、以及老文件残留的空行标记）"""
     out = _P_RE.sub(_unbreak_image_paragraph, html)
-    # 图片上面那种"只剩零宽字符 / 只剩一个 <br>"的空段落一起收掉
-    out = _EMPTY_P_BEFORE_IMG_RE.sub("", out)
+    # 图片上面可能叠着好几个空段落（一个空段落 + 一行零宽标记…）——
+    # 一次正则只能收掉紧挨着图片的那一个，所以循环收到不动为止（最多几轮，删没了自然就停）
+    for _ in range(6):
+        trimmed = _EMPTY_P_BEFORE_IMG_RE.sub("", out)
+        if trimmed == out:
+            break
+        out = trimmed
     return out
 
 

@@ -114,7 +114,15 @@ async def get_draft(request: Request):
     file_path = os.path.join(drafts_dir, f"{raw_id}.json")
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
-            return {"success": True, "draft": json.load(f)}
+            draft = json.load(f)
+        # 🖼️ 草稿 JSON 里存的是**你点「暂存」那一刻编辑器的 HTML 快照**（不是 .md）。
+        #    老代码留下的"图片上面那一行空白"会一直躺在这份快照里 ——
+        #    于是 .md 明明已经干净了，你每次打开这篇草稿还是会重新看见它 ✗
+        #    （而且刷新、重启后端都没用：接口直接把这份快照还给你）
+        #    这里读出来时顺手清一次，只认「图片上面那一个空行/零宽标记」，别的一个字不动 ✓
+        if isinstance(draft.get("content"), str):
+            draft["content"] = unbreak_image_lines(draft["content"])
+        return {"success": True, "draft": draft}
 
     # 2. 如果没有草稿，从物理 MD 文件读取并解析
     target_md = None
