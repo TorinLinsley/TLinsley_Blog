@@ -19,6 +19,7 @@ from .markdown_utils import (
     split_callout_blockquotes,
     stash_callouts,
     stash_tables,
+    unbreak_image_lines,
 )
 
 router = APIRouter()
@@ -168,6 +169,8 @@ async def get_draft(request: Request):
                     'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
                 },
             )
+            # 🖼️ 图片紧贴上一行时，nl2br 会顶出一个 <br> → 编辑器里变成图片上面的一行空白，先拆掉
+            html_content = unbreak_image_lines(html_content)
             html_content = render_callouts(html_content)
 
             draft_data = {

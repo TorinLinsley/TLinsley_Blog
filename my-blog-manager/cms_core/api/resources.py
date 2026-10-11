@@ -23,6 +23,7 @@ from .markdown_utils import (
     split_callout_blockquotes,
     stash_callouts,
     stash_tables,
+    unbreak_image_lines,
 )
 
 router = APIRouter()
@@ -415,6 +416,8 @@ async def get_resource(request: Request):
             "codehilite": {"noclasses": True, "pygments_style": "monokai", "guess_lang": False},
         },
     )
+    # 🖼️ 图片紧贴上一行时，nl2br 会顶出一个 <br> → 编辑器里变成图片上面的一行空白，先拆掉
+    html = unbreak_image_lines(html)
     # 🗂️ 再套 callout 外壳（以前这一步漏了，所以资源预览里 callout 一直是原始引用块）
     html = render_callouts(html)
     fallback = os.path.splitext(os.path.basename(rel))[0]

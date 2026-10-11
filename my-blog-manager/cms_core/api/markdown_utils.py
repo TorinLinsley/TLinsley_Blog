@@ -175,6 +175,60 @@ def glue_image_blocks(markdown_text: str) -> str:
     return "\n".join(out)
 
 
+# ═════════════════════════════════════════════════════════════
+# 🖼️ 读回来的时候，图片上面也不许留那一行空白
+#
+# 上面那个 glue_image_blocks 管的是**落盘**（.md 里图片紧贴上一段正文 ✓）。
+# 但"读回编辑器"这条路还有第二个独立的原因会让图片上面出现一行空白：
+#
+#   .md：`文字 ↵ ![](x)`（图片紧贴上一行）
+#     → python-markdown 挂 nl2br → `<p>文字<br><img></p>`      ← 那个换行变成了 <br>
+#     → 编辑器里图片是**块级节点**，装不进段落，就地拆成独立段落
+#     → `<p>文字<br></p><p><img></p>`                          ← <br> 落到图片上面 ✗
+#     → 行号栏实打实给它一个号，看着就是"图片上面多了一个空行" ✗
+#        （用户截图：260 文字 / 261 空 / 262 图片）
+#
+# 最坑的是：在编辑器里把那一行删掉（= 删掉那个 <br>）再保存，.md 确实是
+# `文字 ↵ ![](x)`（完全正确 ✓），可一读回来又变出 <br> —— 看着就是"空行永远删不掉" ✗
+#
+# 做法：读的时候把「紧贴图片的那一个 <br>」换成段落分界（图片自己一段），
+#   再顺手收拾掉图片上面「只剩零宽字符 / 只剩一个 <br>」的空段落（老文件里的空行标记）。
+#
+# ⚠️ 只在 `<p>` 段落内部动手：
+#   · 表格单元格的内容不是 `<p>` → 表格天然碰不到 ✓
+#   · 围栏代码块里的 `<img>` 是转义过的（&lt;img）→ 也碰不到 ✓
+#   · callout 的 <div> 外壳、引用块结构、正文文字一个字都不改 ✓
+# ═════════════════════════════════════════════════════════════
+
+_BR_IMG_END_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)\s*</p>", re.I)
+_BR_IMG_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)", re.I)
+_P_RE = re.compile(r"<p\b[^>]*>[\s\S]*?</p>", re.I)
+_EMPTY_P_BEFORE_IMG_RE = re.compile(
+    r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<p\b[^>]*>\s*<img\b)",
+    re.I,
+)
+
+
+def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
+    """单个 <p>…</p>：把紧贴图片的 <br> 换成段落分界（没有图片就原样返回）"""
+    block = match.group(0)
+    if "<img" not in block:
+        return block
+    # 图片正好收尾：`<p>文字<br><img></p>` → 两段
+    block = _BR_IMG_END_RE.sub(r"</p>\n<p>\1</p>", block)
+    # 图片后面还有内容：`<p>文字<br><img><br>后面的字</p>` → 先断开，后面的内容另起一段
+    block = _BR_IMG_RE.sub(r"</p>\n<p>\1</p>\n<p>", block)
+    return block
+
+
+def unbreak_image_lines(html: str) -> str:
+    """读回来时去掉「图片上面那一行空白」（<br> 顶出来的、以及老文件残留的空行标记）"""
+    out = _P_RE.sub(_unbreak_image_paragraph, html)
+    # 图片上面那种"只剩零宽字符 / 只剩一个 <br>"的空段落一起收掉
+    out = _EMPTY_P_BEFORE_IMG_RE.sub("", out)
+    return out
+
+
 def _cell_to_md(cell) -> str:
     """单元格内容 → 一行 Markdown 文本（单元格里不能出现换行和裸竖线，否则表格会散架）"""
     from markdownify import markdownify as md
