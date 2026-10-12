@@ -1,31 +1,35 @@
 "use client";
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 /**
- * 🔗 正文（markdown 渲染出来的）里的超链接：**站内路径原地跳，其他一律新标签页** ✓
- *    —— 用户 2026-10-09 追加：/chatter/…、/resources/… 这种「域名后面一段开头」的，只在本标签页跳 ✓
- *    —— 用户 2026-10-08 明确要求："帮我把网站markdown超链接的跳转方式全部改成新建标签页"（前端 + 控制台）
+ * 🔗 正文（markdown 渲染出来的）里的超链接怎么跳（控制台：和前台 TLBlog 同一套 ✓）：
  *
- * ⚠️ 文件名是历史原因：这个组件原来是"**站内**链接走客户端路由"（点一下 SPA 切页），
- *    现在职责正好反过来 —— **正文里的站内链接也不再原地跳了，统一开新标签页** ✓
- *    原来那套 `router.push` 接管已删除，别再加回来 ✗
- *    ⚠️ 连带变化：控制台资源预览页里点 `/resources/xxx` 这种站内文章链接，
- *       以前是"就地打开"（连路由跳转都省），**现在也会开新标签页** —— 这是用户要求的统一行为 ✓
- *       真要恢复就地打开，就把下面盖 target 那几行去掉、把 openArticle 那套加回来 ✓
+ *   · 站内相对路径（`/resources/…`、`/posts/…`、`/chatter/…` 这种「域名后面一段开头」的）
+ *     → **接管这次点击，走客户端路由原地切页** —— 不整页刷新、瞬间完成 ✓
+ *       —— 用户 2026-10-11："为什么现在点击是网站内的超链接又不是无感刷新了…
+ *                          我要那种瞬间切换完成页面的"（两个项目同步 ✓）
+ *   · 其它（外链、绝对 URL、协议相对链接）→ 盖 `target="_blank"`，新标签页打开 ✓
+ *       —— 用户 2026-10-08 的要求，保持不变 ✓
  *
- * 做法：和 ImageZoom / TableScroll / CodeCopy **同一个路子 —— 只做增强、不改渲染链路** ✓
- *   正文 HTML 一个字都不动：挂载后扫一遍，给里面的 <a> 盖上 `target="_blank"` + `rel`，
- *   之后浏览器自己就会开新标签页 ✓（比 window.open 稳：不会被弹窗拦截器拦掉 ✗）
- *   正文是动态注入/切换的（切文章、切分类、重建预览），所以再挂一个
- *   MutationObserver 兜住后加进来的 ✓（节流 200ms，不是每帧都扫 ✓）
+ * 为什么站内链接必须"接管"：正文是 markdown 渲染出来的**裸 `<a>`**，不是 Next 的 `<Link>` ✗
+ *   浏览器拿到 `<a href="/resources/xxx">` 只会**整页重新请求**（就是那下看得见的刷新 ✗）。
+ *   所以这里在 document 上挂一个委托点击：命中站内相对路径就 `preventDefault()` + `router.push()` ✓
+ *   扫描时再顺手 `router.prefetch()` —— 预取命中后切过去就是**瞬间**的 ✓
+ *   （控制台这边 `/resources/[[...path]]`、`/posts/[slug]`、`/chatter/[slug]` 都有页面 ✓）
  *
- * 故意**不盖**的几种：
- *   · `#锚点`        → 页内跳转，本来就该留在原地 ✓
- *   · `mailto:` / `tel:` / `javascript:` / `data:` → 不是网页 ✓
+ * 故意**不接管**的几种：
+ *   · 按着 Ctrl / Cmd / Shift / Alt，或中键 → 那是"我要开新标签页"，交给浏览器 ✓
+ *   · 页内锚点 `#…`、`mailto:` / `tel:` / `javascript:` / `data:` → 不是站内路由 ✓
  *   · 作者自己写了 `target` 的 → 尊重原文 ✓
  *   · 带 `download` 的 → 那是下载，别动 ✓
- *   · 编辑器正文（`.ProseMirror` 等）→ 正在编辑，别碰 ✓
+ *   · **编辑器正文**（`.ProseMirror` / `.editor-content-area`）→ 正在编辑，一个都不碰 ✓
+ *   · `//example.com` 这种协议相对外链（也以 / 开头）✗
+ *
+ * 做法沿用原样：只做增强、不改渲染链路 —— 正文 HTML 一个字都不动 ✓
+ * 正文会动态注入/切换（切文章、切分类、重建预览），所以再挂一个
+ * MutationObserver 兜住后加进来的 ✓（节流 200ms，不是每帧都扫 ✓）
  */
 
 /** 哪些容器里的链接要处理（都是渲染 markdown 的正文区） */
@@ -33,25 +37,49 @@ const LINK_SELECTOR = '.prose a[href], .resource-preview a[href], .chatter-previ
 /** 这些里面一律不碰（编辑器正文等） */
 const SKIP_INSIDE = '.editor-content-area, .ProseMirror, [contenteditable="true"], [data-no-router]';
 
+/** 站内相对路径？（`/resources/…` ✓、`//cdn.example.com/x` ✗、`https://…` ✗） */
+const isInSitePath = (raw: string) => raw.startsWith('/') && !raw.startsWith('//');
+
 export default function InSiteLinks() {
+  const router = useRouter();
+
   useEffect(() => {
+    /* ── ① 扫描正文：站内路径预取，其余盖新标签页 ── */
     const stamp = () => {
       document.querySelectorAll<HTMLAnchorElement>(LINK_SELECTOR).forEach((a) => {
-        if (a.hasAttribute('target')) return;                 // 已经盖过 / 作者自己写了 → 不动 ✓
         if (a.closest(SKIP_INSIDE)) return;                   // 编辑器正文不碰 ✓
         if (a.hasAttribute('download')) return;               // 下载链接不碰 ✓
+        if (a.hasAttribute('target')) return;                 // 已经盖过 / 作者自己写了 → 不动 ✓
         const raw = a.getAttribute('href') || '';
         if (!raw || raw.startsWith('#')) return;              // 页内锚点留在原地 ✓
         if (/^(mailto:|tel:|javascript:|data:)/i.test(raw)) return;
-        // 🏠 站内相对路径（/chatter/… /resources/… 这种）→ **本标签页**跳转 ✓
-        //    ⚠️ 必须排掉 //example.com（协议相对外链，它也以 / 开头）✗
-        if (raw.startsWith('/') && !raw.startsWith('//')) return;
-        a.setAttribute('target', '_blank');
+        if (isInSitePath(raw)) {
+          // 🏠 站内相对路径：预取一次 → 点下去瞬间切页 ✓（点击由下面的 onClick 接管）
+          router.prefetch(raw);
+          return;
+        }
+        a.setAttribute('target', '_blank');                   // 🌐 其余：新标签页 ✓
         a.setAttribute('rel', 'noopener noreferrer');
       });
     };
 
-    // 先扫一遍（首屏 SSR / 已经渲染出来的正文就在 DOM 里了）
+    /* ── ② 接管点击：站内相对路径改走客户端路由（无感刷新） ── */
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;  // 想开新标签页 → 交给浏览器 ✓
+      const target = e.target as Element | null;
+      const a = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!a || !a.matches(LINK_SELECTOR)) return;                   // 只管正文区的链接 ✓
+      if (a.closest(SKIP_INSIDE)) return;
+      if (a.hasAttribute('download') || a.hasAttribute('target')) return;
+      const raw = a.getAttribute('href') || '';
+      if (!isInSitePath(raw)) return;
+      e.preventDefault();
+      router.push(raw);
+    };
+    document.addEventListener('click', onClick);
+
+    // 先扫一遍（已经渲染出来的正文就在 DOM 里了）
     stamp();
 
     // 之后再变了就补扫（节流：内容更新没那么频繁，没必要每帧扫）
@@ -64,10 +92,11 @@ export default function InSiteLinks() {
     mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      document.removeEventListener('click', onClick);
       mo.disconnect();
       if (timer !== null) window.clearTimeout(timer);
     };
-  }, []);
+  }, [router]);
 
   return null;
 }
