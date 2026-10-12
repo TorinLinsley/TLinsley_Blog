@@ -87,7 +87,7 @@ const emptyForm = () => ({
 
 /** 导航栏主题的 6 个预设（存进 tools.json 的 navTheme） */
 const NAV_THEMES: { value: NavTheme; label: string; hint: string }[] = [
-  { value: 'auto', label: '自动', hint: '跟着工具页面自己的明暗走（页面自带主题切换时，导航栏也会跟着变）' },
+  { value: 'auto', label: '自动', hint: '跟着工具页面自己的明暗走（页面自带主题切换时，导航栏也会跟着变）；浅色、深色**都半透明**，想要实底请选下面那两个「不透明」' },
   { value: 'dark-trans', label: '深色·半透明', hint: '深色 + 半透明毛玻璃，适合深色背景的工具' },
   { value: 'dark-solid', label: '深色·不透明', hint: '深色实底，适合深色背景、但想要一条干净实心导航栏的工具' },
   { value: 'light-trans', label: '浅色·半透明', hint: '浅色 + 半透明毛玻璃，适合浅色背景、想透出一点底图的工具' },

@@ -15,7 +15,7 @@
  *   · theme = 'auto'（默认）→ 量页面背景的明暗自动决定，并**监听页面自身的变化**，
  *     所以像"时间计算器"那种自带主题切换按钮的页面，一切换导航栏就跟着变；
  *   · theme = 'dark' / 'light' → 固定深色 / 固定浅色；
- *   · opaque = 'solid' → 不透明；'trans' → 半透明；'auto' → 浅色不透明、深色半透明；
+ *   · opaque = 'solid' → 不透明；'trans' → 半透明；'auto' → **浅色、深色都半透明**（默认）；
  *   · theme = 'hidden' → 这个工具不要导航栏。
  *   （控制台里那 6 个预设就是这两项的组合，见 app/tools/ToolsAdmin.tsx）
  */
@@ -31,7 +31,7 @@
   var NAV_TITLE = CFG.navTitle || '';
   var NAV_SUFFIX = CFG.navSuffix || 'の';
   var AFTER = CFG.after || '工具';
-  var OPAQUE = CFG.opaque || 'auto';   // auto=浅色不透明/深色半透明 · solid=都不透明 · trans=都半透明
+  var OPAQUE = CFG.opaque || 'auto';   // auto=浅色/深色都半透明 · solid=都不透明 · trans=都半透明
   var MOBILE_PAD = 54;              // 手机那条按钮行的高度（px）
   var EDGE = 8;                     // 鼠标进到距顶部这么多像素内就展开（px）
   var STAY = 10;                    // 展开后，鼠标离条底边超过这么多像素才准备收起（px）
@@ -329,8 +329,10 @@
     if (!root) return;
     var t = detectTheme();
     if (root.getAttribute('data-theme') !== t) root.setAttribute('data-theme', t);
-    // opaque：solid=不透明、trans=半透明、auto=浅色不透明 / 深色半透明
-    var solid = OPAQUE === 'solid' ? true : (OPAQUE === 'trans' ? false : t === 'light');
+    // opaque：solid=不透明、trans=半透明、auto=**浅色深色都半透明** ✓
+    // ⚠️ 以前 auto 是「浅色不透明、深色半透明」，用户 2026-10-12 明确否掉了：
+    //    "自动的我要深色和浅色都是半透明" —— 想要实底就显式选「浅色·不透明 / 深色·不透明」✓
+    var solid = OPAQUE === 'solid';
     root.classList.toggle('tn-opaque', solid);
   }
 
