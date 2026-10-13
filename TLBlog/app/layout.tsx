@@ -47,7 +47,7 @@ const SITE_URL = 'https://blog.torinlinsley.top';
  *   想加别名，改下面这一行就够了 ✓
  */
 const SITE_ALIASES = [
-  'TLinsley', 'tlinsley', 'TL博客', 'tlinsley博客', 'TLinsley博客',
+  'TLinsley', 'tlinsley', 'TL博客', 'tl博客', 'tlinsley博客', 'TLinsley博客',
   'Torin Linsley', 'torinlinsley', '宝藏之地',
 ];
 
