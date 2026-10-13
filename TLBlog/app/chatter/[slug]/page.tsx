@@ -44,6 +44,9 @@ export const revalidate = 30;
  *
  * 以前这里没有 generateMetadata —— 从「杂谈」点进一篇，标签页开头就什么都不剩了
  * （只剩站点名），和栏目页面对不上。规则和栏目页、资源页、工具页完全一致：内容名在最前。
+ *
+ * 📝 同文章页：描述用**这篇自己的摘要**（front matter 的 description ✓），
+ *    没写摘要就退回站级简介（和以前一致 ✓）
  */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -51,9 +54,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const fullPath = path.join(process.cwd(), 'chatters', `${slug}.md`);
     const { data } = matter(fs.readFileSync(fullPath, 'utf8'));
     const name = String(data.title || '').trim();
-    return { title: `${name || '碎片记录'} | ${siteConfig.title}` };
+    const desc = String(data.description || '').replace(/\s+/g, ' ').trim();
+    return {
+      title: `${name || '碎片记录'} | ${siteConfig.title}`,
+      description: desc || siteConfig.bio,
+    };
   } catch {
-    return { title: siteConfig.title };
+    return { title: siteConfig.title, description: siteConfig.bio };
   }
 }
 

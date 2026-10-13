@@ -44,6 +44,11 @@ export const revalidate = 30;
  *
  * 以前这里没有 generateMetadata —— 从「归档与探索」点进一篇文章，标签页开头就什么都不剩了
  * （只剩站点名），和栏目页面对不上。规则和栏目页、资源页、工具页完全一致：内容名在最前。
+ *
+ * 📝 顺带补上**这篇文章自己的描述**：搜索结果 / 分享卡片里那段文字 = 控制台文章编辑器里的
+ *    「摘要」字段（front matter 的 description ✓）。
+ *    以前所有文章都继承站级简介（大家看到的是同一句 ✗），写了摘要的现在就用自己的 ✓；
+ *    没写摘要的老文章自动退回站级简介 —— 和以前完全一样，不会变空 ✓
  */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -51,9 +56,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const fullPath = path.join(process.cwd(), 'posts', `${slug}.md`);
     const { data } = matter(fs.readFileSync(fullPath, 'utf8'));
     const name = String(data.title || '').trim();
-    return { title: `${name || '无标题'} | ${siteConfig.title}` };
+    const desc = String(data.description || '').replace(/\s+/g, ' ').trim();
+    return {
+      title: `${name || '无标题'} | ${siteConfig.title}`,
+      description: desc || siteConfig.bio,
+    };
   } catch {
-    return { title: siteConfig.title };
+    return { title: siteConfig.title, description: siteConfig.bio };
   }
 }
 
