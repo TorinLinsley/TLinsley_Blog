@@ -37,12 +37,44 @@ import BackToTop from '../components/BackToTop';
  * （Geist / Geist Mono 本来就没被任何样式引用，一并没有了 ✓）
  */
 
+/** ⚠️ 站点正式域名：以后换域名就改这一处（siteConfig.ts 不参与打包，所以写在这儿 ✓） */
+const SITE_URL = 'https://blog.torinlinsley.top';
+
+/**
+ * 🔤 站名别名 —— 决定"搜这些词也能认出这个站"。
+ *   搜索引擎（必应尤其）认的是 schema.org 的 `WebSite.name` / `alternateName` ✓，
+ *   **不是** `<meta name="keywords">`（必应早就不用了 ✗）。
+ *   想加别名，改下面这一行就够了 ✓
+ */
+const SITE_ALIASES = [
+  'TLinsley', 'tlinsley', 'TL博客', 'tlinsley博客', 'TLinsley博客',
+  'Torin Linsley', 'torinlinsley', '宝藏之地',
+];
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: siteConfig.title,
   description: siteConfig.bio,
+  // ⚠️ keywords 只是顺手写上（必应基本不用它 ✗）：真正管用的是下面 JSON-LD 里的 name/alternateName + 正文内容 ✓
+  keywords: [...SITE_ALIASES, '资源分享', '工具站'],
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    url: SITE_URL + '/',
+    siteName: siteConfig.title,
+    title: siteConfig.title,
+    description: siteConfig.bio,
+    locale: 'zh_CN',
+  },
   icons: {
-    icon: siteConfig.faviconUrl,
-    apple: siteConfig.faviconUrl,
+    // 先给控制台里配的那个（你自己的图），再给两个**必应一定能认**的本地图标 ✓
+    // 换图标：替换 public/favicon.ico（32×32）和 public/apple-touch-icon.png（180×180）就行 ✓
+    icon: [
+      { url: siteConfig.faviconUrl },
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' },
+    ],
+    apple: '/apple-touch-icon.png',
   },
 };
 
@@ -78,6 +110,29 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {!siteConfig.useGradient && siteConfig.bgImages?.[0] && (
           <link rel="preload" as="image" href={siteConfig.bgImages[0]} />
         )}
+
+        {/* 🔎 站名 / 别名（搜索结果里标题上面那行"站名"就是它）：
+            必应读 schema.org 的 `WebSite.name` + `alternateName` —— 这也是"搜 tlinsley / TL博客
+            也能认出这个站"最直接的一招 ✓
+            ⚠️ 别指望 <meta name="keywords">：必应早就不看它了 ✗（下面 keywords 只是顺手写着） */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: siteConfig.title,
+              alternateName: SITE_ALIASES,
+              url: SITE_URL + '/',
+              inLanguage: 'zh-CN',
+              publisher: {
+                '@type': 'Person',
+                name: siteConfig.authorName || siteConfig.navTitle || '',
+                url: SITE_URL + '/about',
+              },
+            }),
+          }}
+        />
       </head>
 
       <body className="w-screen overflow-x-hidden min-h-full flex flex-col relative transition-colors duration-1000 bg-slate-50 dark:bg-slate-950 font-serif">
