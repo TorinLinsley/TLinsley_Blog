@@ -14,9 +14,12 @@
 #   ⚠️ 必须让它排在 include 顺序的第一位 → 文件名用 `00-` 开头 ✓
 #   ⚠️ 443 上必须给一个证书（本机 nginx 1.18 还没有 `ssl_reject_handshake`）→ 用自签证书 ✓
 #      （于是陌生域名看到的是"证书错误"，连内容都没有 ✓）
-#   ⚠️ `listen` 的协议选项要和现有块一致（ssl / http2 / ipv6only），
-#      否则 `nginx -t` 会报 "protocol options redefined for 0.0.0.0:443" ✗
-#      —— 下面是 Ubuntu 22.04 + certbot 的常见写法；跑完**务必看一眼 nginx -t 的输出** ✓
+#   ⚠️ `listen` 的协议选项要和现有块一致（ssl / http2），否则 `nginx -t` 会报
+#      "protocol options redefined for 0.0.0.0:443" ✗
+#   ⚠️⚠️ **别写 `ipv6only=on`**：本机 nginx 1.18 会因为"两个块里都写了这个选项"
+#      直接报 `duplicate listen options for [::]:443` ✗（2026-10-13 实测踩过 ✓）
+#      不写它也行 —— `[::]` 的 ipv6only 默认就是 on ✓
+#      —— 下面是 Ubuntu 22.04 + certbot 的可用写法；跑完**务必看一眼 nginx -t 的输出** ✓
 #
 # 用法：
 #   sudo bash harden-nginx.sh              # 安装/更新（幂等，可重复跑；自动备份）
@@ -78,7 +81,7 @@ server {
 
 server {
     listen 443 ssl http2 default_server;
-    listen [::]:443 ssl ipv6only=on http2 default_server;
+    listen [::]:443 ssl http2 default_server;
     server_name _;
     ssl_certificate     /etc/nginx/snippets/self-signed.crt;
     ssl_certificate_key /etc/nginx/snippets/self-signed.key;
