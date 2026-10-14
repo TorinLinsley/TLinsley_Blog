@@ -715,6 +715,19 @@ const STYLE = `
   .cc-wrap > pre[data-cc-ready] { padding-top: 2.75rem !important; }
   /* 📏 左边那条行号栏也要占位置（只有真的带行号的块才留白，单行代码不留） */
   .cc-wrap[data-cc-lines="1"] > pre[data-cc-ready] { padding-left: 3.2rem !important; }
+  /* 🔄 长行自动折行（像 Obsidian 那样），不再横向滚动 ✓
+     ⚠️ 和前台 TLBlog/components/CodeCopy.tsx 是同一套（两个项目同步 ✓）
+     ⚠️ 行号不用改：它是按「每个逻辑行第一个字符」的位置量的 ——
+        折行后同一行还是同一个号，而且贴在折行的第一行上 ✓
+     ⚠️ 页面级那条 .prose pre { overflow-x: auto !important } 优先级更低，
+        这里带 !important + 更具体的选择器，所以能盖住它 ✓ */
+  .cc-wrap > pre[data-cc-ready],
+  .cc-wrap > pre[data-cc-ready] > code {
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    overflow-x: hidden !important;
+  }
   @media (hover: none) {
     .cc-wrap > pre[data-cc-ready] { padding-top: 3rem !important; }
   }
