@@ -18,7 +18,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
 
   // 🌟 默认视图模式 ('timeline' | 'card')
   const [viewMode, setViewMode] = useState<'timeline' | 'card'>('timeline');
-  const [showScrollTop, setShowScrollTop] = useState(false);
+  // 🗑️ 原来这里有一个 `showScrollTop` 状态，只给那个被删掉的"火箭回顶部"按钮用 ✗
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
@@ -63,21 +63,10 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
     });
   }, [posts, selectedTag]);
 
-  const handleGridScroll = () => {
-    if (gridScrollRef.current) {
-      setShowScrollTop(gridScrollRef.current.scrollTop > 200);
-    }
-  };
-
-  const scrollToTop = () => {
-    if (gridScrollRef.current) {
-      try {
-        gridScrollRef.current.scroll({ top: 0, left: 0, behavior: 'smooth' });
-      } catch (error) {
-        gridScrollRef.current.scrollTo(0, 0);
-      }
-    }
-  };
+  // 🗑️ 这里原来还有 handleGridScroll / scrollToTop 两个函数，只服务上面那个被删掉的
+  //    "火箭回顶部"按钮（还有一个每次滚动都 setState 的状态 ✗ —— 白让整个时间线重渲染 ✗）。
+  //    按钮删掉后它们就没用了 ✓ 一并删掉，顺带省掉滚动时的无谓重渲染 ✓
+  //    ⚠️ 想恢复那个按钮：把这两个函数 + showScrollTop 状态 + 那段 JSX 一起加回来 ✓
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-28 px-4 sm:px-10 relative z-10">
@@ -211,7 +200,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
 
             <div
               ref={gridScrollRef}
-              onScroll={handleGridScroll}
+  
               className="h-[75vh] overflow-y-auto cyber-scrollbar pr-2 sm:pr-5 pb-10 fade-edges"
             >
               {/* 🌟 核心魔法 3：强制手机端 grid-cols-2 双列显示，减小 gap */}
@@ -249,21 +238,11 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
               </div>
             </div>
 
-            {/* 火箭按钮 */}
-            <AnimatePresence>
-              {showScrollTop && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.5, y: 10 }}
-                  onClick={scrollToTop}
-                  className="absolute bottom-4 -right-3 w-9 h-9 flex items-center justify-center bg-gradient-to-t from-purple-500 to-indigo-500 text-white rounded-full shadow-lg shadow-purple-500/40 hover:shadow-purple-500/60 hover:-translate-y-1 transition-all z-50 group pointer-events-auto"
-                  title="回到顶部"
-                >
-                  <ArrowUp size={18} className="group-hover:-translate-y-1 transition-transform" />
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {/* 🗑️ 这里原来有一个自带的"火箭回顶部"按钮（紫色渐变圆圈 + 向上箭头）——
+                和全站那个 BackToTop 重复了：手机上滑到卡片最底下会在右下角**同时**冒出两个
+                （全局那个小的 + 这个大的）✗ 用户 2026-10-14 指出这是多余的一个 ✗
+                已经删掉 ✓ 回顶部统一交给全站那个 BackToTop（见 app/layout.tsx）✓
+                ⚠️ 想恢复就把这段加回来：motion.button + AnimatePresence + showScrollTop 判断 ✓ */}
 
           </motion.div>
         )}
