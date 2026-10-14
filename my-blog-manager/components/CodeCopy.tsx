@@ -527,13 +527,15 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
     if (!wrap.isConnected) return;           // 已经被卸载（切页了）就别量了 ✓
     const wrapTop = wrap.getBoundingClientRect().top;
     let cursor = 0;
-    let lastTop = padTop;
+    let nextTop = padTop;                    // 下一行的起点
 
     lines.forEach((line, i) => {
       const item = items[i];
       if (!item) return;
 
       const at = locate(cursor);
+
+      // ① 这一行自己的位置：量「这一行第一个字符」✓（折行的行也准 ✓）
       if (line.length && at.node.length) {
         const end = Math.min(at.offset + 1, at.node.length);
         if (end > at.offset) {
@@ -541,13 +543,32 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
           range.setStart(at.node, at.offset);
           range.setEnd(at.node, end);
           const rect = range.getBoundingClientRect();
-          if (rect.height || rect.top) lastTop = rect.top - wrapTop;
+          if (rect.height || rect.top) nextTop = rect.top - wrapTop;
         }
       }
-      item.style.top = `${lastTop}px`;
+      item.style.top = `${nextTop}px`;
+
+      // ② 下一行的起点 = **这一行全部内容**的底部 ✓
+      //    ⚠️⚠️ 绝不能写 `nextTop + lineHeight`：这一行只要折了行就占好几个行高 ✗
+      //        （空行量不到字符、只能靠上一条推 —— 这就是"空行的号跑到上一行折行半腰"的根因 ✗）
+      if (line.length) {
+        const s = locate(cursor);
+        const e = locate(cursor + line.length);
+        let bottom = 0;
+        try {
+          const r = document.createRange();
+          r.setStart(s.node, s.offset);
+          r.setEnd(e.node, e.offset);
+          bottom = r.getBoundingClientRect().bottom;
+        } catch {
+          bottom = 0;
+        }
+        nextTop = bottom ? bottom - wrapTop : nextTop + lineHeight;
+      } else {
+        nextTop += lineHeight;               // 空行自己就占一个行高 ✓
+      }
 
       cursor += line.length + 1;
-      lastTop += lineHeight;   // 空行量不到字符，就按上一行加一个行高往下走
     });
   };
 
