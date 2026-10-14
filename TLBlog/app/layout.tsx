@@ -51,10 +51,21 @@ const SITE_ALIASES = [
   'Torin Linsley', 'torinlinsley', '宝藏之地',
 ];
 
+/**
+ * ✍️ 站点级「搜索结果 / 分享卡片」的描述 —— **和首页那张个人卡片的简介分开** ✓
+ *
+ * 为什么要分开（用户 2026-10-14 要求）：
+ *   · 首页「个人概述」卡片、文章页/杂谈页作者卡那句，取的是 `siteConfig.bio`
+ *     （控制台 → 设置 → 简介 ✓ 想显示技术栈那句就填那句 ✓）
+ *   · **搜索结果**里那段文字用下面这句 ✓ 两边互不影响 ✓
+ *   · 想改搜索结果的描述 → 改这一行 ✓（不会动到卡片 ✓）
+ */
+const SITE_DESCRIPTION = 'Torin Linsley 的个人博客。记录开发、学习笔记，另有资源分享与在线工具。';
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: siteConfig.title,
-  description: siteConfig.bio,
+  description: SITE_DESCRIPTION,
   // ⚠️ keywords 只是顺手写上（必应基本不用它 ✗）：真正管用的是下面 JSON-LD 里的 name/alternateName + 正文内容 ✓
   keywords: [...SITE_ALIASES, '资源分享', '工具站'],
   alternates: { canonical: '/' },
@@ -63,7 +74,7 @@ export const metadata: Metadata = {
     url: SITE_URL + '/',
     siteName: siteConfig.title,
     title: siteConfig.title,
-    description: siteConfig.bio,
+    description: SITE_DESCRIPTION,
     locale: 'zh_CN',
   },
   icons: {
