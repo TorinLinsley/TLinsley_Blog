@@ -501,37 +501,74 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
   const lineHeight = Math.max(usedLineHeight(ps), usedLineHeight(cs));
   const padTop = parseFloat(ps.paddingTop) || 0;
 
-  const wrapTop = wrap.getBoundingClientRect().top;
-  let cursor = 0;
-  let lastTop = padTop;
-
-  lines.forEach((line, i) => {
+  // 先把每一行的号建出来（只建一次 ✓）
+  const items = lines.map((_line, i) => {
     const item = document.createElement('span');
     item.textContent = String(i + 1);
-
-    const at = locate(cursor);
-    if (line.length && at.node.length) {
-      const end = Math.min(at.offset + 1, at.node.length);
-      if (end > at.offset) {
-        const range = document.createRange();
-        range.setStart(at.node, at.offset);
-        range.setEnd(at.node, end);
-        const rect = range.getBoundingClientRect();
-        if (rect.height || rect.top) lastTop = rect.top - wrapTop;
-      }
-    }
-    item.style.top = `${lastTop}px`;
     gutter.appendChild(item);
-
-    cursor += line.length + 1;
-    lastTop += lineHeight;   // 空行量不到字符，就按上一行加一个行高往下走
+    return item;
   });
 
+  wrap.appendChild(gutter);
+  wrap.dataset.ccLines = '1';
   wrap.style.setProperty('--cc-line', `${lineHeight}px`);
   wrap.style.setProperty('--cc-top', `${padTop}px`);
-  wrap.dataset.ccLines = '1';
 
-  wrap.appendChild(gutter);
+  /* 📐 摆一次行号：每一行都按它**第一个字符**的真实位置放 ✓
+   *   折行之后同一个行号只出现一次、贴在折行的第一行上 ✓
+   *
+   * ⚠️⚠️ 折行打开之后，这一步必须能**反复重跑** ✗→✓：
+   *    宽度一变（手机旋转、字体加载完、滚动条出现、窗口缩放…）折行位置就全变了 ✗，
+   *    而行号是按"相对 wrap 的坐标"量的 —— 不重量就会上下错开 ✗
+   *    （以前只量一次没问题，是因为"一行永远只占一个视觉行" ✓ 折行后这条不成立了 ✗）
+   */
+  const place = () => {
+    if (!wrap.isConnected) return;           // 已经被卸载（切页了）就别量了 ✓
+    const wrapTop = wrap.getBoundingClientRect().top;
+    let cursor = 0;
+    let lastTop = padTop;
+
+    lines.forEach((line, i) => {
+      const item = items[i];
+      if (!item) return;
+
+      const at = locate(cursor);
+      if (line.length && at.node.length) {
+        const end = Math.min(at.offset + 1, at.node.length);
+        if (end > at.offset) {
+          const range = document.createRange();
+          range.setStart(at.node, at.offset);
+          range.setEnd(at.node, end);
+          const rect = range.getBoundingClientRect();
+          if (rect.height || rect.top) lastTop = rect.top - wrapTop;
+        }
+      }
+      item.style.top = `${lastTop}px`;
+
+      cursor += line.length + 1;
+      lastTop += lineHeight;   // 空行量不到字符，就按上一行加一个行高往下走
+    });
+  };
+
+  place();
+
+  // 尺寸/字体一变就重新摆一遍（用 rAF 合并，避免连续重排时疯狂量）
+  let raf = 0;
+  const schedule = () => {
+    if (raf) return;
+    raf = window.requestAnimationFrame(() => {
+      raf = 0;
+      place();
+    });
+  };
+
+  if (typeof ResizeObserver !== 'undefined') {
+    // 观察 code：宽度变化引起折行时，它的高度会变 ✓
+    new ResizeObserver(schedule).observe(code);
+  }
+  window.addEventListener('resize', schedule, { passive: true });
+  // 字体加载完，字体度量会变 → 折行位置也会变 ✓
+  if (document.fonts?.ready) void document.fonts.ready.then(schedule).catch(() => {});
 }
 
 /** 折叠控件句柄 */
