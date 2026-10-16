@@ -18,6 +18,8 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 // 📊 表格（Markdown 表格粘贴 / 编辑 / 存回都要它）
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
+// 🖼️ 「手打 ![](图片链接) 自动插图」要用 tiptap 的输入规则（敲完 ) 立刻变图片 ✓）
+import { InputRule } from '@tiptap/core';
 
 // 🌟 引入 Markdown 插件
 import { Markdown } from 'tiptap-markdown';
@@ -732,6 +734,18 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
   { value: 'matlab', label: 'MATLAB' },
 ];
 
+/**
+ * 🖼️ 手打「Obsidian 式图片语法」用的正则：
+ *     ![描述](链接)
+ *
+ * 只认**带图片后缀的完整地址**（`?参数` 也算 ✓）：
+ *   ![](https://i-blog.csdnimg.cn/direct/xxx.png)   → 变真图片 ✓
+ *   ![](https://x.com/a.png?t=1)                    → 变真图片 ✓
+ *   ![]() / ![](abc) / ![](/resources/某篇)          → **原样留成源码文字** ✗ 不插 ✓
+ * 描述可以为空 ✓（为空就不设 alt → 悬停没有提示 ✓ 用户要求 ✓）
+ */
+const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*([^()\s]+\.(?:png|jpe?g|gif|webp|svg|avif|bmp)(?:\?[^()\s]*)?)\s*\)$/i;
+
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -746,6 +760,39 @@ const CustomImage = Image.extend({
         })
       }
     };
+  },
+
+  /**
+   * ⌨️ 手打 `![描述](图片链接)` → 敲完 `)` **立刻变成真图片**（Obsidian 的行为 ✓ 用户 2026-10-16 要求）
+   *
+   * 规则：
+   *   · 链接必须是**带图片后缀的完整地址**（见 IMG_MD_INPUT_RE ✓ 带 ?参数也算 ✓）
+   *   · 描述为空 → **不设 alt** ✗（于是悬停不会有提示 ✓ 用户明确要求 ✓）
+   *   · 不合法（`![]()` / 半截地址 / 站内路径）→ 这个规则不匹配 → **原样留成源码文字** ✓
+   *   · ⚠️ **代码块 / 行内代码里不触发** ✗（否则写教程讲这个语法时它自己就插进去了 ✗）
+   */
+  addInputRules() {
+    return [
+      new InputRule({
+        find: IMG_MD_INPUT_RE,
+        handler: ({ state, range, match, chain }) => {
+          const { $from } = state.selection;
+
+          // 代码块里不触发 ✗
+          if ($from.parent.type.name === 'codeBlock') return null;
+          // 行内代码里不触发 ✗（`![](...)` 写在反引号里讲语法时不该变图片 ✓）
+          const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
+            !!marks?.some((m) => m.type.name === 'code');
+          if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return null;
+
+          const attrs: { src: string; alt?: string } = { src: match[2] };
+          if (match[1]) attrs.alt = match[1];      // 描述为空 → 不写 alt ✓
+
+          chain().deleteRange(range).setImage(attrs).run();
+          return undefined;
+        },
+      }),
+    ];
   },
 });
 
