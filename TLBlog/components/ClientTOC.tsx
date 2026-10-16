@@ -34,6 +34,27 @@ const getSafeId = (rawText: string) => {
     .toLowerCase();
 };
 
+/**
+ * 🌟 批量算出去重后的标题 id（2026-10-16 修）
+ *
+ * 症状：id 是按**标题文字**生成的 ✗ —— 同一篇里只要有两节同名（例如两个「常用接口」✗），
+ *       它们就会拿到**同一个 id** → 滚动时**两条一起高亮** ✗、点哪条都跳到第一处 ✗。
+ * 修法：按出现顺序给重名的加 -2 / -3 后缀，保证每个标题独占一个 id ✓。
+ *
+ * ⚠️ 正文（heading 扫描）和侧边栏（toc 列表）必须用**同一个函数、同一份顺序**各算一遍：
+ *    两边都是按文档顺序遍历同一批标题，所以后缀序列一一对应 ✓
+ *    （和 ResourceToc.tsx 那套去重算法保持一致，改一边记得改另一边。）
+ */
+function dedupeIds(texts: string[]): string[] {
+  const used = new Map<string, number>();
+  return texts.map((text) => {
+    const base = getSafeId(text);
+    const n = (used.get(base) || 0) + 1;
+    used.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
+  });
+}
+
 // 🌟 侧边栏视觉净化器
 const getDisplayText = (rawText: string) => {
   // 直接调用终极净化器，展示纯洁无瑕的标题名！
@@ -132,10 +153,13 @@ export default function ClientTOC({ toc }: { toc: TocItem[] }) {
     const headings = Array.from(contentDiv.querySelectorAll('h1, h2, h3, h4, h5, h6'));
 
     // 🌟 强制统一正文 ID
-    headings.forEach((heading) => {
+    // ⚠️ 同名标题必须各自唯一（2026-10-16 修）：重名的会撞同一个 id → 两条一起高亮 ✗
+    //    整批算一次去重结果，和侧边栏用**同一个函数、同一份顺序**，后缀才能一一对应 ✓
+    const headingIds = dedupeIds(headings.map((heading) => heading.textContent || ''));
+    headings.forEach((heading, index) => {
       // heading.textContent 拿到的是渲染后的纯文字（已经没有超链接语法了）
-      // 再过一遍 getSafeId，确保正文和侧边栏的 ID 100% 对齐！
-      heading.id = getSafeId(heading.textContent || '');
+      // 再过一遍 getSafeId（在 dedupeIds 里），确保正文和侧边栏的 ID 100% 对齐！
+      heading.id = headingIds[index];
     });
 
     const handleScroll = () => {
@@ -203,6 +227,9 @@ export default function ClientTOC({ toc }: { toc: TocItem[] }) {
 
   if (!toc || toc.length === 0) return null;
 
+  // 🌟 侧边栏这份 id 必须和正文挂上去的**完全一致**：同一个函数、同一份顺序再算一遍 ✓
+  const tocIds = dedupeIds(toc.map((item) => item.text));
+
   return (
     <div
       className="page-scroll-keys max-lg:hidden bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl sticky top-28 transition-colors duration-700 max-h-[75vh] overflow-y-auto custom-scrollbar"
@@ -216,8 +243,8 @@ export default function ClientTOC({ toc }: { toc: TocItem[] }) {
           // 视觉上：扒掉超链接，完美展示 "3.万度"
           const displayText = getDisplayText(item.text);
 
-          // 底层跳转：生成纯净版的 ID "toc-3万度"，绝对不会找错目标！
-          const safeId = getSafeId(item.text);
+          // 底层跳转：用**去重后**的 ID "toc-3万度"（重名时是 "toc-常用接口-2"），绝对不会找错目标！
+          const safeId = tocIds[index];
           const isActive = activeId === safeId;
           const lv = item.lv;
 
