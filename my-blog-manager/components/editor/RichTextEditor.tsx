@@ -20,6 +20,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 // 🖼️ 「手打 ![](图片链接) 自动插图」要用 tiptap 的输入规则（敲完 ) 立刻变图片 ✓）
 import { InputRule } from '@tiptap/core';
+// 🖼️ 图片插入/编辑按钮 + 可拖动的编辑窗口（描述 / 链接 / 确认 / ×）
+import ImageEditButton from './ImageEditButton';
 
 // 🌟 引入 Markdown 插件
 import { Markdown } from 'tiptap-markdown';
@@ -2080,6 +2082,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleSubscript().run()} active={editor.isActive('subscript')} title="下标（Ctrl+,）"><SubIcon size={16}/></Btn>
           <Btn onClick={toggleLink} active={editor.isActive('link')} title="插入 / 编辑链接 (Ctrl+K)"><Link2 size={16}/></Btn>
           <Btn onClick={onOpenImageTool} title="插入图片（Ctrl+Alt+I）"><ImageIcon size={16} className="text-indigo-500"/></Btn>
+          {/* 🖼️ 图片插入 / 编辑：点一下图片（等于选中它那行）再点这个 → 窗口里改描述和链接 ✓
+              没选中图片时点它 → 填链接插入新图 ✓（支持站内路径 /… ✓）*/}
+          <ImageEditButton editor={editor} />
         </div>
 
         {editor.isActive('image') && <div className="flex items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">{['25%', '50%', '75%', '100%'].map(s => <button key={s} onClick={() => editor.chain().focus().updateAttributes('image', { width: s }).run()} title={"图片宽度 " + s} data-tip={"图片宽度 " + s} className="px-2 py-1 text-[9px] font-bold hover:bg-white rounded-lg transition-all">{s}</button>)}</div>}
