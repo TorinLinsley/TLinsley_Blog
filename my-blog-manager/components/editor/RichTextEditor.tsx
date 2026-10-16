@@ -188,6 +188,16 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     const value = lastText?.nodeValue || '';
     if (lastText && value.endsWith('\n')) lastText.nodeValue = value.slice(0, -1);
   });
+  /* 🖼️ 粘贴里的 `![]()`（小括号里**没有**链接）：markdown-it 会给出 `<img src="">` ✗
+     这里把它**变回源码文字** `![描述]()` ✓ —— 用户要求："没有链接就直接粘成源码" ✓
+     （带合法图片后缀的链接完全不受影响 ✓ 那些照旧插成真图片 ✓）*/
+  body.querySelectorAll('img').forEach((img) => {
+    const src = (img.getAttribute('src') || '').trim();
+    if (src) return;                                   // 有链接 → 一个字不动 ✓
+    const alt = img.getAttribute('alt') || '';
+    img.replaceWith(body.ownerDocument.createTextNode(`![${alt}]()`));
+  });
+
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
