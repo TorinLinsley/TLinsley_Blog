@@ -203,10 +203,19 @@ export default function ResourceToc({
 
       // 编辑态与预览态的内容同时存在（一个被隐藏），只取可见的那些
       const headings = readHeadings();
+      const used = new Map<string, number>();
       const next: TocItem[] = headings.map(h => {
         const text = (h.textContent || '').trim();
-        const id = getSafeId(text);
+        const base = getSafeId(text);
+        /* 🔢 同名标题必须各自有唯一 id（2026-10-16 修）：
+           id 是**按标题文字**生成的 ✗ —— 一篇里只要有两节同名（例如两个「常用接口」✗），
+           它们就会拿到**同一个 id** → 滚动时**两条一起高亮** ✗（用户实测就是这个 ✗）
+           重名的加 -2 / -3 后缀 ✓ */
+        const n = (used.get(base) || 0) + 1;
+        used.set(base, n);
+        const id = n === 1 ? base : `${base}-${n}`;
         h.id = id;                              // 预览态是静态 HTML，这个 id 有用；编辑态会丢，所以下面不依赖它
+        h.dataset.tocId = id;                   // 滚动监听直接读它，避免再从文字反推 id（那又会撞 ✓）
         h.style.scrollMarginTop = '24px';
         return { level: Number(h.tagName[1]), text, id };
       });
@@ -228,7 +237,7 @@ export default function ResourceToc({
         const threshold = baseTop + 48;
         let current = '';
         for (const h of live) {
-          if (h.getBoundingClientRect().top <= threshold) current = getSafeId((h.textContent || '').trim());
+          if (h.getBoundingClientRect().top <= threshold) current = h.dataset.tocId || getSafeId((h.textContent || '').trim());
           else break;
         }
         if (current) setActiveId(current);
