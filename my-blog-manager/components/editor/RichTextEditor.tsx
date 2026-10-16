@@ -772,13 +772,15 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
  * 🖼️ 手打「Obsidian 式图片语法」用的正则：
  *     ![描述](链接)
  *
- * 只认**带图片后缀的完整地址**（`?参数` 也算 ✓）：
- *   ![](https://i-blog.csdnimg.cn/direct/xxx.png)   → 变真图片 ✓
- *   ![](https://x.com/a.png?t=1)                    → 变真图片 ✓
+ * 认可两种链接（用户 2026-10-16 确认"图床链接可以没有后缀" ✓）：
+ *   ![](https://i-blog.csdnimg.cn/direct/xxx.png)   → 有图片后缀 → 变真图片 ✓
+ *   ![](https://img.remit.ee/i/GNTgujXcaJPp)        → **没后缀也认** ✓（他图床就是这样 ✓）
  *   ![]() / ![](abc) / ![](/resources/某篇)          → **原样留成源码文字** ✗ 不插 ✓
- * 描述可以为空 ✓（为空就不设 alt → 悬停没有提示 ✓ 用户要求 ✓）
+ *     （站内相对路径不自动插 ✓ —— 那种走工具栏「图片插入/编辑」窗口手动确认 ✓）
+ * 描述可以为空 ✓（为空就不设 alt → 悬停没有提示 ✓）
+ * ⚠️ 带空格的地址、前后有别的字的都不认（避免把普通文字误判成图片 ✓）
  */
-const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*([^()\s]+\.(?:png|jpe?g|gif|webp|svg|avif|bmp)(?:\?[^()\s]*)?)\s*\)$/i;
+const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*(https?:\/\/[^()\s]+)\s*\)$/i;
 
 const CustomImage = Image.extend({
   addAttributes() {
@@ -1279,6 +1281,36 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         const clipboard = event.clipboardData;
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
+
+        /* 📋 「先把 ![]( ) 打好，再把链接粘进小括号里」也要立刻变图片 ✓（用户 2026-10-16 实测反馈）
+         *    为什么单独处理：输入规则只在**打字**时触发 ✗ 粘贴不触发 ✗
+         *    判定：粘进来的东西**本身就是一个 http(s) 链接** ✓，而且**光标所在那一段**拼起来
+         *          正好是 `![描述](链接)` ✓ → 直接把这一段换成图片块 ✓（和工具栏插图一个效果 ✓）
+         *    ⚠️ 代码块里不处理 ✗、行内代码里不处理 ✗
+         */
+        const pasted = raw.trim();
+        if (/^https?:\/\/\S+$/i.test(pasted)) {
+          const { state } = view;
+          const { $from } = state.selection;
+          if (state.selection.empty && $from.parent.type.name === 'paragraph') {
+            const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
+              !!marks?.some((m) => m.type.name === 'code');
+            if (!inCode($from.marks()) && !inCode(state.storedMarks ?? undefined)) {
+              const text = $from.parent.textContent;
+              const joined = text.slice(0, $from.parentOffset) + pasted + text.slice($from.parentOffset);
+              const m = /^!\[([^\]]*)\]\(\s*(https?:\/\/[^()\s]+)\s*\)$/i.exec(joined.trim());
+              const imageType = state.schema.nodes.image;
+              if (m && imageType) {
+                const attrs: { src: string; alt?: string } = { src: m[2] };
+                if (m[1]) attrs.alt = m[1];
+                const tr = state.tr.replaceWith($from.before($from.depth), $from.after($from.depth), imageType.create(attrs));
+                view.dispatch(tr.scrollIntoView());
+                if (onChange) onChange();
+                return true;
+              }
+            }
+          }
+        }
 
         // ① 整段就是一个围栏
         const fenced = raw.match(/^\s*```([^\n`]*)\r?\n([\s\S]*?)\r?\n?```\s*$/);
