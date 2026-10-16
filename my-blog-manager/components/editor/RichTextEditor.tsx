@@ -782,6 +782,51 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
  */
 const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*(https?:\/\/[^()\s]+)\s*\)$/i;
 
+/**
+ * 🖼️ 把「光标所在段落刚好写成一个图片语法」的文字**换成真图片** ✓
+ *
+ * 为什么要有这个（不能只靠输入规则 ✗）：输入规则只在"打字"时触发 ✗
+ *   · 先打 `![](` 再**粘贴**链接 → 输入规则不触发 ✗
+ *   · 粘贴时手抖多带一个括号（`![]((https://…` ✗）→ 正则匹配不上 ✗
+ * 所以这里在**每次内容变化**后（onUpdate ✓）都看一眼光标所在段落：
+ *   段落以 `![描述](` 开头、以 `)` 结尾 ✓ 且里面能找到 `http(s)://` 链接 ✓ → 换成图片 ✓
+ *   括号里多几个 `(` `)` 也认 ✓（从里面挑出 http(s) 链接就行 ✓）
+ *   ⚠️ 站内相对路径（`/…`）**不在这里插** ✓ 那种走工具栏「图片插入/编辑」窗口手动确认 ✓
+ *   ⚠️ 代码块 / 行内代码里一律不动 ✓
+ */
+function convertImageMarkdown(editor: Editor) {
+  const { state } = editor;
+  const { selection } = state;
+  if (!selection.empty) return;
+
+  const { $from } = selection;
+  if ($from.parent.type.name !== 'paragraph') return;                 // 只在普通段落里 ✓
+  if ($from.parentOffset !== $from.parent.content.size) return;       // 光标在段落末尾才认 ✓
+
+  const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
+    !!marks?.some((m) => m.type.name === 'code');
+  if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return;
+
+  const text = $from.parent.textContent.trim();
+  const m = /^!\[([^\]]*)\]\(([\s\S]*)\)$/.exec(text);
+  if (!m) return;
+
+  const url = /https?:\/\/[^\s()]+/.exec(m[2])?.[0];                  // 括号里挑出链接 ✓
+  if (!url) return;
+
+  const imageType = state.schema.nodes.image;
+  if (!imageType) return;
+
+  const attrs: { src: string; alt?: string } = { src: url };
+  if (m[1]) attrs.alt = m[1];                                        // 描述为空则不设 alt ✓
+
+  editor.view.dispatch(
+    state.tr
+      .replaceWith($from.before($from.depth), $from.after($from.depth), imageType.create(attrs))
+      .scrollIntoView()
+  );
+}
+
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -1247,7 +1292,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     //    文章存的是 HTML，直接塞进来会先渲染出一堆字面标签再被覆盖）。
     content: '',
     immediatelyRender: false,
-    onUpdate: () => {
+    onUpdate: ({ editor: ed }) => {
+      // 🖼️ 每次内容一变就看一眼：光标那一段是不是刚好写成了图片语法（打字 / 粘贴都覆盖 ✓）
+      convertImageMarkdown(ed);
       if (onChange) onChange();
     },
     onTransaction: ({ editor: ed }) => {
