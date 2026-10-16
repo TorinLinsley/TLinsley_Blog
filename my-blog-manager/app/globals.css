@@ -577,17 +577,17 @@ color: #94a3b8 !important;
         }
 
         /* 等宽字体也照预览/博客那一套来（原来前面挂了 ui-rounded/Quicksand，字宽和间距都不一样） */
-        .editor-content-area pre code, .editor-content-area p code, .editor-content-area li code {
+        .editor-content-area pre code, .editor-content-area p code, .editor-content-area li code, .editor-content-area td code, .editor-content-area th code {
 font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, ui-monospace, monospace !important;
 font-variant-ligatures: normal !important;
 font-weight: 400 !important;
 letter-spacing: normal !important;
         }
         
-        .editor-content-area p code, .editor-content-area li code {
+        .editor-content-area p code, .editor-content-area li code, .editor-content-area td code, .editor-content-area th code {
  background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.15rem 0.35rem !important; border-radius: 0.3rem !important; font-weight: 600 !important; font-size: 0.9em !important;
         }
-        .dark .editor-content-area p code, .dark .editor-content-area li code {
+        .dark .editor-content-area p code, .dark .editor-content-area li code, .dark .editor-content-area td code, .dark .editor-content-area th code {
  background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important;
         }
         .editor-content-area pre code { background-color: transparent !important; color: #ffffff !important; font-size: 0.9em !important; padding: 0 !important; }

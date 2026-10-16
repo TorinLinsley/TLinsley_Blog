@@ -193,7 +193,7 @@ export default async function AdminAboutPage() {
               margin-top: 1rem !important; margin-bottom: 1rem !important;
             }
             
-            .prose pre code, .prose p code, .prose li code { 
+            .prose pre code, .prose p code, .prose li code, .prose td code, .prose th code { 
               font-family: ui-rounded, 'Quicksand', 'Nunito', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, monospace !important;
               font-variant-ligatures: contextual !important;
               font-weight: 500 !important;
@@ -209,11 +209,11 @@ export default async function AdminAboutPage() {
             
             .prose code::before, .prose code::after { content: none !important; }
             
-            .prose p code, .prose li code { 
+            .prose p code, .prose li code, .prose td code, .prose th code { 
               background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; 
               padding: 0.2rem 0.4rem !important; border-radius: 0.5rem !important; font-size: 0.85em !important; 
             }
-            .dark .prose p code, .dark .prose li code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
+            .dark .prose p code, .dark .prose li code, .dark .prose td code, .dark .prose th code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
             
             /* 🌟 确保前台生成的 <br> 占据真实的垂直空间 */
             .prose br { display: block !important; content: "" !important; margin-top: 0.5em !important; }
@@ -241,7 +241,7 @@ export default async function AdminAboutPage() {
               
               .prose pre { padding: 1.25rem !important; margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; border-radius: 1.5rem !important; }
               .prose pre code { font-size: 0.9em !important; }
-              .prose p code, .prose li code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
+              .prose p code, .prose li code, .prose td code, .prose th code { padding: 0.2rem 0.4rem !important; font-size: 0.9em !important; border-radius: 0.375rem !important;}
               .prose img { margin: 0 0 2rem !important; border-radius: 2rem !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; }
             }
           `}} />
