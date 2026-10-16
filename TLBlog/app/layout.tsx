@@ -93,6 +93,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        {/* 🖼️ 全站图片请求**不发 Referer**：CSDN 那类图床有防盗链，
+            带站点 Referer 直接 403 ✗（实测：不带 → 200 ✓ 带你的博客 → 403 ✗）
+            加了这一行，前台正文里的外链图片也能正常显示 ✓
+            （代价：从本站出去的外链也不带 Referer ✗ —— 站内没有统计依赖它 ✓ 无影响 ✓）*/}
+        <meta name="referrer" content="no-referrer" />
+
         {/*
           🧱 没有「毛玻璃」的浏览器兜底（目前只点名 OPPO 自带浏览器）
 
