@@ -839,7 +839,21 @@ const CustomImage = Image.extend({
           //    下边距保持 2rem（图片和下面的正文之间该有的间距一个字没动 ✓）
           style: `width: ${attributes.width}; height: auto; display: block; margin: 0 0 2rem 0; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.15);`
         })
-      }
+      },
+      /**
+       * 🖼️ 外链图片一律**不发送 Referer** ✓
+       *
+       * 为什么必须加（2026-10-16 实测 ✓）：
+       *   CSDN 那类图床有防盗链 —— 带站点 Referer 请求直接 403 ✗
+       *   实测同一个链接：**不带 Referer → 200 ✓ / 带你的博客 Referer → 403 ✗**
+       *   所以图片上挂 `referrerpolicy="no-referrer"`，浏览器就不发 Referer → 正常显示 ✓
+       *   （对允许外链的图床完全无影响 ✓）
+       */
+      referrerpolicy: {
+        default: 'no-referrer',
+        parseHTML: () => 'no-referrer',
+        renderHTML: () => ({ referrerpolicy: 'no-referrer' }),
+      },
     };
   },
 
