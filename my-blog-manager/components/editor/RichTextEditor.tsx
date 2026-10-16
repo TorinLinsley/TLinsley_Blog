@@ -198,6 +198,30 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     img.replaceWith(body.ownerDocument.createTextNode(`![${alt}]()`));
   });
 
+  /* 🧹 图片**上下多出来的空行**（用户实测："我只粘了一行，上下却多出两个空行" ✗）：
+     markdown-it 会给图片套一层 `<p>`，而编辑器里图片是**块级节点**、会被拆成独立段落
+     → 那个空 `<p>` 就留在图片上下 ✗
+     做法：① 把「只包着一张图的 <p>」拆掉（图片提出来 ✓）
+           ② 再把图片**紧邻的空段落**删掉 ✓
+     ⚠️ 只动图片上下，表格/列表/正文一个字不碰 ✓ */
+  body.querySelectorAll('p').forEach((p) => {
+    const kids = Array.from(p.childNodes).filter(
+      (n) => !(n.nodeType === Node.TEXT_NODE && !(n.nodeValue || '').trim())
+    );
+    const onlyImg = kids.length === 1
+      && kids[0].nodeType === Node.ELEMENT_NODE
+      && (kids[0] as Element).tagName === 'IMG';
+    if (onlyImg) p.replaceWith(kids[0]);
+  });
+  body.querySelectorAll('p').forEach((p) => {
+    const empty = !(p.textContent || '').trim()
+      && Array.from(p.children).every((c) => c.tagName === 'BR');
+    if (!empty) return;
+    const prev = p.previousElementSibling;
+    const next = p.nextElementSibling;
+    if ((prev && prev.tagName === 'IMG') || (next && next.tagName === 'IMG')) p.remove();
+  });
+
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
