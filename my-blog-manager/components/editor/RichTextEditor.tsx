@@ -829,6 +829,49 @@ function convertImageMarkdown(editor: Editor) {
   );
 }
 
+/**
+ * 🔼🔽 手打 `<sup>文字</sup>` / `<sub>文字</sub>` → 敲完闭合标签**自动变成上标/下标**、标签消失 ✓
+ *    （用户 2026-10-17 要求：所有位置都要支持，表格里也要 ✓）
+ *
+ *   · `<sup></sup>`（中间**没字**）→ **不转换** ✗ 也不加任何标记 ✓（保持原样，接着写就行 ✓）
+ *   · 只在**段落末尾**触发（刚打完 `</sup>` ✓）；代码块 / 行内代码里一律不动 ✗
+ *   · 转完就是普通的「上标/下标」标记 ✓ → 之后用工具栏那两个按钮照样能改/取消 ✓
+ *   · 表格单元格里也有效 ✓（单元格里是段落 ✓ 走同一条路 ✓）
+ */
+const SUP_SUB_INPUT_RE = /<(sup|sub)>([\s\S]+?)<\/\1>$/i;
+
+function convertSupSubTags(editor: Editor) {
+  const { state } = editor;
+  const { selection } = state;
+  if (!selection.empty) return;
+
+  const { $from } = selection;
+  if ($from.parent.type.name !== 'paragraph') return;
+  if ($from.parentOffset !== $from.parent.content.size) return;   // 光标在段末才认 ✓
+
+  const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
+    !!marks?.some((m) => m.type.name === 'code');
+  if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return;
+
+  const text = $from.parent.textContent;
+  const m = SUP_SUB_INPUT_RE.exec(text);
+  if (!m) return;
+
+  const inner = m[2];
+  if (!inner.trim()) return;                                     // 中间没字 → 不转 ✓
+
+  const markName = m[1].toLowerCase() === 'sup' ? 'superscript' : 'subscript';
+  const markType = state.schema.marks[markName];
+  if (!markType) return;
+
+  const end = $from.parentOffset;
+  const start = end - m[0].length;
+
+  editor.view.dispatch(
+    state.tr.replaceWith(start, end, state.schema.text(inner, [markType.create()])).scrollIntoView()
+  );
+}
+
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -1311,6 +1354,8 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     onUpdate: ({ editor: ed }) => {
       // 🖼️ 每次内容一变就看一眼：光标那一段是不是刚好写成了图片语法（打字 / 粘贴都覆盖 ✓）
       convertImageMarkdown(ed);
+      // 🔼🔽 同理：光标那段是不是刚好打完 <sup>…</sup> / <sub>…</sub>（敲完闭合标签就变上下标 ✓）
+      convertSupSubTags(ed);
       if (onChange) onChange();
     },
     onTransaction: ({ editor: ed }) => {
