@@ -844,34 +844,43 @@ const SUP_SUB_INPUT_RE = /<(sup|sub)>([\s\S]+?)<\/\1>$/i;
 
 function convertSupSubTags(editor: Editor) {
   const { state } = editor;
-  const { selection } = state;
-  if (!selection.empty) return;
+  const { $from } = state.selection;
 
-  const { $from } = selection;
-  if ($from.parent.type.name !== 'paragraph') return;
-  if ($from.parentOffset !== $from.parent.content.size) return;   // 光标在段末才认 ✓
+  // 只在普通段落 / 表格单元格（也是段落）里做 ✓ 代码块不做 ✗
+  if (!$from.parent.isTextblock || $from.parent.type.name === 'codeBlock') return;
 
   const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
     !!marks?.some((m) => m.type.name === 'code');
   if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return;
 
   const text = $from.parent.textContent;
-  const m = SUP_SUB_INPUT_RE.exec(text);
-  if (!m) return;
+  // ⚠️ 每次新建带 g 的正则（模块级带 g 的残留 lastIndex ✗）
+  const re = /<(sup|sub)>([\s\S]+?)<\/\1>/gi;
+  const matches = Array.from(text.matchAll(re));
+  if (!matches.length) return;
 
-  const inner = m[2];
-  if (!inner.trim()) return;                                     // 中间没字 → 不转 ✓
+  const base = $from.start();          // 段落内容在文档里的起点 ✓
+  let tr = state.tr;
 
-  const markName = m[1].toLowerCase() === 'sup' ? 'superscript' : 'subscript';
-  const markType = state.schema.marks[markName];
-  if (!markType) return;
+  // 从右往左替换 ✓（右边先换不会影响左边坐标 ✓）
+  for (let i = matches.length - 1; i >= 0; i -= 1) {
+    const m = matches[i];
+    const s = m.index ?? 0;
+    const e = s + m[0].length;
+    const inner = m[2];
+    if (!inner.trim()) continue;                       // 中间没字 → 不转 ✓
 
-  const end = $from.parentOffset;
-  const start = end - m[0].length;
+    // ⏳ 光标还在标签**内部**（正在写内容）→ 先别转 ✓
+    //    一旦光标离开这里（点到别处 / 换行 / 在标签外打字）→ 下一次 update 就转 ✓
+    if ($from.parentOffset > s && $from.parentOffset < e) continue;
 
-  editor.view.dispatch(
-    state.tr.replaceWith(start, end, state.schema.text(inner, [markType.create()])).scrollIntoView()
-  );
+    const markType = state.schema.marks[m[1].toLowerCase() === 'sup' ? 'superscript' : 'subscript'];
+    if (!markType) continue;
+
+    tr = tr.replaceWith(base + s, base + e, state.schema.text(inner, [markType.create()]));
+  }
+
+  if (tr.docChanged) editor.view.dispatch(tr.scrollIntoView());
 }
 
 const CustomImage = Image.extend({
