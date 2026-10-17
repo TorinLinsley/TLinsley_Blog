@@ -31,7 +31,9 @@ import { Markdown } from 'tiptap-markdown';
 import MarkdownIt from 'markdown-it';
 
 /** 只用于「粘贴 Markdown 源码」这一条路；表格/删除线等 GFM 语法默认就支持 */
-const PASTE_MD = new MarkdownIt({ html: false, linkify: true, breaks: false });
+// ⚠️ html 必须是 true：粘贴的 <sup>/<sub>（以及 <br>、<u> 等行内 HTML）要**原样解析成真节点** ✓
+//    关着的话 markdown-it 会把标签当普通文字转义 ✗（粘贴 <sup>x</sup> 就变字面量了 ✗）
+const PASTE_MD = new MarkdownIt({ html: true, linkify: true, breaks: false });
 
 /* ═══════════ 📋 Markdown 源码 → ProseMirror Slice（粘贴用的那条路） ═══════════ */
 
