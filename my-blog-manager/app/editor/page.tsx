@@ -50,7 +50,7 @@ function EditorContent() {
     const fetchTags = async () => {
       setIsLoadingTags(true);
       try {
-        const configRes = await fetch(`/backend_config.json`);
+        const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
         const config = await configRes.json();
         const res = await fetch(`http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:${config.api_port}/api/drafts/all_tags`);
         const data = await res.json();
@@ -151,7 +151,7 @@ function EditorContent() {
 
     setIsSaving(true);
     try {
-      const configRes = await fetch(`/backend_config.json`);
+      const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
       const config = await configRes.json();
       const res = await fetch(`http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:${config.api_port}/api/drafts/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)

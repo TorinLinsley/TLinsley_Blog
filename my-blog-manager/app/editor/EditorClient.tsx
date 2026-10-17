@@ -34,7 +34,7 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
     if (docId !== 'new') {
       const loadDraft = async () => {
         try {
-          const configRes = await fetch('/backend_config.json');
+          const configRes = await fetch('/backend_config.json?t=' + Date.now());
           const config = await configRes.json();
           const res = await fetch(`http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:${config.api_port}/api/drafts/get`, {
             method: 'POST',
