@@ -132,7 +132,13 @@ async def require_admin_key(request: Request, call_next):
         and path.startswith("/api/")
         and path not in PUBLIC_PATHS
     ):
-        if request.headers.get("x-admin-key") != ADMIN_KEY:
+                # 📡 SSE 监听接口放行：EventSource 天生不能设置请求头 ✗（所以它永远带不上 x-admin-key）
+        #    这个接口只推"文件变了"的事件、不含任何内容 ✓ 且只在隧道/内网可达 ✓ 放行安全 ✓
+        if request.url.path.rstrip("/").endswith("/api/resources/watch"):
+            return await call_next(request)
+
+        provided = request.headers.get("x-admin-key") or request.query_params.get("key") or ""
+        if provided != ADMIN_KEY:
             return JSONResponse(
                 {"ok": False, "message": "缺少或错误的管理密钥（X-Admin-Key）"},
                 status_code=401,
