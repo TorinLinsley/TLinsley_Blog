@@ -29,7 +29,7 @@ setlocal
 title TL控制台 - SSH 隧道
 rem 固定到脚本自己所在的目录：这样在任意目录（含管理员 cmd 默认的 C:\Windows\System32）里跑都没差别
 cd /d "%~dp0"
-rem ⚠️ 把这行改成你自己的服务器：把下面 root@ 后面换成你的服务器 IP
+rem ???? 把这行改成你自己的服务器：把下面 root@ 后面换成你的服务器 IP
 set "SERVER=root@你的服务器IP"
 rem 真实地址放同目录的 server.env（那个文件不进 git），有就用它覆盖上面的占位符
 if exist "%~dp0server.env" for /f "usebackq tokens=1,* delims==" %%a in ("%~dp0server.env") do if /i "%%a"=="SERVER" set "SERVER=%%b"
@@ -92,7 +92,8 @@ if "%SSH%"=="ssh" (
 rem 注意：浏览器交给 explorer.exe 去开，不要用 start。
 rem   管理员 cmd 里 start 会让浏览器以管理员身份启动，Chrome/Edge 会拒绝或开不出来；
 rem   explorer 等于交给当前登录用户的桌面去开，普通 cmd 和管理员 cmd 都能正常弹浏览器。
-start "" /min cmd /c "timeout /t 6 >nul && explorer.exe http://127.0.0.1:3010"
+rem  等 3010 端口真的通了再开浏览器（原来固定睡 6 秒，密码输慢了就抢跑 ?）: 端口能连上 = 隧道已建立 = 密码已验证 ?
+start "" /min powershell -NoProfile -WindowStyle Hidden -Command "$d=(Get-Date).AddSeconds(180); while(-not (Test-NetConnection 127.0.0.1 -Port 3010 -InformationLevel Quiet -WarningAction SilentlyContinue)){ if((Get-Date) -gt $d){ exit 1 }; Start-Sleep -Milliseconds 500 }; Start-Process 'http://127.0.0.1:3010'"
 chcp 65001 >nul
 "%SSH%" -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes %PORTS% %SERVER%
 chcp 936 >nul
