@@ -898,3 +898,15 @@ user-select: none;
     overflow-x: hidden !important;
   }
 }
+
+/* 🖼️ B站社交图标：用官方 favicon 的形状当遮罩，颜色 = 当前文字色（和同排其它图标完全一致，悬停自动跟随 ✓）
+   为什么用 mask 不用 <img>：img 无法用 currentColor，颜色会和别的图标对不上 ✗ */
+.bili-mask {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-image: url(/ico/bilibili.png);
+  mask-image: url(/ico/bilibili.png);
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+}
