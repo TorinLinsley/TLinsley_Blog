@@ -10,7 +10,22 @@ import markdown
 from datetime import datetime
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from markdownify import markdownify as md
+# ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
+#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
+from markdownify import markdownify as _md_raw
+import re as _re
+
+_SUP_SUB_RE = _re.compile(r"<(sup|sub)(?:\s[^>]*)?>.*?</\1>", _re.S | _re.I)
+
+def md(html, *args, **kwargs):
+    stash = []
+    def _keep(m):
+        stash.append(m.group(0))
+        return "@@SUPSUB%d@@" % (len(stash) - 1)
+    out = _md_raw(_SUP_SUB_RE.sub(_keep, html), *args, **kwargs)
+    for i, tag in enumerate(stash):
+        out = out.replace("@@SUPSUB%d@@" % i, tag)
+    return out
 from .markdown_utils import (
     MathExtension,
     code_language_callback,

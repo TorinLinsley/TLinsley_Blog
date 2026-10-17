@@ -247,7 +247,37 @@ def unbreak_image_lines(html: str) -> str:
 
 def _cell_to_md(cell) -> str:
     """单元格内容 → 一行 Markdown 文本（单元格里不能出现换行和裸竖线，否则表格会散架）"""
-    from markdownify import markdownify as md
+    # ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
+#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
+# ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
+#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
+from markdownify import markdownify as _md_raw
+import re as _re
+
+_SUP_SUB_RE = _re.compile(r"<(sup|sub)(?:\s[^>]*)?>.*?</\1>", _re.S | _re.I)
+
+def _md(html, *args, **kwargs):
+    stash = []
+    def _keep(m):
+        stash.append(m.group(0))
+        return "@@SUPSUB%d@@" % (len(stash) - 1)
+    out = _md_raw(_SUP_SUB_RE.sub(_keep, html), *args, **kwargs)
+    for i, tag in enumerate(stash):
+        out = out.replace("@@SUPSUB%d@@" % i, tag)
+    return out_raw
+import re as _re
+
+_SUP_SUB_RE = _re.compile(r"<(sup|sub)(?:\s[^>]*)?>.*?</\1>", _re.S | _re.I)
+
+def md(html, *args, **kwargs):
+    stash = []
+    def _keep(m):
+        stash.append(m.group(0))
+        return "@@SUPSUB%d@@" % (len(stash) - 1)
+    out = _md_raw(_SUP_SUB_RE.sub(_keep, html), *args, **kwargs)
+    for i, tag in enumerate(stash):
+        out = out.replace("@@SUPSUB%d@@" % i, tag)
+    return out
 
     inner = "".join(str(child) for child in cell.children)
     text = md(inner, heading_style="ATX", keep=["img", "br"])
@@ -371,7 +401,22 @@ _CALLOUT_SLOT = "\ue002CALLOUT{}\ue003"
 
 def callout_html_to_markdown(div_html: str) -> str:
     """render_callouts 生成的外壳 → `> [!type] 标题` + `> 正文`"""
-    from markdownify import markdownify as _md
+    # ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
+#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
+from markdownify import markdownify as _md_raw
+import re as _re
+
+_SUP_SUB_RE = _re.compile(r"<(sup|sub)(?:\s[^>]*)?>.*?</\1>", _re.S | _re.I)
+
+def _md(html, *args, **kwargs):
+    stash = []
+    def _keep(m):
+        stash.append(m.group(0))
+        return "@@SUPSUB%d@@" % (len(stash) - 1)
+    out = _md_raw(_SUP_SUB_RE.sub(_keep, html), *args, **kwargs)
+    for i, tag in enumerate(stash):
+        out = out.replace("@@SUPSUB%d@@" % i, tag)
+    return out
 
     try:
         from bs4 import BeautifulSoup
