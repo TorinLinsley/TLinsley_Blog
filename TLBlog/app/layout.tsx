@@ -117,19 +117,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `try{
-  var u=navigator.userAgent||'';
-  var d=document.documentElement;
-  /* ① 已知"嘴上支持、实际不渲染"的浏览器：点名挂 .no-glass ✗ */
-  var liar=/HeyTapBrowser|OppoBrowser|HeyTap|OPPOBrowser/i.test(u);
-  /* ③ 手动开关：地址栏加 ?noglass=1 就永久关掉毛玻璃（存 localStorage）；?glass=1 恢复 ✓
-     为什么需要它：有的浏览器"声称支持"却渲染不出来，网页里无法检测 ✗ 只能留个人工开关 ✓ */
-  var q=location.search||'';
-  if(/[?&]noglass=1/.test(q)){ try{localStorage.setItem('no-glass','1')}catch(e){} }
-  if(/[?&]glass=1/.test(q)){ try{localStorage.removeItem('no-glass')}catch(e){} }
-  var manual=false; try{ manual = localStorage.getItem('no-glass')==='1' }catch(e){}
-  if(liar || manual){ d.classList.add('no-glass') }
-}catch(e){}`,
+            __html: `try{var u=navigator.userAgent||'';if(/HeyTapBrowser|OppoBrowser|HeyTap|OPPOBrowser/i.test(u)){document.documentElement.classList.add('no-glass')}}catch(e){}`,
           }}
         />
 
