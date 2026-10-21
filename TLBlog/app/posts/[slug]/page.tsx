@@ -216,6 +216,9 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                   .prose h1 { font-size: 1.8rem !important; font-weight: 900 !important; margin-bottom: 1.2rem !important; margin-top: 2rem !important; line-height: 1.3 !important; color: inherit !important; }
                   .prose h2 { font-size: 1.5rem !important; font-weight: 800 !important; margin-bottom: 1rem !important; margin-top: 1.5rem !important; color: inherit !important; }
                   .prose h3 { font-size: 1.2rem !important; font-weight: 700 !important; margin-bottom: 0.8rem !important; color: inherit !important; }
+                  .prose h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin-top: 1.2rem !important; margin-bottom: 0.6rem !important; color: inherit !important; }
+                  .prose h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin-top: 1rem !important; margin-bottom: 0.5rem !important; color: inherit !important; }
+                  .prose h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin-top: 1rem !important; margin-bottom: 0.5rem !important; color: inherit !important; }
                   .prose p, .prose hr { font-size: 0.95rem !important; line-height: 1.75 !important; color: inherit !important; }
                   
                   .prose a { color: #6366f1 !important; text-decoration: none !important; font-weight: 600 !important; border-bottom: 1px dashed #6366f1 !important; transition: all 0.3s ease !important; }
