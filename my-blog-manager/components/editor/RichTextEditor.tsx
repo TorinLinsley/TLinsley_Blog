@@ -889,6 +889,29 @@ function convertSupSubTags(editor: Editor) {
   if (tr.docChanged) editor.view.dispatch(tr.scrollIntoView());
 }
 
+/**
+ * ✍️ 带颜色的下划线（用户 2026-10-22 要求 ✓）
+ *
+ * · 有 color → 输出内联样式：`text-decoration-color` + 线条**略微上移**（text-underline-offset）+ 细一点
+ * · 没 color（"自动"）→ 不输出任何内联样式 ✓ 颜色交给 CSS 按主题给 ✓
+ *   浅色 = #6366F1（导航栏悬停那档）/ 深色 = #818CF8
+ * · 存进 .md 是内联 HTML `<u style="…">` ✓（markdown 原生下划线带不了颜色 ✗ 这一点超出 markdown 是必要的 ✓）
+ */
+const CustomUnderline = Underline.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      color: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.style.textDecorationColor || el.getAttribute('data-underline-color') || null,
+        renderHTML: (attrs: { color?: string | null }) => {
+          if (!attrs.color) return {};
+          return { style: `text-decoration-color: ${attrs.color}; text-underline-offset: 0.18em; text-decoration-thickness: 1.5px;` };
+        },
+      },
+    };
+  },
+});
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -1340,7 +1363,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           class: 'bg-[#282c34] text-[#abb2bf] p-6 rounded-[1.5rem] font-mono my-6 overflow-x-auto shadow-inner'
         },
       }),
-      Underline, Subscript, Superscript, TextStyle, Color, FontSize, CustomImage,
+      CustomUnderline, Subscript, Superscript, TextStyle, Color, FontSize, CustomImage,
       Link.configure({
         openOnClick: false,
         // 直接手打 URL 时的自动识别：默认是 'http'，站点上 https 后会造成混合内容告警，统一用 https
