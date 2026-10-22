@@ -1205,3 +1205,37 @@ html body img[src*="skillicons.dev/icons?i="][src*=","] {
   margin: 0 !important;
   vertical-align: top !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ✋ 压掉各页面 <style> 里残留的「链接悬停亮背景」（用户 2026-10-22 要求）
+
+   现象：鼠标放到链接上，会冒出一块淡紫/淡蓝的圆角背景，而且文字会被 padding 顶得挪一下 ✗
+
+   根因：about / posts / chatter / resources 这些页面各自在 <style> 里
+        注入了一条老规则：
+            .prose a:hover { background-color: rgba(99,102,241,.1) !important;
+                             padding: 0 .2rem !important; border-radius: .2rem !important; }
+        这些 <style> 在 <body> 里，比 globals.css **后**插入；选择器特异性和全局那条一样（0,2,1），
+        后插的赢 ✗ —— 所以全局那条 `background: transparent !important` 压不住它。
+
+   解法：用更高特异性（html body + :is(容器) + :not(.repo-card)）写死悬停态：
+        · 不要背景 / 圆角 / 内边距（顺带解决"悬停时文字横向抖动"✗）
+        · 下划线仍然按我们的设计：平时虚线、悬停变实线并下移一点 ✓
+        · 卡片 a.repo-card 照旧排除（它有自己的悬停紫框 ✓）
+   ⚠️ 只动背景/内边距/下划线，**文字颜色不动**（各页面自己定的悬停色保留 ✓）
+   ═══════════════════════════════════════════════════════════════════ */
+html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):hover,
+html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  padding: 0 !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-decoration-line: underline !important;
+  text-decoration-style: solid !important;
+  text-decoration-thickness: 0.12em !important;
+  text-underline-offset: 0.3em !important;
+}
