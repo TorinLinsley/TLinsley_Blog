@@ -226,6 +226,22 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     if ((prev && prev.tagName === 'IMG') || (next && next.tagName === 'IMG')) p.remove();
   });
 
+  /* 🏷️ GitHub 徽章链接 [![alt](图片)](跳转)：
+     markdown 解析会变成 <a><img></a> ✗ 但编辑器里我们要**保留源码形态** ✓
+     → 把"整条 a 里只有一张 img"的还原成源码文字 ✓（用户 2026-10-22 要求）*/
+  body.querySelectorAll('a').forEach((a) => {
+    const kids = Array.from(a.childNodes).filter(
+      (n) => !(n.nodeType === 3 && !(n.nodeValue || '').trim())
+    );
+    if (kids.length !== 1) return;
+    const only = kids[0];
+    if (only.nodeType !== 1 || (only as Element).tagName !== 'IMG') return;
+    const img = only as Element;
+    const alt = img.getAttribute('alt') || '';
+    const src = img.getAttribute('src') || '';
+    const href = a.getAttribute('href') || '';
+    a.replaceWith(body.ownerDocument.createTextNode(`[![${alt}](${src})](${href})`));
+  });
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
