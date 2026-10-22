@@ -117,7 +117,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `try{var u=navigator.userAgent||'';if(/HeyTapBrowser|OppoBrowser|HeyTap|OPPOBrowser/i.test(u)){document.documentElement.classList.add('no-glass')}}catch(e){}`,
+            __html: `try{
+              var u=navigator.userAgent||'';
+              /* 🧱 已知"嘴上支持、实际不渲染"的浏览器 → 挂 .no-glass 走实色兜底 ✗
+                 · OPPO / HeyTap 自带浏览器（实测不渲染 ✓）
+                 · Windows 7 / 8 / 8.1：这代系统上 backdrop-filter 实测不生效 ✗（Win7+Chrome109+硬件合成也照样没有 ✓）
+                 → 按 UA 里的 Windows NT 6.1/6.2/6.3 点名 ✓ 其它系统不受影响 ✓ */
+              var bad=/HeyTapBrowser|OppoBrowser|HeyTap|OPPOBrowser/i.test(u)||/Windows NT 6\.1|Windows NT 6\.2|Windows NT 6\.3/i.test(u);
+              if(bad){document.documentElement.classList.add('no-glass')}
+            }catch(e){}`,
           }}
         />
 

@@ -799,6 +799,9 @@ const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*(https?:\/\/[^()\s]+)\s*\)$/i;
  *   ⚠️ 代码块 / 行内代码里一律不动 ✓
  */
 function convertImageMarkdown(editor: Editor) {
+  // ⏳ 中文输入法**组词中**（还没选字）→ 一律不动文档 ✓
+  //    否则你一按 Esc 取消组词，编辑器里的拼音字母会变成真实文字残留下来 ✗（2026-10 用户复现）
+  if (editor.view.composing) return;
   const { state } = editor;
   const { selection } = state;
   if (!selection.empty) return;
@@ -843,6 +846,9 @@ function convertImageMarkdown(editor: Editor) {
 const SUP_SUB_INPUT_RE = /<(sup|sub)>([\s\S]+?)<\/\1>$/i;
 
 function convertSupSubTags(editor: Editor) {
+  // ⏳ 中文输入法**组词中**（还没选字）→ 一律不动文档 ✓
+  //    否则你一按 Esc 取消组词，编辑器里的拼音字母会变成真实文字残留下来 ✗（2026-10 用户复现）
+  if (editor.view.composing) return;
   const { state } = editor;
   const { $from } = state.selection;
 
