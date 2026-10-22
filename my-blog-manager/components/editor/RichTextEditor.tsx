@@ -1204,15 +1204,42 @@ const CodeLineNumbers = Extension.create({
 
 // 🌟 终极修复：彻底废弃 absolute 下拉框，升级为 Fixed 居中模态框 (Modal)！
 // 这样就能 100% 逃脱父级容器的 overflow 限制，绝对不可能再被遮挡！
-/** 🖍️ 「下划线色」入口：复用字体色那个 CustomColorPicker（同一套 UI ✓），只是作用到 underline 上 ✓ */
+/** 🖍️ 「下划线色」控制器：和字体色那个同款结构 —— [自动] + 最近 3 色 + 内部小按钮展开完整面板 ✓
+ *   · 只在**有框选**时生效 ✓（没框选点了不改 ✓ 用户要求 ✓）
+ *   · 完整面板复用 CustomColorPicker ✓（固定居中浮层、点空白处关闭、手机自适应 ✓）
+ *   · 最近 3 色存 localStorage ✓ 和字体色那边同一思路 ✓ */
 function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   const [open, setOpen] = useState(false);
-  const current = editor?.getAttributes('underline')?.color || '';
-  const apply = (c: string) => editor?.chain().focus().updateAttributes('underline', { color: c }).run();
+  const [recent, setRecent] = useState<string[]>([]);
+
+  useEffect(() => {
+    try { const raw = localStorage.getItem('underline-recent'); if (raw) setRecent((JSON.parse(raw) as string[]).slice(0, 3)); } catch { /* ignore */ }
+  }, []);
+
+  const current = (editor?.getAttributes('underline')?.color as string | undefined) || '';
+  const canApply = !!editor && !editor.state.selection.empty;
+
+  const apply = (c: string | null) => {
+    if (!editor || editor.state.selection.empty) return;   // 没框选 → 什么都不改 ✓
+    editor.chain().focus().updateAttributes('underline', { color: c }).run();
+    if (c) {
+      setRecent((prev) => {
+        const next = [c, ...prev.filter((x) => x !== c)].slice(0, 3);
+        try { localStorage.setItem('underline-recent', JSON.stringify(next)); } catch { /* ignore */ }
+        return next;
+      });
+    }
+  };
+
   return (
-    <>
-      <button type="button" onClick={() => setOpen(true)} title="下划线颜色" className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-700/60 transition-colors duration-300">
-        <span className="w-4 h-4 rounded-full border border-white/60 shadow-sm" style={{ background: current || 'linear-gradient(135deg,#818CF8,#6366F1)' }} />
+    <div className={`flex items-center gap-1.5 rounded-2xl px-2 py-1 border border-white/40 dark:border-white/10 bg-white/50 dark:bg-slate-800/50 ${canApply ? '' : 'opacity-50'}`}>
+      <button type="button" onClick={() => apply(null)} title="自动（跟随主题）" className="px-1.5 py-0.5 text-[9px] font-bold rounded-md text-slate-500 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors">自动</button>
+      {recent.length === 0 && <span className="w-4 h-4 rounded-full border border-dashed border-slate-400/50" />}
+      {recent.map((c) => (
+        <button key={c} type="button" onClick={() => apply(c)} title={c} className="w-4 h-4 rounded-full border border-white/60 shadow-sm hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+      ))}
+      <button type="button" onClick={() => setOpen(true)} title="更多颜色 / 自定义" className="w-6 h-6 flex items-center justify-center rounded-lg bg-white/70 dark:bg-slate-700/70 hover:bg-white dark:hover:bg-slate-600 transition-colors">
+        <span className="w-3 h-3 rounded-full" style={{ background: current || 'linear-gradient(135deg,#818CF8,#6366F1)' }} />
       </button>
       {open && (
         <CustomColorPicker
@@ -1220,14 +1247,15 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
           presets={['#6366F1', '#818CF8', '#4F46E5', '#8B5CF6', '#A78BFA', '#EC4899', '#F43F5E', '#F59E0B', '#EAB308', '#10B981', '#06B6D4', '#3B82F6', '#64748B']}
           onSelect={(c: string) => apply(c)}
           onConfirm={(c: string) => { apply(c); setOpen(false); }}
-          onAuto={() => { apply(null as any); setOpen(false); }}
-          recentColors={[]}
+          onAuto={() => { apply(null); setOpen(false); }}
+          recentColors={recent}
           onClose={() => setOpen(false)}
         />
       )}
-    </>
+    </div>
   );
 }
+
 const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onClose, presets: presetList, onAuto }: any) => {
   const presets: string[] = presetList ?? ['#000000', '#6366F1', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
   const [hex, setHex] = useState(activeColor);
