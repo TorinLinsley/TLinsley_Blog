@@ -1210,7 +1210,7 @@ const CodeLineNumbers = Extension.create({
  *   · 最近 3 色存 localStorage ✓ 和字体色那边同一思路 ✓ */
 function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   const [open, setOpen] = useState(false);
-  const [recent, setRecent] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>(['#818CF8', '#EC4899', '#10B981']);
 
   useEffect(() => {
     try { const raw = localStorage.getItem('underline-recent'); if (raw) setRecent((JSON.parse(raw) as string[]).slice(0, 3)); } catch { /* ignore */ }
