@@ -840,3 +840,17 @@ div:has(> p > img[src*="skillicons.dev/icons?i="]) {
   min-height: 40px !important;
   max-height: none !important;
 }
+/* 🧩 区分：多图标长条（src 里带逗号 ✓）放大；单图标（没有逗号 ✓）保持普通徽章大小 */
+img[src*="skillicons.dev/icons?i="][src*=","] {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: none !important;
+  width: auto !important;
+  max-width: none !important;
+}
+img[src*="skillicons.dev/icons?i="]:not([src*=","]) {
+  height: 22px !important;
+  max-height: 22px !important;
+  width: auto !important;
+  max-width: none !important;
+}
