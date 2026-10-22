@@ -1204,3 +1204,31 @@ html body a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   width: 100% !important;
   max-width: 100% !important;
 }
+
+/* 🧩 skillicons 图标条：上下间距统一 ✓（之前上面明显空一大截 ✗）
+   真凶不是 margin：正文里这一段是 `<p>‍<a>…</a></p>`，
+   那个零宽连接符（U+200D）是个**文字节点** ✓ 浏览器按 line-height 1.85 给它算了一整行空行 ≈34px ✗
+   而下面只有 <a> 的 6px + 4px 内边距 ✗ → 上面 40px、下面 10px，看着就"上头空、下头挤" ✗
+   解法：
+     · 所在段落 行高/字号归零 → 那行空行被收掉，高度=0 ✓（这一行里只有图 ✓ 不会影响任何文字 ✓）
+     · 上下 margin 明写同一个值（对称 ✓ 不再出现"只往上加"的间距 ✗）
+     · 图片自身 margin 清零 ✓ 外层 <a> 的 margin/padding 也清零 ✓ */
+html body p:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
+  margin: 0.9rem 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  overflow: visible !important;
+}
+html body a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  border: 0 !important;
+  text-decoration: none !important;
+}
+html body img[src*="skillicons.dev/icons?i="][src*=","] {
+  margin: 0 !important;
+  vertical-align: top !important;
+}
