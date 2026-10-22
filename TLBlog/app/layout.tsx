@@ -18,6 +18,8 @@ import TableScroll from '../components/TableScroll';
 import ImageZoom from '../components/ImageZoom';
 import InSiteLinks from '../components/InSiteLinks';
 import PageKeys from '../components/pageScrollKeys';
+// 🖱️ 触摸点击后立刻取消"悬停态"（手机上点完跳转、返回时不再卡着悬停样式）
+import ClickUnhover from '../components/ClickUnhover';
 
 import ContentLiveRefresh from '../components/ContentLiveRefresh';
 import Navbar from '../components/Navbar';
@@ -265,6 +267,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* 🔗 正文里的站内链接改走客户端路由：点一下瞬间切页，不再整篇文档重载
             （和控制台 my-blog-manager 那份是同一套写法） */}
         <InSiteLinks />
+        {/* 🖱️ 触摸点击链接后立刻取消"悬停态"：手机上点完跳转、返回时不会再卡着悬停样式
+            （:hover 没有 API 可清，所以是给 <html> 挂 .force-unhover，由 CSS 强制按普通态画） */}
+        <ClickUnhover />
         <PageKeys />
 
         </ThemeProvider>

@@ -952,3 +952,23 @@ html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area)
     text-underline-offset: 0.18em !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   🖱️ 触摸点击的**那一刻**就把悬停态按普通态画（配合 components/ClickUnhover.tsx）
+
+   和上面那条 @media (hover: none) 是**互补**的：
+     · @media 那条治「纯触屏设备」（浏览器报告 hover:none）✓
+     · 这条治「触摸屏 + 鼠标」的混合设备 ✗ （笔记本触屏、手机插鼠标、手写笔）
+       —— 这类设备浏览器报告 hover:hover，media query 不生效，只能靠点击事件当场压下去 ✓
+   JS 会在触摸点击链接时给 <html> 挂 .force-unhover，下次 pointerdown / pointermove 自动摘掉 ✓
+   ═══════════════════════════════════════════════════════════════════ */
+html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)) {
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  text-decoration-line: underline !important;
+  text-decoration-style: dashed !important;
+  text-underline-offset: 0.18em !important;
+}

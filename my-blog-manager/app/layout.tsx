@@ -24,6 +24,7 @@ import CalloutRender from '../components/CalloutRender';
 import PageKeys from '../components/pageScrollKeys';
 import HoverTip from '../components/HoverTip';
 import InSiteLinks from '../components/InSiteLinks';
+import ClickUnhover from '../components/ClickUnhover';
 import ApiKeyInjector from '../components/ApiKeyInjector';
 import Navbar from '../components/Navbar';
 import NavSwitchDim from '../components/NavSwitchDim';
@@ -182,6 +183,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* 🔗 正文里的站内链接改走客户端路由：点一下瞬间切页，不再整篇文档重载
             （原来会重新 Boot 控制台 + 重播入场动画，看着像"刷新进来"） */}
         <InSiteLinks />
+        {/* 🖱️ 触摸点击链接后立刻取消"悬停态"（手机上点完跳转、返回时不再卡着悬停样式） */}
+        <ClickUnhover />
         <CalloutRender />
         <PageKeys />
         {/* 🔑 给所有"调后端 API"的请求自动带上管理密钥 X-Admin-Key
