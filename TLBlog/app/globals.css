@@ -762,3 +762,19 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 }
 .badge-preview-row img { height: 20px !important; width: auto !important; max-width: none !important; border-radius: 2px !important; display: inline-block !important; box-shadow: none !important; margin: 0 !important; }
 .badge-preview-tip { display: none !important; }
+
+/* 🧩 skillicons.dev 的技能图标条（[![My Skills](https://skillicons.dev/icons?i=…)](…)）
+      它一张图里塞了十几个图标 ✓ 按普通徽章 20/22px 太小 ✗ → 单独放大一倍 ✓
+      · 编辑器预览行：20px -> 40px ✓
+      · 正文/预览里的行内徽章：22px -> 44px ✓ */
+.badge-preview-row img[src*="skillicons.dev/icons?i="] {
+  height: 40px !important;
+  max-width: none !important;
+}
+.prose a:has(> img) img[src*="skillicons.dev/icons?i="],
+.resource-preview a:has(> img) img[src*="skillicons.dev/icons?i="],
+.editor-content-area a:has(> img) img[src*="skillicons.dev/icons?i="] {
+  max-height: 44px !important;
+  height: 44px !important;
+  width: auto !important;
+}
