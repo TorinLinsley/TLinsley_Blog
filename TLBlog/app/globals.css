@@ -653,3 +653,14 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   border-bottom: none !important;
   box-shadow: none !important;
 }
+/* ⑤ 彻底去掉链接悬停时那层"变亮的圆角背景"（!important 压过所有旧规则 ✓ 连圆角也归零，免得弧边 ✗）*/
+.prose a, .prose a:hover, .prose a:focus,
+.resource-preview a, .resource-preview a:hover, .resource-preview a:focus,
+.editor-content-area a, .editor-content-area a:hover, .editor-content-area a:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
