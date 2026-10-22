@@ -1204,8 +1204,32 @@ const CodeLineNumbers = Extension.create({
 
 // 🌟 终极修复：彻底废弃 absolute 下拉框，升级为 Fixed 居中模态框 (Modal)！
 // 这样就能 100% 逃脱父级容器的 overflow 限制，绝对不可能再被遮挡！
-const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onClose }: any) => {
-  const presets = ['#000000', '#6366F1', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
+/** 🖍️ 「下划线色」入口：复用字体色那个 CustomColorPicker（同一套 UI ✓），只是作用到 underline 上 ✓ */
+function UnderlineColorButton({ editor }: { editor: Editor | null }) {
+  const [open, setOpen] = useState(false);
+  const current = editor?.getAttributes('underline')?.color || '';
+  const apply = (c: string) => editor?.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: c }).run();
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} title="下划线颜色" className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-700/60 transition-colors duration-300">
+        <span className="w-4 h-4 rounded-full border border-white/60 shadow-sm" style={{ background: current || 'linear-gradient(135deg,#818CF8,#6366F1)' }} />
+      </button>
+      {open && (
+        <CustomColorPicker
+          activeColor={current || '#6366F1'}
+          presets={['#6366F1', '#818CF8', '#4F46E5', '#8B5CF6', '#A78BFA', '#EC4899', '#F43F5E', '#F59E0B', '#EAB308', '#10B981', '#06B6D4', '#3B82F6', '#64748B']}
+          onSelect={(c: string) => apply(c)}
+          onConfirm={(c: string) => { apply(c); setOpen(false); }}
+          onAuto={() => { apply(null as any); setOpen(false); }}
+          recentColors={[]}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onClose, presets: presetList, onAuto }: any) => {
+  const presets: string[] = presetList ?? ['#000000', '#6366F1', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
   const [hex, setHex] = useState(activeColor);
   return (
     <>
@@ -1216,7 +1240,7 @@ const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onC
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[32px] p-6 shadow-2xl border border-white/40 dark:border-white/10 z-[9999] animate-in fade-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-5">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Color Palette</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Color Palette</span>{onAuto && (<button onClick={onAuto} className="ml-auto mr-2 px-2 py-1 text-[10px] font-bold rounded-lg bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300 hover:bg-black/10 dark:hover:bg-white/20">自动</button>)}
             <button onClick={() => onConfirm(hex)} className="w-8 h-8 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-110 transition-transform">
               <Check size={16}/>
             </button>
@@ -2091,6 +2115,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="加粗 (Ctrl+B)"><Bold size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} title="斜体 (Ctrl+I)"><Italic size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="下划线 (Ctrl+U)"><UnderlineIcon size={16}/></Btn>
+          <UnderlineColorButton editor={editor} />
           <Btn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="删除线 (Ctrl+Shift+X)"><Strikethrough size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
           {/* 📊 一键插入 1×1 表格（相当于 Obsidian Advanced Tables 的 Create table），行/列自己后面加 */}
@@ -2177,18 +2202,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         </div>
 
         {editor.isActive('image') && <div className="flex items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">{['25%', '50%', '75%', '100%'].map(s => <button key={s} onClick={() => editor.chain().focus().updateAttributes('image', { width: s }).run()} title={"图片宽度 " + s} data-tip={"图片宽度 " + s} className="px-2 py-1 text-[9px] font-bold hover:bg-white rounded-lg transition-all">{s}</button>)}</div>}
-        {editor.isActive('underline') && <div className="flex flex-wrap items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">
-          <span className="text-[9px] font-bold opacity-60 mr-1">下划线色</span>
-          {['#6366F1','#818CF8','#4F46E5','#8B5CF6','#A78BFA','#EC4899','#F43F5E','#F59E0B','#EAB308','#10B981','#06B6D4','#3B82F6','#64748B'].map(c => (
-            <button key={c} title={c} onClick={() => editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: c }).run()}
-              className="w-4 h-4 rounded-full border border-white/60 shadow-sm transition-transform hover:scale-125" style={{ backgroundColor: c }} />
-          ))}
-          <button title="自动（跟随主题）" onClick={() => editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: null }).run()}
-            className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-white/70 dark:bg-slate-700/70">自动</button>
-          <input type="text" placeholder="#rrggbb" title="自定义十六进制颜色，回车生效"
-            onKeyDown={(e) => { if (e.key !== 'Enter') return; const v = (e.target as HTMLInputElement).value.trim(); if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return; editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: v }).run(); }}
-            className="w-16 px-1.5 py-0.5 text-[9px] rounded-md bg-white/70 dark:bg-slate-700/70 outline-none border border-transparent focus:border-indigo-400" />
-        </div>}
         <div className="flex-1" />
 
         {/* 📊 光标在表格里时，表格工具条就地出现在工具栏右侧（对标 Obsidian 的 Advanced Tables） */}
