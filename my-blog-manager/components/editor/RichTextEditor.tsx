@@ -1232,7 +1232,7 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   };
 
   return (
-    <div className={`flex items-center gap-1.5 rounded-2xl px-2 py-1 border border-white/40 dark:border-white/10 bg-white/50 dark:bg-slate-800/50 ${canApply ? '' : 'opacity-50'}`}>
+    <div className={`flex items-center gap-1 rounded-2xl p-1.5 px-3 border border-white/40 dark:border-white/10 bg-black/5 dark:bg-white/5 ${canApply ? '' : 'opacity-50'}`}>
       <button type="button" onClick={() => apply(null)} title="自动（跟随主题）" className="px-1.5 py-0.5 text-[9px] font-bold rounded-md text-slate-500 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors">自动</button>
       {recent.length === 0 && <span className="w-4 h-4 rounded-full border border-dashed border-slate-400/50" />}
       {recent.map((c) => (
@@ -2143,7 +2143,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="加粗 (Ctrl+B)"><Bold size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} title="斜体 (Ctrl+I)"><Italic size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="下划线 (Ctrl+U)"><UnderlineIcon size={16}/></Btn>
-          <UnderlineColorButton editor={editor} />
           <Btn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="删除线 (Ctrl+Shift+X)"><Strikethrough size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
           {/* 📊 一键插入 1×1 表格（相当于 Obsidian Advanced Tables 的 Create table），行/列自己后面加 */}
@@ -2236,6 +2235,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         {editor.isActive('table') && <TableToolsBar editor={editor} />}
 
         <div className="flex items-center gap-4">
+          <UnderlineColorButton editor={editor} />
           <div className="relative">
             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 px-3 rounded-2xl border border-white/10 shadow-inner">
               {/* 🎨 这个调色板图标可以点：把文字颜色恢复成「自动」（跟随主题色）。
