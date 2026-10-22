@@ -1232,7 +1232,7 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   };
 
   return (
-    <div className={`flex items-center gap-1 rounded-2xl p-1.5 px-3 border border-white/40 dark:border-white/10 bg-black/5 dark:bg-white/5 ${canApply ? '' : 'opacity-50'}`}>
+    <div className={`flex items-center gap-1 rounded-2xl p-1.5 px-3 border border-white/40 dark:border-white/10 bg-black/5 dark:bg-white/5 `}>
       <button type="button" onClick={() => apply(null)} title="自动（跟随主题）" className="px-1.5 py-0.5 text-[9px] font-bold rounded-md text-slate-500 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors">自动</button>
       {recent.length === 0 && <span className="w-4 h-4 rounded-full border border-dashed border-slate-400/50" />}
       {recent.map((c) => (
@@ -1241,7 +1241,7 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
       <button type="button" onClick={() => setOpen(true)} title="更多颜色 / 自定义" className="w-6 h-6 flex items-center justify-center rounded-lg bg-white/70 dark:bg-slate-700/70 hover:bg-white dark:hover:bg-slate-600 transition-colors">
         <span className="w-3 h-3 rounded-full" style={{ background: current || 'linear-gradient(135deg,#818CF8,#6366F1)' }} />
       </button>
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal((
         <CustomColorPicker
           activeColor={current || '#6366F1'}
           presets={['#6366F1', '#818CF8', '#4F46E5', '#8B5CF6', '#A78BFA', '#EC4899', '#F43F5E', '#F59E0B', '#EAB308', '#10B981', '#06B6D4', '#3B82F6', '#64748B']}
@@ -1251,7 +1251,7 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
           recentColors={recent}
           onClose={() => setOpen(false)}
         />
-      )}
+      ), document.body)}
     </div>
   );
 }
@@ -1265,7 +1265,7 @@ const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onC
       <div className="fixed inset-0 z-[9990] bg-slate-900/20 dark:bg-black/40 backdrop-blur-sm transition-all" onClick={onClose} />
 
       {/* 永远居中显示的调色板面板 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[32px] p-6 shadow-2xl border border-white/40 dark:border-white/10 z-[9999] animate-in fade-in zoom-in-95 duration-200">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 max-h-[88vh] overflow-y-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[32px] p-6 shadow-2xl border border-white/40 dark:border-white/10 z-[9999] animate-in fade-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-5">
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Color Palette</span>{onAuto && (<button onClick={onAuto} className="ml-auto mr-2 px-2 py-1 text-[10px] font-bold rounded-lg bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300 hover:bg-black/10 dark:hover:bg-white/20">自动</button>)}
