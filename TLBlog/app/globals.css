@@ -685,3 +685,18 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   background: transparent !important;
   border-radius: 0 !important;
 }
+/* ⑦ 页面内 <style> 里给仓库卡片链接注入的 hover 装饰（淡圆角背景/边框）优先级更高，再抬一级压掉 ✗
+      · 加 [href] 属性 + article 层级 = 提高特异性 ✓
+      · 同时清 border（你看到的那条"淡的圆角矩形下边线"就是它的 border ✗）*/
+.resource-preview a[data-repo-card][href]:hover, .prose a[data-repo-card][href]:hover, .editor-content-area a[data-repo-card][href]:hover,
+.resource-preview a[data-repo-card][href]:focus, .prose a[data-repo-card][href]:focus,
+.resource-preview article a[data-repo-card]:hover, .prose article a[data-repo-card]:hover,
+.resource-preview a[data-repo-card][href], .prose a[data-repo-card][href] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
