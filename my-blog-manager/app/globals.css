@@ -936,3 +936,28 @@ user-select: none;
   margin-left: 0.1em;
   white-space: nowrap;
 }
+/* ═══ ✍️ 下划线/链接 视觉收尾（用户 2026-10-22 要求）═══ */
+/* ① 下划线粗细按字号 25%（0.25em），贴着文本下沿 —— 观感接近导航栏那条粗条，且字号变大时会跟着变粗 ✓ */
+.prose u, .resource-preview u, .editor-content-area u {
+  text-decoration-thickness: 0.25em !important;
+  text-underline-offset: 0.08em !important;
+}
+/* ② 超链接：平时**虚线**、悬停**变实线并略微下移**（不再有背景变亮/变淡 ✗） */
+.prose a[href^="http"], .resource-preview a[href^="http"], .editor-content-area a[href^="http"] {
+  text-decoration-line: underline !important;
+  text-decoration-style: dashed !important;
+  text-decoration-thickness: 0.12em !important;
+  text-underline-offset: 0.18em !important;
+  background: transparent !important;
+  transition: text-underline-offset 0.18s ease !important;
+}
+.prose a[href^="http"]:hover, .resource-preview a[href^="http"]:hover, .editor-content-area a[href^="http"]:hover {
+  text-decoration-style: solid !important;
+  text-underline-offset: 0.3em !important;
+  background: transparent !important;
+}
+/* ③ 箭头本身：原子行内盒，不参与父级下划线 ✓（保持无下划线、悬停也不变） */
+.prose a[href^="http"]::after, .resource-preview a[href^="http"]::after, .editor-content-area a[href^="http"]::after {
+  text-decoration: none !important;
+  background: transparent !important;
+}
