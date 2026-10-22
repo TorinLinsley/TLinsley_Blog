@@ -1015,3 +1015,25 @@ user-select: none;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+/* ⑧ 所有超链接统一下划线样式（站内 + 站外都算 ✓）—— 之前只写了 a[href^="http"] ✗ 站内链接漏了 ✗
+      箭头仍然只给站外链接（站内是 router 瞬间切页，画箭头会误导 ✗）*/
+.prose a, .resource-preview a, .editor-content-area a {
+  text-decoration-line: underline !important;
+  text-decoration-style: dashed !important;
+  text-decoration-thickness: 0.12em !important;
+  text-underline-offset: 0.18em !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: text-underline-offset 0.18s ease !important;
+}
+.prose a:hover, .resource-preview a:hover, .editor-content-area a:hover,
+.prose a:focus, .resource-preview a:focus, .editor-content-area a:focus {
+  text-decoration-style: solid !important;
+  text-underline-offset: 0.3em !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
