@@ -806,3 +806,14 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   width: auto !important;
   display: inline-block !important;
 }
+/* 🧩 skillicons 超宽处理：一张图无法换行 ✗ → 让**所在段落**横向滚动 ✓（只有超宽才出现滚动条 ✓）
+      桌面不超宽时完全看不出来 ✓ 手机上可以左右滑 ✓ */
+.prose p:has(img[src*="skillicons.dev/icons?i="]),
+.resource-preview p:has(img[src*="skillicons.dev/icons?i="]),
+.editor-content-area p:has(img[src*="skillicons.dev/icons?i="]) {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-width: 100% !important;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
