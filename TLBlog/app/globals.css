@@ -760,5 +760,5 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   vertical-align: middle;
   line-height: 1;
 }
-.badge-preview-row img { height: 20px; width: auto; border-radius: 2px; display: inline-block; }
+.badge-preview-row img { height: 20px !important; width: auto !important; max-width: none !important; border-radius: 2px !important; display: inline-block !important; box-shadow: none !important; margin: 0 !important; }
 .badge-preview-tip { display: none !important; }
