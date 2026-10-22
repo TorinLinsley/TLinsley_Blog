@@ -961,3 +961,10 @@ user-select: none;
   text-decoration: none !important;
   background: transparent !important;
 }
+/* ④ 干掉链接身上残留的 border-bottom 实线（预览里出现"虚线 + 实线"双线的根因 ✗）
+      现在链接的下划线统一由 text-decoration 负责 ✓ */
+.prose a, .resource-preview a, .editor-content-area a,
+.prose a[href^="http"], .resource-preview a[href^="http"], .editor-content-area a[href^="http"] {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
