@@ -249,20 +249,33 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
 /**
  * 📋 粘贴前先给「别处画出来的下划线」统一成编辑器认识的写法（用户 2026-10-22 要求）
  *
- * 为什么需要：下划线在 HTML 里有好几种写法，编辑器的下划线标记只认
- *   ① `<u>` 标签   ② `style` 里有 `text-decoration: underline`   ③ `data-underline-color`（颜色）
- * 而从网页 / Word / Google 文档复制过来的常见是：
- *   · `<span style="text-decoration: underline; text-decoration-color: rgb(…)">` → 颜色能认 ✓
- *   · `<span style="border-bottom: 1px solid rgb(…)">`  ← Google 文档那套，**压根没有 text-decoration** ✗
- *   · `<ins>…</ins>` ← 老式编辑器 ✗
- * 认不出来 → 粘进来就成了光秃秃的文字 ✗ 只能手动重画一次 ✗
- * 这里统一补齐：`<ins>` → `<u>`；用 border-bottom 假装下划线的 → 补成真的 text-decoration 并带上颜色。
- * ⚠️ 只补「下划线这件事」，其它样式（颜色、字号、加粗）一个字不动 ✓
+ * 为什么需要：下划线在 HTML 里有好几种写法，编辑器的下划线标记只认这三样
+ *   ① `<u>` 标签
+ *   ② `style` 里 `text-decoration` 含 `underline`
+ *   ③ 颜色：`text-decoration-color` 或 `data-underline-color`
+ * 而外部来源五花八门：
+ *   · `<u>文字</u>`（大部分网页 / Notion / 飞书）                        → 本来就认 ✓
+ *   · `<ins>文字</ins>`（老式编辑器 / Word 老版本）                       → ✗ 认不出来
+ *   · `<span style="text-decoration-line: underline">`（新一点的写法）    → ✗ 属性名不是 text-decoration
+ *   · `<span style="border-bottom: 1px solid rgb(…)">`（Google 文档）    → ✗ 压根没有 text-decoration
+ *   · `<span style="text-decoration: underline">` 外面再套一层颜色 span   → 认 ✓ 但颜色要跟着走
+ * 认不出来的结果：粘进来成了光秃秃的文字 ✗ 只能手动重画 ✗（用户实测反馈）
+ *
+ * 这里统一补齐（只补「下划线」这一件事，别的样式一个字不动 ✓）：
+ *   · `<ins>` → `<u>`
+ *   · `text-decoration-line: underline` → 补一条 `text-decoration: underline`
+ *   · `border-bottom` 假装的下划线 → 换成真的 `text-decoration: underline`
+ *   · 颜色：写了的（且不是 currentColor/inherit 这种"跟随文字色"）才带上 ✓
+ *           没写的 = **自动下划线** ✓（`color` 留空，显示时走主题默认色 ✓）
  */
 function normalizePastedInlineHtml(html: string): string {
   if (!html || !/text-decoration|border-bottom|<ins\b/i.test(html)) return html;
   try {
     const doc = new window.DOMParser().parseFromString(html, 'text/html');
+
+    /** 「跟随文字颜色」的写法等同于没写颜色 → 算自动 ✓（否则 .md 里会存一句 currentColor ✗） */
+    const isAutoColor = (c: string) =>
+      !c.trim() || /^(currentcolor|inherit|unset|initial|revert|transparent)$/i.test(c.trim());
 
     // ① <ins> → <u>（保留它自己的属性）
     doc.body.querySelectorAll('ins').forEach((ins) => {
@@ -272,22 +285,36 @@ function normalizePastedInlineHtml(html: string): string {
       ins.replaceWith(u);
     });
 
-    // ② 用 border-bottom 画出来的"下划线" → 变成真正的 text-decoration（保住颜色）
+    // ② 各种"下划线"写法统一成 text-decoration: underline（+ 真颜色）
     doc.body.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
       const st = el.style;
       const deco = `${st.textDecoration || ''} ${st.textDecorationLine || ''}`.toLowerCase();
-      if (deco.includes('underline')) return;
+      const underlined = deco.includes('underline');
 
       const width = parseFloat(st.borderBottomWidth || '0');
       const byBorder = width > 0 && /(solid|dashed|dotted|double)/.test((st.borderBottomStyle || '').toLowerCase());
-      if (!byBorder) return;
 
-      const color = st.borderBottomColor || '';
-      el.style.borderBottom = 'none';
+      if (!underlined && !byBorder) return;
+
+      /* 颜色：下划线自己的颜色优先；border-bottom 那套取边框颜色；都没有 = 自动 ✓ */
+      const rawColor = underlined
+        ? (st.textDecorationColor || '')
+        : (st.borderBottomColor || '');
+      const color = isAutoColor(rawColor) ? '' : rawColor.trim();
+
+      // 统一成「text-decoration: underline」，编辑器那条解析规则才认 ✓
+      if (byBorder) el.style.borderBottom = 'none';
       el.style.textDecorationLine = 'underline';
+      if (!st.textDecoration || !st.textDecoration.toLowerCase().includes('underline')) {
+        el.style.setProperty('text-decoration', `${st.textDecoration || ''} underline`.trim());
+      }
+      // 颜色：自动就把内联颜色去掉（交给主题），有颜色才留 ✓
       if (color) {
         el.style.textDecorationColor = color;
         el.setAttribute('data-underline-color', color);
+      } else {
+        el.style.removeProperty('text-decoration-color');
+        el.removeAttribute('data-underline-color');
       }
     });
 
