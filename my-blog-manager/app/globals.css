@@ -1094,3 +1094,30 @@ user-select: none;
   width: auto !important;
   max-width: none !important;
 }
+/* 🧩 skillicons 图标条（最终版 ✓ 覆盖前面所有规则 ✓ 放最后 = 生效）
+      关键：不设宽度上限 ✓ 高度写死 ✓ 图标再多也不会被压小 ✓ */
+.badge-preview-row img[src*="skillicons.dev/icons?i="] {
+  height: 40px !important;
+  min-height: 40px !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+.prose a:has(> img) img[src*="skillicons.dev/icons?i="],
+.resource-preview a:has(> img) img[src*="skillicons.dev/icons?i="],
+.editor-content-area a:has(> img) img[src*="skillicons.dev/icons?i="] {
+  height: 44px !important;
+  min-height: 44px !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+}
+/* 包着它的 <a> 也不要限制宽度 ✓ */
+.prose a:has(img[src*="skillicons.dev/icons?i="]),
+.resource-preview a:has(img[src*="skillicons.dev/icons?i="]),
+.editor-content-area a:has(img[src*="skillicons.dev/icons?i="]) {
+  max-width: none !important;
+  width: auto !important;
+  display: inline-block !important;
+}
