@@ -246,6 +246,57 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
+/**
+ * 📋 粘贴前先给「别处画出来的下划线」统一成编辑器认识的写法（用户 2026-10-22 要求）
+ *
+ * 为什么需要：下划线在 HTML 里有好几种写法，编辑器的下划线标记只认
+ *   ① `<u>` 标签   ② `style` 里有 `text-decoration: underline`   ③ `data-underline-color`（颜色）
+ * 而从网页 / Word / Google 文档复制过来的常见是：
+ *   · `<span style="text-decoration: underline; text-decoration-color: rgb(…)">` → 颜色能认 ✓
+ *   · `<span style="border-bottom: 1px solid rgb(…)">`  ← Google 文档那套，**压根没有 text-decoration** ✗
+ *   · `<ins>…</ins>` ← 老式编辑器 ✗
+ * 认不出来 → 粘进来就成了光秃秃的文字 ✗ 只能手动重画一次 ✗
+ * 这里统一补齐：`<ins>` → `<u>`；用 border-bottom 假装下划线的 → 补成真的 text-decoration 并带上颜色。
+ * ⚠️ 只补「下划线这件事」，其它样式（颜色、字号、加粗）一个字不动 ✓
+ */
+function normalizePastedInlineHtml(html: string): string {
+  if (!html || !/text-decoration|border-bottom|<ins\b/i.test(html)) return html;
+  try {
+    const doc = new window.DOMParser().parseFromString(html, 'text/html');
+
+    // ① <ins> → <u>（保留它自己的属性）
+    doc.body.querySelectorAll('ins').forEach((ins) => {
+      const u = doc.createElement('u');
+      Array.from(ins.attributes).forEach((attr) => u.setAttribute(attr.name, attr.value));
+      while (ins.firstChild) u.appendChild(ins.firstChild);
+      ins.replaceWith(u);
+    });
+
+    // ② 用 border-bottom 画出来的"下划线" → 变成真正的 text-decoration（保住颜色）
+    doc.body.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+      const st = el.style;
+      const deco = `${st.textDecoration || ''} ${st.textDecorationLine || ''}`.toLowerCase();
+      if (deco.includes('underline')) return;
+
+      const width = parseFloat(st.borderBottomWidth || '0');
+      const byBorder = width > 0 && /(solid|dashed|dotted|double)/.test((st.borderBottomStyle || '').toLowerCase());
+      if (!byBorder) return;
+
+      const color = st.borderBottomColor || '';
+      el.style.borderBottom = 'none';
+      el.style.textDecorationLine = 'underline';
+      if (color) {
+        el.style.textDecorationColor = color;
+        el.setAttribute('data-underline-color', color);
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch {
+    return html;   // 解析失败就原样交给 ProseMirror，绝不因为这点小事把粘贴搞坏
+  }
+}
+
 // 🌟 引入满血版 C++ 语法高亮
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { createLowlight } from 'lowlight';
@@ -1534,6 +1585,12 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     editorProps: {
       attributes: { class: 'prose prose-slate dark:prose-invert prose-lg max-w-none w-full focus:outline-none min-h-full pb-60 font-serif leading-relaxed px-4 editor-content-area', spellcheck: 'false' },
       /**
+       * 🎨 粘贴的 HTML 先过一遍「下划线归一化」：
+       *    `<ins>` → `<u>`；Google 文档那种 `border-bottom` 假装下划线的 → 补成真 text-decoration + 颜色。
+       *    不这么做的话，从网页/文档复制过来的下划线粘进编辑器就认不出来（颜色还会丢）✗
+       */
+      transformPastedHTML: (html: string) => normalizePastedInlineHtml(html),
+      /**
        * 粘贴处理，两件事：
        *
        * ① 整段恰好是一个 ```围栏 → 直接建成带语言的代码块（见下）。
@@ -1548,7 +1605,18 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         const clipboard = event.clipboardData;
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
-
+        /* 🎨 剪贴板里带着「下划线 / 高亮 / 上下标 / 行内样式」的富文本时，一律交给默认的 HTML 解析 ✓
+         *
+         * 为什么：下面那条「Markdown 源码」支路只吃**纯文本** ✗
+         *   而彩色下划线、颜色、高亮、上下标在纯文本里根本表达不出来 ✗
+         *   → 以前从网页 / 控制台别处复制一段带彩色下划线的字，粘进来会被当成 Markdown 源码走
+         *     纯文本那条路，格式当场全掉 ✗（用户实测反馈："下划线会消失，还得手动重画"✗）
+         * 剪贴板里既然有富文本，就用富文本 ✓ 只有**纯文本**才走 Markdown 源码那条路 ✓
+         */
+        const clipboardHtml = clipboard?.getData('text/html') || '';
+        if (/<(u|ins|mark|sub|sup)\b|text-decoration\s*:|border-bottom\s*:/i.test(clipboardHtml)) {
+          return false;
+        }
         /* 📋 「先把 ![]( ) 打好，再把链接粘进小括号里」也要立刻变图片 ✓（用户 2026-10-16 实测反馈）
          *    为什么单独处理：输入规则只在**打字**时触发 ✗ 粘贴不触发 ✗
          *    判定：粘进来的东西**本身就是一个 http(s) 链接** ✓，而且**光标所在那一段**拼起来
@@ -1630,7 +1698,18 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
          *   markdown-it 出 HTML  →  ProseMirror 自己的 DOMParser 建 slice（闭合的）
          * 这样引用块、列表、表格都是真正的节点，不会被拆平。
          */
-        if (hasFence || signals >= 1) {
+        /**
+         * ⌨️ 纯文本里带着行内 HTML（`<u …>` / `<span style>` / `<sup>` …）时也按 Markdown 解析：
+         *    tiptap-markdown 自带的解析器是 `html: false` ✗ 会把标签**转义成文字**（下划线当场没了 ✗）
+         *    而这条支路用的是 PASTE_MD（`html: true` ✓），标签会被还原成真节点 ✓
+         *    ⚠️ 只在「剪贴板里没有富文本」时才接管 ✓；代码块里不接管 ✓
+         *       （不然粘一段 HTML 源码进来会变成渲染结果 ✗）
+         */
+        const inCodeBlock = view.state.selection.$from.parent.type.name === 'codeBlock';
+        const inlineHtmlInText = !inCodeBlock
+          && !clipboardHtml.trim()
+          && /<\/?(u|ins|mark|sub|sup|span)\b[^>]*>/i.test(raw);
+        if (hasFence || signals >= 1 || inlineHtmlInText) {
           view.dispatch(view.state.tr.replaceSelection(markdownToSlice(view.state.schema, raw)).scrollIntoView());
           return true;
         }
