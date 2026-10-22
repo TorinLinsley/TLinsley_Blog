@@ -906,7 +906,7 @@ const CustomUnderline = Underline.extend({
         parseHTML: (el: HTMLElement) => el.style.textDecorationColor || el.getAttribute('data-underline-color') || null,
         renderHTML: (attrs: { color?: string | null }) => {
           if (!attrs.color) return {};
-          return { style: `text-decoration-color: ${attrs.color}; text-underline-offset: 0.18em; text-decoration-thickness: 1.5px;` };
+          return { style: `text-decoration-color: ${attrs.color}; text-underline-offset: 0.18em; text-decoration-thickness: 3px;` };
         },
       },
     };
@@ -1208,7 +1208,7 @@ const CodeLineNumbers = Extension.create({
 function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   const [open, setOpen] = useState(false);
   const current = editor?.getAttributes('underline')?.color || '';
-  const apply = (c: string) => editor?.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: c }).run();
+  const apply = (c: string) => editor?.chain().focus().updateAttributes('underline', { color: c }).run();
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} title="下划线颜色" className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-700/60 transition-colors duration-300">
