@@ -777,4 +777,5 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   max-height: 44px !important;
   height: 44px !important;
   width: auto !important;
+  max-width: none !important;
 }

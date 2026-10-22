@@ -1092,4 +1092,5 @@ user-select: none;
   max-height: 44px !important;
   height: 44px !important;
   width: auto !important;
+  max-width: none !important;
 }
