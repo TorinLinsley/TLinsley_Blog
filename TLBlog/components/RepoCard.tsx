@@ -151,15 +151,20 @@ export const CARD_STYLE = `
      ⚠️ 这里必须**重申一遍 border-radius**：站内原本有
         .resource-preview a:hover { … border-radius: 0.2rem !important; } 这条，
         不重申的话鼠标一放上去卡片圆角就被改成接近直角（实测踩过）。 */
-  :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover {
-    background: rgba(124, 58, 237, 0.13) !important; color: #6d28d9 !important;
-    border-color: rgba(124, 58, 237, 0.45) !important;
-    border-radius: 14px !important;
-  }
-  .dark :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover {
-    background: rgba(124, 58, 237, 0.3) !important; color: #c4b5fd !important;
-    border-color: rgba(167, 139, 250, 0.5) !important;
-    border-radius: 14px !important;
+  /* 🖱️ 悬停效果**只给真的有鼠标的设备**（用户 2026-10-22 要求，和 globals.css 同一套规矩）
+     ⚠️ 手机/平板没有 hover ✗ 这里若还给 :hover 样式，手指点一下卡片就会"卡"在紫色悬停态 ✗
+     ⚠️ 桌面悬停时仍然要重申 border-radius（站内老规则会把它改成接近直角，实测踩过）*/
+  @media (hover: hover) and (pointer: fine) {
+    :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover {
+      background: rgba(124, 58, 237, 0.13) !important; color: #6d28d9 !important;
+      border-color: rgba(124, 58, 237, 0.45) !important;
+      border-radius: 14px !important;
+    }
+    .dark :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover {
+      background: rgba(124, 58, 237, 0.3) !important; color: #c4b5fd !important;
+      border-color: rgba(167, 139, 250, 0.5) !important;
+      border-radius: 14px !important;
+    }
   }
 
   .repo-card-avatar {
@@ -187,7 +192,9 @@ export const CARD_STYLE = `
   /* 📱 手机：卡片小一圈，用户名/仓库名过长就省略号，一行放得下 */
   @media (max-width: 640px) {
     :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card { gap: 10px; padding: 11px 12px !important; border-radius: 12px !important; margin: .9rem 0 !important; }
-    :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover { border-radius: 12px !important; }
+    @media (hover: hover) and (pointer: fine) {
+      :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover { border-radius: 12px !important; }
+    }
     [data-repo-card-scope] .repo-card { margin: 0 !important; }
     .repo-card-avatar { width: 30px; height: 30px; }
     .repo-card-title { font-size: .86rem; }
