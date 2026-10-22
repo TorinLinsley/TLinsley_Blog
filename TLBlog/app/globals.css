@@ -602,12 +602,12 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
    ③ 正文里的**外链**在末尾单独渲染一个 " ↗" 标记 ✓ 它自己不带下划线 ✓ 也不改链接文字 ✓ */
 .prose u, .resource-preview u, .editor-content-area u {
   text-decoration-line: underline !important;
-  text-decoration-color: #6366F1;
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: 1.5px;
+  text-decoration-color: #818CF8;
+  text-underline-offset: 0.1em;
+  text-decoration-thickness: 3px;
 }
 .dark .prose u, .dark .resource-preview u, .dark .editor-content-area u {
-  text-decoration-color: #818CF8;
+  text-decoration-color: #6366F1;
 }
 /* 外链末尾的 ↗ 标记（只对 http/https 生效 ✓ 站内链接不加 ✓） */
 .prose a[href^="http"]::after,
@@ -615,7 +615,7 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 .editor-content-area a[href^="http"]::after {
   content: " ↗";
   text-decoration: none !important;
-  display: inline;
+  display: inline-block;
   font-size: 0.85em;
   opacity: 0.85;
   margin-left: 0.1em;
