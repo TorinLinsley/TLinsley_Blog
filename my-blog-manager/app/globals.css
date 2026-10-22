@@ -1075,5 +1075,5 @@ user-select: none;
   vertical-align: middle;
   line-height: 1;
 }
-.badge-preview-row img { height: 20px; width: auto; border-radius: 4px; display: inline-block; }
+.badge-preview-row img { height: 20px; width: auto; border-radius: 2px; display: inline-block; }
 .badge-preview-tip { display: none !important; }
