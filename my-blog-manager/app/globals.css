@@ -969,9 +969,9 @@ user-select: none;
   box-shadow: none !important;
 }
 /* ⑤ 彻底去掉链接悬停时那层"变亮的圆角背景"（!important 压过所有旧规则 ✓ 连圆角也归零，免得弧边 ✗）*/
-.prose a, .prose a:hover, .prose a:focus,
-.resource-preview a, .resource-preview a:hover, .resource-preview a:focus,
-.editor-content-area a, .editor-content-area a:hover, .editor-content-area a:focus {
+.prose a, .prose a:hover, .prose a:focus-visible,
+.resource-preview a, .resource-preview a:hover, .resource-preview a:focus-visible,
+.editor-content-area a, .editor-content-area a:hover, .editor-content-area a:focus-visible {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -981,9 +981,9 @@ user-select: none;
 }
 /* ⑥ 仓库卡片链接（data-repo-card）专属的悬停亮背景：专门压掉它 ✗
       它的规则优先级更高（带属性选择器 + !important），所以这里也用属性选择器 + !important ✓ */
-.prose a[data-repo-card]:hover, .prose a[data-repo-card]:focus, .prose a[data-repo-card]:active,
-.resource-preview a[data-repo-card]:hover, .resource-preview a[data-repo-card]:focus, .resource-preview a[data-repo-card]:active,
-.editor-content-area a[data-repo-card]:hover, .editor-content-area a[data-repo-card]:focus, .editor-content-area a[data-repo-card]:active,
+.prose a[data-repo-card]:hover, .prose a[data-repo-card]:focus-visible, .prose a[data-repo-card]:active,
+.resource-preview a[data-repo-card]:hover, .resource-preview a[data-repo-card]:focus-visible, .resource-preview a[data-repo-card]:active,
+.editor-content-area a[data-repo-card]:hover, .editor-content-area a[data-repo-card]:focus-visible, .editor-content-area a[data-repo-card]:active,
 .prose a[href^="http"][data-repo-card]:hover,
 .resource-preview a[href^="http"][data-repo-card]:hover,
 .editor-content-area a[href^="http"][data-repo-card]:hover {
@@ -1004,7 +1004,7 @@ user-select: none;
       · 加 [href] 属性 + article 层级 = 提高特异性 ✓
       · 同时清 border（你看到的那条"淡的圆角矩形下边线"就是它的 border ✗）*/
 .resource-preview a[data-repo-card][href]:hover, .prose a[data-repo-card][href]:hover, .editor-content-area a[data-repo-card][href]:hover,
-.resource-preview a[data-repo-card][href]:focus, .prose a[data-repo-card][href]:focus,
+.resource-preview a[data-repo-card][href]:focus-visible, .prose a[data-repo-card][href]:focus-visible,
 .resource-preview article a[data-repo-card]:hover, .prose article a[data-repo-card]:hover,
 .resource-preview a[data-repo-card][href], .prose a[data-repo-card][href] {
   background: transparent !important;
@@ -1029,7 +1029,7 @@ user-select: none;
   transition: text-underline-offset 0.18s ease !important;
 }
 .prose a:hover, .resource-preview a:hover, .editor-content-area a:hover,
-.prose a:focus, .resource-preview a:focus, .editor-content-area a:focus {
+.prose a:focus-visible, .resource-preview a:focus-visible, .editor-content-area a:focus-visible {
   text-decoration-style: solid !important;
   text-underline-offset: 0.3em !important;
   background: transparent !important;
