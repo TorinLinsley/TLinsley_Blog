@@ -1,5 +1,6 @@
 "use client";
 
+import { badgeHtmlToSource } from '@/lib/badgeSource';
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import RichTextEditor, { RichTextEditorHandle } from '../../components/editor/RichTextEditor';
@@ -86,7 +87,7 @@ function EditorContent() {
             setCover(data.draft.cover || '');
             setSummary(data.draft.description || '');
             setMood(data.draft.mood || '');
-            setContent(data.draft.content || '');
+            setContent(badgeHtmlToSource(data.draft.content || ''));
 
             setTimeout(() => setHasUnsavedChanges(false), 500);
             showToast("✅ 已读取本地源数据", "success");

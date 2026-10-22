@@ -1,5 +1,6 @@
 "use client";
 
+import { badgeHtmlToSource } from '@/lib/badgeSource';
 import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import RichTextEditor, { RichTextEditorHandle } from '../../components/editor/RichTextEditor';
@@ -49,7 +50,7 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
             setCover(data.draft.cover || '');
             setSummary(data.draft.description || '');
             setMood(data.draft.mood || '');
-            setContent(data.draft.content || '');
+            setContent(badgeHtmlToSource(data.draft.content || ''));
           }
         } catch (e) { console.error("读取草稿失败", e); }
       };

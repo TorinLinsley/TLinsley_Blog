@@ -1,5 +1,6 @@
 "use client";
 
+import { badgeHtmlToSource } from '../../lib/badgeSource';
 import React, { useState, useImperativeHandle, forwardRef, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
@@ -948,7 +949,8 @@ const BadgePreview = Extension.create({
             const matches = Array.from(text.matchAll(BADGE_PREVIEW_RE));
             if (matches.length === 0) return null;
             const rel = $from.parentOffset;
-            const hit = matches.find((m) => rel >= (m.index ?? 0) && rel <= (m.index ?? 0) + m[0].length) ?? matches[0];
+            const hit = matches.find((m) => rel >= (m.index ?? 0) && rel <= (m.index ?? 0) + m[0].length);
+            if (!hit) return null;   // 光标必须真的落在某个徽章里才预览
             const alt = hit[1] || '';
             const src = hit[2] || '';
             const href = hit[3] || '';
@@ -1691,7 +1693,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     if (!editor) return;
     // 🌟 注意：initialContent 为空字符串时也必须同步！
     // 否则从「有内容的文章」切到「空文章」时，编辑器会继续显示上一篇的内容。
-    const next = initialContent ?? '';
+    const next = badgeHtmlToSource(initialContent ?? '');   // 🏷️ 徽章链接还原成源码文字 ✓
     if (loadedContentRef.current !== next) {
       const safeContent = next
         .replace(/~~([\s\S]*?)~~/g, '<s>$1</s>')
