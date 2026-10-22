@@ -925,9 +925,9 @@ user-select: none;
   text-decoration-color: #6366F1;
 }
 /* 外链末尾的 ↗ 标记（只对 http/https 生效 ✓ 站内链接不加 ✓） */
-.prose a[href^="http"]::after,
-.resource-preview a[href^="http"]::after,
-.editor-content-area a[href^="http"]::after {
+.prose a[href^="http"]:not(.repo-card)::after,
+.resource-preview a[href^="http"]:not(.repo-card)::after,
+.editor-content-area a[href^="http"]:not(.repo-card)::after {
   content: " ↗";
   text-decoration: none !important;
   display: inline-block;
@@ -943,7 +943,7 @@ user-select: none;
   text-underline-offset: 0.08em !important;
 }
 /* ② 超链接：平时**虚线**、悬停**变实线并略微下移**（不再有背景变亮/变淡 ✗） */
-.prose a[href^="http"], .resource-preview a[href^="http"], .editor-content-area a[href^="http"] {
+.prose a[href^="http"]:not(.repo-card), .resource-preview a[href^="http"]:not(.repo-card), .editor-content-area a[href^="http"]:not(.repo-card) {
   text-decoration-line: underline !important;
   text-decoration-style: dashed !important;
   text-decoration-thickness: 0.12em !important;
@@ -951,7 +951,7 @@ user-select: none;
   background: transparent !important;
   transition: text-underline-offset 0.18s ease !important;
 }
-.prose a[href^="http"]:hover, .resource-preview a[href^="http"]:hover, .editor-content-area a[href^="http"]:hover {
+.prose a[href^="http"]:not(.repo-card):hover, .resource-preview a[href^="http"]:not(.repo-card):hover, .editor-content-area a[href^="http"]:not(.repo-card):hover {
   text-decoration-style: solid !important;
   text-underline-offset: 0.3em !important;
   background: transparent !important;
@@ -963,15 +963,17 @@ user-select: none;
 }
 /* ④ 干掉链接身上残留的 border-bottom 实线（预览里出现"虚线 + 实线"双线的根因 ✗）
       现在链接的下划线统一由 text-decoration 负责 ✓ */
-.prose a, .resource-preview a, .editor-content-area a,
-.prose a[href^="http"], .resource-preview a[href^="http"], .editor-content-area a[href^="http"] {
+.prose a:not(.repo-card), .resource-preview a:not(.repo-card), .editor-content-area a:not(.repo-card),
+.prose a[href^="http"]:not(.repo-card), .resource-preview a[href^="http"]:not(.repo-card), .editor-content-area a[href^="http"]:not(.repo-card) {
   border-bottom: none !important;
   box-shadow: none !important;
 }
-/* ⑤ 彻底去掉链接悬停时那层"变亮的圆角背景"（!important 压过所有旧规则 ✓ 连圆角也归零，免得弧边 ✗）*/
-.prose a, .prose a:hover, .prose a:focus-visible,
-.resource-preview a, .resource-preview a:hover, .resource-preview a:focus-visible,
-.editor-content-area a, .editor-content-area a:hover, .editor-content-area a:focus-visible {
+/* ⑤ 彻底去掉链接悬停时那层"变亮的圆角背景"（!important 压过所有旧规则 ✓ 连圆角也归零，免得弧边 ✗）
+      ⚠️ 卡片的 a.repo-card 必须排除：它有自己一套设计（圆角/毛玻璃/悬停紫框），
+         被这里归零就会变成直角 + 没有悬停框 ✗（用户实测反馈）*/
+.prose a:not(.repo-card), .prose a:not(.repo-card):hover, .prose a:not(.repo-card):focus-visible,
+.resource-preview a:not(.repo-card), .resource-preview a:not(.repo-card):hover, .resource-preview a:not(.repo-card):focus-visible,
+.editor-content-area a:not(.repo-card), .editor-content-area a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):focus-visible {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -979,45 +981,16 @@ user-select: none;
   box-shadow: none !important;
   outline: none !important;
 }
-/* ⑥ 仓库卡片链接（data-repo-card）专属的悬停亮背景：专门压掉它 ✗
-      它的规则优先级更高（带属性选择器 + !important），所以这里也用属性选择器 + !important ✓ */
-.prose a[data-repo-card]:hover, .prose a[data-repo-card]:focus-visible, .prose a[data-repo-card]:active,
-.resource-preview a[data-repo-card]:hover, .resource-preview a[data-repo-card]:focus-visible, .resource-preview a[data-repo-card]:active,
-.editor-content-area a[data-repo-card]:hover, .editor-content-area a[data-repo-card]:focus-visible, .editor-content-area a[data-repo-card]:active,
-.prose a[href^="http"][data-repo-card]:hover,
-.resource-preview a[href^="http"][data-repo-card]:hover,
-.editor-content-area a[href^="http"][data-repo-card]:hover {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  text-decoration-style: solid !important;
-  text-underline-offset: 0.3em !important;
-}
-/* 卡片里的 <strong> 也一并保证没有背景/圆角 */
-.prose a[data-repo-card] strong, .resource-preview a[data-repo-card] strong, .editor-content-area a[data-repo-card] strong {
-  background: transparent !important;
-  border-radius: 0 !important;
-}
-/* ⑦ 页面内 <style> 里给仓库卡片链接注入的 hover 装饰（淡圆角背景/边框）优先级更高，再抬一级压掉 ✗
-      · 加 [href] 属性 + article 层级 = 提高特异性 ✓
-      · 同时清 border（你看到的那条"淡的圆角矩形下边线"就是它的 border ✗）*/
-.resource-preview a[data-repo-card][href]:hover, .prose a[data-repo-card][href]:hover, .editor-content-area a[data-repo-card][href]:hover,
-.resource-preview a[data-repo-card][href]:focus-visible, .prose a[data-repo-card][href]:focus-visible,
-.resource-preview article a[data-repo-card]:hover, .prose article a[data-repo-card]:hover,
-.resource-preview a[data-repo-card][href], .prose a[data-repo-card][href] {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  border-bottom: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
+/* ⑥⑦ 原来的「压掉仓库卡片悬停装饰」两块规则已整块删除（用户 2026-10-22 明确要求）：
+      卡片是**独立设计**（样式在 components/RepoCard.tsx 的 CARD_STYLE 里，本身就带 !important），
+      那两块会把卡片自己的 edge 全都压成 0：
+        · border-radius: 0   → 圆角变直角 ✗
+        · border: none       → 悬停时那圈紫色细边消失 ✗
+        · text-decoration-style/underline-offset → 卡片文字被画上一条虚线 ✗
+      现在正文链接规则统一用 :not(.repo-card) 绕开卡片 ✓ 卡片样式完全交回它自己 ✓ */
 /* ⑧ 所有超链接统一下划线样式（站内 + 站外都算 ✓）—— 之前只写了 a[href^="http"] ✗ 站内链接漏了 ✗
       箭头仍然只给站外链接（站内是 router 瞬间切页，画箭头会误导 ✗）*/
-.prose a, .resource-preview a, .editor-content-area a {
+.prose a:not(.repo-card), .resource-preview a:not(.repo-card), .editor-content-area a:not(.repo-card) {
   text-decoration-line: underline !important;
   text-decoration-style: dashed !important;
   text-decoration-thickness: 0.12em !important;
@@ -1028,8 +1001,8 @@ user-select: none;
   box-shadow: none !important;
   transition: text-underline-offset 0.18s ease !important;
 }
-.prose a:hover, .resource-preview a:hover, .editor-content-area a:hover,
-.prose a:focus-visible, .resource-preview a:focus-visible, .editor-content-area a:focus-visible {
+.prose a:not(.repo-card):hover, .resource-preview a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):hover,
+.prose a:not(.repo-card):focus-visible, .resource-preview a:not(.repo-card):focus-visible, .editor-content-area a:not(.repo-card):focus-visible {
   text-decoration-style: solid !important;
   text-underline-offset: 0.3em !important;
   background: transparent !important;
@@ -1041,7 +1014,7 @@ user-select: none;
    · 徽章链接不要下划线/箭头/背景（它是图 ✓ 不是文字链接 ✓）
    · 图片改成行内、按原始尺寸（最大高度受限 ✓ 不会像正文大图那样铺满 ✓）
    · 一行可以放多个 ✓ 空格分隔 ✓ 按顺序左对齐 ✓ */
-.prose a:has(> img), .resource-preview a:has(> img), .editor-content-area a:has(> img) {
+.prose a:has(> img):not(.repo-card), .resource-preview a:has(> img):not(.repo-card), .editor-content-area a:has(> img):not(.repo-card) {
   display: inline-block !important;
   vertical-align: middle !important;
   margin: 0 6px 6px 0 !important;
@@ -1053,10 +1026,10 @@ user-select: none;
   text-decoration: none !important;
   line-height: 1 !important;
 }
-.prose a:has(> img)::after, .resource-preview a:has(> img)::after, .editor-content-area a:has(> img)::after {
+.prose a:has(> img):not(.repo-card)::after, .resource-preview a:has(> img):not(.repo-card)::after, .editor-content-area a:has(> img):not(.repo-card)::after {
   content: none !important;
 }
-.prose a:has(> img) img, .resource-preview a:has(> img) img, .editor-content-area a:has(> img) img {
+.prose a:has(> img):not(.repo-card) img, .resource-preview a:has(> img):not(.repo-card) img, .editor-content-area a:has(> img):not(.repo-card) img {
   display: inline-block !important;
   width: auto !important;
   height: auto !important;
