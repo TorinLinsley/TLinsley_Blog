@@ -928,6 +928,51 @@ const CustomUnderline = Underline.extend({
     };
   },
 });
+/** 🏷️ 徽章语法 [![alt](图片)](跳转) 的"虚空预览行"（用户 2026-10-22 要求）
+ *  · 编辑器里源码保持不动 ✓
+ *  · 光标所在行的**下一行**渲染一条预览（widget ✓ 不占行号 ✓）
+ *  · 只预览光标落进去的那一个徽章 ✓ 光标离开就消失 ✓ */
+const BADGE_PREVIEW_RE = /\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)/g;
+
+const BadgePreview = Extension.create({
+  name: 'badgePreview',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          decorations(state) {
+            const { $from } = state.selection;
+            if (!$from.parent.isTextblock) return null;
+            const text = $from.parent.textContent;
+            if (!text.includes('[![')) return null;
+            const matches = Array.from(text.matchAll(BADGE_PREVIEW_RE));
+            if (matches.length === 0) return null;
+            const rel = $from.parentOffset;
+            const hit = matches.find((m) => rel >= (m.index ?? 0) && rel <= (m.index ?? 0) + m[0].length) ?? matches[0];
+            const alt = hit[1] || '';
+            const src = hit[2] || '';
+            const href = hit[3] || '';
+            if (!src) return null;
+            const dom = document.createElement('span');
+            dom.className = 'badge-preview-row';
+            dom.setAttribute('contenteditable', 'false');
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+            dom.appendChild(img);
+            const tip = document.createElement('span');
+            tip.className = 'badge-preview-tip';
+            tip.textContent = href;
+            dom.appendChild(tip);
+            return DecorationSet.create(state.doc, [
+              Decoration.widget($from.end() + 1, dom, { side: 1 }),
+            ]);
+          },
+        },
+      }),
+    ];
+  },
+});
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -1431,7 +1476,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           class: 'bg-[#282c34] text-[#abb2bf] p-6 rounded-[1.5rem] font-mono my-6 overflow-x-auto shadow-inner'
         },
       }),
-      CustomUnderline, Subscript, Superscript, TextStyle, Color, FontSize, CustomImage,
+      CustomUnderline, Subscript, Superscript, TextStyle, Color, FontSize, CustomImage, BadgePreview,
       Link.configure({
         openOnClick: false,
         // 直接手打 URL 时的自动识别：默认是 'http'，站点上 https 后会造成混合内容告警，统一用 https

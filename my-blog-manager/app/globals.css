@@ -1067,3 +1067,25 @@ user-select: none;
   box-shadow: none !important;
   vertical-align: middle !important;
 }
+/* 🏷️ 徽章预览行（编辑器里的虚空行，不占行号）*/
+.badge-preview-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px 4px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  vertical-align: middle;
+}
+.badge-preview-row img { height: 20px; width: auto; border-radius: 4px; display: inline-block; }
+.badge-preview-tip {
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #6366F1;
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
