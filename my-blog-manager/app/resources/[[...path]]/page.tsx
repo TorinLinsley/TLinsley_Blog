@@ -16,6 +16,8 @@ import { renderMathIn } from '../../../lib/renderMath';
 import { highlightPreviewCode } from '../../../lib/highlightPreviewCode';
 import { CALLOUT_ICONS, CALLOUT_DEFAULT_ICON } from '../../../lib/rehypeCallout';
 import { calloutBlockquotesToHtml } from '../../../components/editor/calloutBridge';
+// 🏷️ 徽章：编辑器里存的是源码文字，切预览时要转回 <a><img></a>（否则预览里是一串源码）
+import { badgeSourceToHtml } from '../../../lib/badgeSource';
 
 const CONTENT_ID = 'resource-content';
 
@@ -695,7 +697,9 @@ function ResourcesContent() {
      * ⚠️ 只用于预览；保存走的是原始 HTML，.md 里照旧写 `> [!info] 标题`。
      */
     const html = editorRef.current?.getContent() || initialContent;
-    setPreviewHtml(calloutBlockquotesToHtml(html, CALLOUT_ICONS, CALLOUT_DEFAULT_ICON));
+    setPreviewHtml(
+      calloutBlockquotesToHtml(badgeSourceToHtml(html), CALLOUT_ICONS, CALLOUT_DEFAULT_ICON)
+    );
     setMode('preview');
     setContentVersion(v => v + 1);
   };
