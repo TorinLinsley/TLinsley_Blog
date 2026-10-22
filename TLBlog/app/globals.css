@@ -874,3 +874,18 @@ a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   margin: 6px 0 !important;
   padding: 0 !important;
 }
+/* 🧩 最高优先级版：html body 前缀 + !important，任何其它图片规则都压不过 ✓ */
+html body img[src*="skillicons.dev/icons?i="][src*=","] {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+html body a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
