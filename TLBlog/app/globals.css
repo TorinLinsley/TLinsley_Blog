@@ -865,3 +865,12 @@ img[src*="skillicons.dev/icons?i="][src*=","] {
   object-fit: contain !important;
 }
 /* 铺满后不会再溢出，滚动条自然不出现 ✓（窄屏仍保留兜底 ✓）*/
+/* 🧩 关键修复：skillicons 长条的**外层 <a>** 必须先撑满整行 ✓
+      否则 <img> 的 width:100% 是相对"收缩到内容宽度"的 <a> 算的 ✗ 所以只占一半 ✗ */
+a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 6px 0 !important;
+  padding: 0 !important;
+}
