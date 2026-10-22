@@ -27,8 +27,10 @@ from .markdown_utils import (
     code_language_callback,
     collapse_blank_lines,
     glue_image_blocks,
+    protect_inline_tags,
     render_callouts,
     restore_callouts,
+    restore_inline_tags,
     restore_tables,
     separate_blockquotes,
     split_callout_blockquotes,
@@ -282,6 +284,14 @@ async def sync_local_operations(request: Request):
             # 强制让它保留 br 标签！
             #    表格单独走自己的转换（markdownify 的表格输出每行都多一条分隔线）
             #    callout 外壳也先抠出来（不然里面的 span/svg 会被当裸 HTML 吐进 .md ✗）
+            #
+            # 🎨 带样式的内联标签（颜色/字号 <span style>、高亮 <mark>、彩色下划线 <u>、上下标）
+            #    markdownify 会把它们连同样式一起吃掉 ✗
+            #    → 表现就是「编辑器里明明画了彩色下划线/标了颜色，一发布就变回原样」（用户实测反馈 ✗）
+            #    这里先抠成占位符、转完再原样放回（和资源分享用的是同一份实现 ✓）
+            #    ⚠️ 必须在 stash_tables / stash_callouts **之前**抠：
+            #       表格、callout 里的颜色/下划线也要保住 ✓
+            raw_html, inline_tags = protect_inline_tags(raw_html)
             raw_html, tables = stash_tables(raw_html)
             raw_html, callouts = stash_callouts(raw_html)
             md_content = md(raw_html, heading_style="ATX", keep=['img', 'br'], code_language_callback=code_language_callback)
@@ -304,6 +314,8 @@ async def sync_local_operations(request: Request):
             # 4. 引用块：连成一片的 callout 拆开
             #    ⚠️ 但**不往 .md 里插** `<!-- -->` 分隔符 —— 那是读取时该干的事 ✓
             md_content = split_callout_blockquotes(md_content)
+            # 🎨 最后把颜色/彩色下划线/高亮/上下标原样放回去（放最后：中间那些空白整理不能碰它们 ✓）
+            md_content = restore_inline_tags(md_content, inline_tags)
             # ==========================================
 
             # 🌟 处理日期与精确时间

@@ -673,3 +673,47 @@ class MathExtension(Extension):
         stash: List[str] = []
         md.preprocessors.register(MathPreprocessor(md, stash), "xh_math", 40)
         md.postprocessors.register(MathPostprocessor(md, stash), "xh_math", 30)
+
+
+# ─────────────────────────────────────────────────────────────
+# 🎨 Markdown 里没有对应写法的内联标签：颜色/字号(span style)、高亮(mark)、
+#    下划线(u，带 text-decoration-color 就是"彩色下划线")、上下标(sub/sup)。
+#
+# markdownify 转换时会把它们连同样式一起丢掉 ——
+# 表现就是「编辑器里明明标了色/画了彩色下划线，一保存就变回原样」。
+# 办法：转换前先把这些标签抠成占位符，转成 Markdown 之后原样放回去。
+# Markdown 允许内嵌 HTML，博客前台（remark + allowDangerousHtml）和控制台预览
+# （python-markdown）都能把原样 HTML 渲染出来 ✓
+#
+# ⚠️ 以前这套只写在 resources.py 里 → **只有资源分享**能保住颜色/下划线 ✗
+#    文章、杂谈、关于我走的是 drafts.py，没有这一步 → 保存后彩色下划线、颜色全丢 ✗
+#    现在收到公共模块，两条路（resources.py / drafts.py）用同一份 ✓
+# ─────────────────────────────────────────────────────────────
+# ⚠️ 用 (?![^>]*class="callout-) 把 **callout 自己的 span** 排除掉：
+#    callout 的图标/标题就是 <span class="callout-icon"> / <span class="callout-title-text">，
+#    它们马上会被 stash_callouts 转成 Markdown（> [!info] 标题）✓ 不需要保护。
+#    不排除的话会被抠成占位符 → 取标题时拿到的是个占位符、只能退回兜底的 "Info" ✗
+#    （callout **正文里**你自己加的颜色/字号 span 不在排除范围，照旧被保护 ✓）
+_KEEP_INLINE_RE = re.compile(
+    r"<(span|mark|u|sub|sup)\b(?![^>]*class=\"callout-)[^>]*>.*?</\1\s*>",
+    re.S | re.I,
+)
+_INLINE_SLOT = "\ue000INLINE{}\ue001"  # 私用区字符，正文里不会出现，也不会被 Markdown 转义
+
+
+def protect_inline_tags(html: str):
+    """把需要原样保留的内联标签换成占位符，返回 (处理后的 HTML, 原标签列表)"""
+    stash = []
+
+    def _stash(m):
+        stash.append(m.group(0))
+        return _INLINE_SLOT.format(len(stash) - 1)
+
+    return _KEEP_INLINE_RE.sub(_stash, html), stash
+
+
+def restore_inline_tags(text: str, stash) -> str:
+    """把占位符换回原来的标签"""
+    for i, raw in enumerate(stash):
+        text = text.replace(_INLINE_SLOT.format(i), raw)
+    return text
