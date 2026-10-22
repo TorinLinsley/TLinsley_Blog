@@ -1369,6 +1369,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     content: '',
     immediatelyRender: false,
     onUpdate: ({ editor: ed }) => {
+      // ⏳ 中文输入法**组词期间一律不动**：连 onChange 都不发 ✓
+      //    为什么：onChange 会让父组件 setState 重渲染 ✗ 组词被打断 ✗ →
+      //    浏览器/输入法就把半截拼音"提交"成正文 ✓（用户实测：下划线一消失，拼音就留在文档里 ✗）
+      if (ed.view.composing) return;
       // 🖼️ 每次内容一变就看一眼：光标那一段是不是刚好写成了图片语法（打字 / 粘贴都覆盖 ✓）
       convertImageMarkdown(ed);
       // 🔼🔽 同理：光标那段是不是刚好打完 <sup>…</sup> / <sub>…</sub>（敲完闭合标签就变上下标 ✓）
