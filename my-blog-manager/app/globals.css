@@ -910,3 +910,29 @@ user-select: none;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
 }
+/* ═══ ✍️ 下划线（用户 2026-10-22 要求）═══
+   ① 默认（"自动"）= 跟随主题：浅色用导航栏悬停那档 #6366F1，深色用 #818CF8
+      编辑器里手动设了颜色的，会有内联 	ext-decoration-color ✓ 内联优先 ✓ 自动覆盖不了 ✓
+   ② 线条比浏览器默认**略微上移**（text-underline-offset）并细一点 ✓ 跟参考图一致 ✓
+   ③ 正文里的**外链**在末尾单独渲染一个 " ↗" 标记 ✓ 它自己不带下划线 ✓ 也不改链接文字 ✓ */
+.prose u, .resource-preview u, .editor-content-area u {
+  text-decoration-line: underline !important;
+  text-decoration-color: #6366F1;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1.5px;
+}
+.dark .prose u, .dark .resource-preview u, .dark .editor-content-area u {
+  text-decoration-color: #818CF8;
+}
+/* 外链末尾的 ↗ 标记（只对 http/https 生效 ✓ 站内链接不加 ✓） */
+.prose a[href^="http"]::after,
+.resource-preview a[href^="http"]::after,
+.editor-content-area a[href^="http"]::after {
+  content: " ↗";
+  text-decoration: none !important;
+  display: inline;
+  font-size: 0.85em;
+  opacity: 0.85;
+  margin-left: 0.1em;
+  white-space: nowrap;
+}
