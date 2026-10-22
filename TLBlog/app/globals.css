@@ -636,10 +636,17 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   background: transparent !important;
   transition: text-underline-offset 0.18s ease !important;
 }
-.prose a[href^="http"]:not(.repo-card):hover, .resource-preview a[href^="http"]:not(.repo-card):hover, .editor-content-area a[href^="http"]:not(.repo-card):hover {
-  text-decoration-style: solid !important;
-  text-underline-offset: 0.3em !important;
-  background: transparent !important;
+/* 🖱️ 悬停效果**只给真的有鼠标的设备**（用户 2026-10-22 要求）
+      手机/平板根本没有"悬停"这回事，干脆一条 :hover 规则都不给它 ✓
+      → 点完链接跳走再回来，自然不可能"卡在悬停态"✓（也就没有"取消悬停"这种事了 ✓）
+      `(hover: hover) and (pointer: fine)`：桌面鼠标、笔记本触摸板命中 ✓
+      触屏（手机/平板）、触屏上的手指输入不命中 ✓ */
+@media (hover: hover) and (pointer: fine) {
+  .prose a[href^="http"]:not(.repo-card):hover, .resource-preview a[href^="http"]:not(.repo-card):hover, .editor-content-area a[href^="http"]:not(.repo-card):hover {
+    text-decoration-style: solid !important;
+    text-underline-offset: 0.3em !important;
+    background: transparent !important;
+  }
 }
 /* ③ 箭头本身：原子行内盒，不参与父级下划线 ✓（保持无下划线、悬停也不变） */
 .prose a[href^="http"]::after, .resource-preview a[href^="http"]::after, .editor-content-area a[href^="http"]::after {
@@ -686,7 +693,18 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   box-shadow: none !important;
   transition: text-underline-offset 0.18s ease !important;
 }
-.prose a:not(.repo-card):hover, .resource-preview a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):hover,
+/* 悬停态：只在有鼠标的设备上生效 ✓（手机没有 hover，自然不会有"卡住"✓） */
+@media (hover: hover) and (pointer: fine) {
+  .prose a:not(.repo-card):hover, .resource-preview a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):hover {
+    text-decoration-style: solid !important;
+    text-underline-offset: 0.3em !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+/* 键盘 Tab 的高亮不受影响 ✓（手机/平板上插键盘照样能用） */
 .prose a:not(.repo-card):focus-visible, .resource-preview a:not(.repo-card):focus-visible, .editor-content-area a:not(.repo-card):focus-visible {
   text-decoration-style: solid !important;
   text-underline-offset: 0.3em !important;
@@ -892,67 +910,14 @@ html body img[src*="skillicons.dev/icons?i="][src*=","] {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ✋ 压掉各页面 <style> 里残留的「链接悬停亮背景」（用户 2026-10-22 要求）
+   🖱️ 链接悬停效果**只在有鼠标的设备上生效**（用户 2026-10-22 定稿）
 
-   现象：鼠标放到链接上，会冒出一块淡紫/淡蓝的圆角背景，而且文字会被 padding 顶得挪一下 ✗
-
-   根因：about / posts/[slug] / chatter/[slug] / resources 这些页面各自在 <style> 里
-        注入了一条老规则：
-            .prose a:hover { background-color: rgba(99,102,241,.1) !important;
-                             padding: 0 .2rem !important; border-radius: .2rem !important; }
-        这些 <style> 在 <body> 里，比 globals.css **后**插入；选择器特异性和全局那条一样（0,2,1），
-        后插的赢 ✗ —— 所以全局那条 `background: transparent !important` 压不住它。
-
-   解法：用更高特异性（html body + :is(容器) + :not(.repo-card)）写死悬停态：
-        · 不要背景 / 圆角 / 内边距（顺带解决"悬停时文字横向抖动"✗）
-        · 下划线仍然按我们的设计：平时虚线、悬停变实线并下移一点 ✓
-        · 卡片 a.repo-card 照旧排除（它有自己的悬停紫框 ✓）
-   ⚠️ 只动背景/内边距/下划线，**文字颜色不动**（各页面自己定的悬停色保留 ✓）
+   决策：不再用"事后取消"那一套，直接**不给手机/平板悬停样式** ✓
+     · 悬停规则全部包在 @media (hover: hover) and (pointer: fine) 里（见文件上方 ② 与 ⑧）
+     · 手机没有 hover → 一条悬停规则都不加载 → 点完跳转回来不可能"卡住" ✓
+     · 各页面 <style> 里那几条老悬停规则（淡紫背景 + padding 位移）已经整段删掉了 ✓
+   下面保留的 .force-unhover 只是给"少数浏览器谎报自己支持 hover"兜底（靠点击事件压一下）✓
    ═══════════════════════════════════════════════════════════════════ */
-html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):hover,
-html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):focus-visible {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  padding: 0 !important;
-  border: none !important;
-  border-bottom: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  text-decoration-line: underline !important;
-  text-decoration-style: solid !important;
-  text-decoration-thickness: 0.12em !important;
-  text-underline-offset: 0.3em !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   📱 手机 / 触摸屏：**没有 hover 这回事**（用户 2026-10-22 要求）
-
-   现象：手机上点一个链接跳走，返回后那条链接会一直"卡在悬停态"（下划线变实线还下移了），
-        必须点一下别处才恢复 ✗
-
-   原因：`@media (hover: none)` 的设备上，浏览器会把"最后一次点过的元素"当成 :hover ✗
-        —— 触摸没有"移开"，这个状态就一直挂着 ✓（这是触屏浏览器的老规矩，不是我们的 bug）
-
-   解法：在**不支持 hover 的设备**上，把悬停态直接按普通态画：
-        · 下划线保持平时的虚线 + 原偏移 ✓
-        · 背景 / padding / 边框照旧清掉 ✓
-        · 卡片和图片链接不受影响（它们本来就没悬停样式）✓
-   ⚠️ 只包在 @media (hover: none) 里 ✓ 有鼠标的设备（含触摸板、手机插鼠标）一点不受影响 ✓
-   ═══════════════════════════════════════════════════════════════════ */
-@media (hover: none) {
-  html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):hover {
-    background: transparent !important;
-    background-color: transparent !important;
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    text-decoration-line: underline !important;
-    text-decoration-style: dashed !important;
-    text-underline-offset: 0.18em !important;
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    🖱️ 触摸点击的**那一刻**就把悬停态按普通态画（配合 components/ClickUnhover.tsx）
 
