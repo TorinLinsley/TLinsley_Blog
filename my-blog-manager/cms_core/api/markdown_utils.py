@@ -700,6 +700,24 @@ _KEEP_INLINE_RE = re.compile(
 )
 _INLINE_SLOT = "\ue000INLINE{}\ue001"  # 私用区字符，正文里不会出现，也不会被 Markdown 转义
 
+# ⚠️⚠️ 粗体/斜体/删除线套着带样式内联标签时，**必须整段按原始 HTML 存** ✗ 不能生成 `**…**`
+#    原因（用户实测反馈：前台冒出两个星号 ✗「我也没写星号啊」）：
+#      编辑器里"粗体 + 彩色下划线"叠加 → HTML 是 <strong><u style>原版生存</u></strong>
+#      → markdownify 会吐成 `**<u style>原版生存</u>**`
+#    控制台的 python-markdown 比较宽松，能解析 ✓
+#    但**博客前台用的 remark 走 CommonMark 规则**：
+#      `**` 后面紧跟 `<`（标点）→ 判定为"不能开粗体" ✗ → 星号原样显示，字也不粗 ✗
+#    所以这里把「外层 strong/b/em/i/s/del 里含有带样式标签」的整段先抠出来 ✓
+#    → .md 里直接是 <strong><u style>…</u></strong> ✓ 两边渲染器都按原始 HTML 输出 ✓
+_EMPH_WRAP_INLINE_RE = re.compile(
+    r"<(strong|b|em|i|s|del|strike)\b[^>]*>"
+    r"(?:(?!</\1\s*>).)*?"
+    r"<(?:span|mark|u|sub|sup)\b[^>]*>.*?</(?:span|mark|u|sub|sup)\s*>"
+    r"(?:(?!</\1\s*>).)*?"
+    r"</\1\s*>",
+    re.S | re.I,
+)
+
 
 def protect_inline_tags(html: str):
     """把需要原样保留的内联标签换成占位符，返回 (处理后的 HTML, 原标签列表)"""
@@ -709,6 +727,9 @@ def protect_inline_tags(html: str):
         stash.append(m.group(0))
         return _INLINE_SLOT.format(len(stash) - 1)
 
+    # ① 先把「粗体/斜体/删除线 包着带样式标签」的整段抠掉（避免生成 `**…**` 那种坏写法）
+    html = _EMPH_WRAP_INLINE_RE.sub(_stash, html)
+    # ② 再抠剩下的单个带样式标签
     return _KEEP_INLINE_RE.sub(_stash, html), stash
 
 
