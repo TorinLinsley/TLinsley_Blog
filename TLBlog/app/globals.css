@@ -603,8 +603,8 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 .prose u, .resource-preview u, .editor-content-area u {
   text-decoration-line: underline !important;
   text-decoration-color: #818CF8;
-  text-underline-offset: 0.1em;
-  text-decoration-thickness: 3px;
+  text-underline-offset: 0.1em !important;
+  text-decoration-thickness: 3px !important;
 }
 .dark .prose u, .dark .resource-preview u, .dark .editor-content-area u {
   text-decoration-color: #6366F1;
