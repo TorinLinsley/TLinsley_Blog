@@ -1221,7 +1221,7 @@ function UnderlineColorButton({ editor }: { editor: Editor | null }) {
 
   const apply = (c: string | null) => {
     if (!editor || editor.state.selection.empty) return;   // 没框选 → 什么都不改 ✓
-    editor.chain().focus().updateAttributes('underline', { color: c }).run();
+    editor.chain().focus().setMark('underline', { color: c }).run();   // setMark：框选的文字没有下划线也会**自动加上** ✓ 且只作用于选区 ✓
     if (c) {
       setRecent((prev) => {
         const next = [c, ...prev.filter((x) => x !== c)].slice(0, 3);
