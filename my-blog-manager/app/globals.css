@@ -1132,3 +1132,26 @@ user-select: none;
   padding-bottom: 4px;
   scrollbar-width: thin;
 }
+/* 🧩 skillicons 全站通杀版（不依赖 .prose/.resource-preview 这些容器名 ✓
+      之前带前缀的选择器在"关于"页没命中，所以看着没变化 ✗ */
+img[src*="skillicons.dev/icons?i="] {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: none !important;
+  width: auto !important;
+  max-width: none !important;
+  object-fit: contain !important;
+}
+/* 所在段落允许横向滚动（超宽才出现 ✓） */
+p:has(img[src*="skillicons.dev/icons?i="]),
+div:has(> p > img[src*="skillicons.dev/icons?i="]) {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-width: 100% !important;
+}
+/* 编辑器预览行仍固定 40px ✓ 且不受全局 44px 影响 */
+.badge-preview-row img[src*="skillicons.dev/icons?i="] {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: none !important;
+}
