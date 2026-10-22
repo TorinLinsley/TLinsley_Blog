@@ -2177,6 +2177,18 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         </div>
 
         {editor.isActive('image') && <div className="flex items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">{['25%', '50%', '75%', '100%'].map(s => <button key={s} onClick={() => editor.chain().focus().updateAttributes('image', { width: s }).run()} title={"图片宽度 " + s} data-tip={"图片宽度 " + s} className="px-2 py-1 text-[9px] font-bold hover:bg-white rounded-lg transition-all">{s}</button>)}</div>}
+        {editor.isActive('underline') && <div className="flex flex-wrap items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">
+          <span className="text-[9px] font-bold opacity-60 mr-1">下划线色</span>
+          {['#6366F1','#818CF8','#4F46E5','#8B5CF6','#A78BFA','#EC4899','#F43F5E','#F59E0B','#EAB308','#10B981','#06B6D4','#3B82F6','#64748B'].map(c => (
+            <button key={c} title={c} onClick={() => editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: c }).run()}
+              className="w-4 h-4 rounded-full border border-white/60 shadow-sm transition-transform hover:scale-125" style={{ backgroundColor: c }} />
+          ))}
+          <button title="自动（跟随主题）" onClick={() => editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: null }).run()}
+            className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-white/70 dark:bg-slate-700/70">自动</button>
+          <input type="text" placeholder="#rrggbb" title="自定义十六进制颜色，回车生效"
+            onKeyDown={(e) => { if (e.key !== 'Enter') return; const v = (e.target as HTMLInputElement).value.trim(); if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return; editor.chain().focus().extendMarkRange('underline').updateAttributes('underline', { color: v }).run(); }}
+            className="w-16 px-1.5 py-0.5 text-[9px] rounded-md bg-white/70 dark:bg-slate-700/70 outline-none border border-transparent focus:border-indigo-400" />
+        </div>}
         <div className="flex-1" />
 
         {/* 📊 光标在表格里时，表格工具条就地出现在工具栏右侧（对标 Obsidian 的 Advanced Tables） */}
