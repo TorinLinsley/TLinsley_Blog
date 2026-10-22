@@ -664,3 +664,24 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   box-shadow: none !important;
   outline: none !important;
 }
+/* ⑥ 仓库卡片链接（data-repo-card）专属的悬停亮背景：专门压掉它 ✗
+      它的规则优先级更高（带属性选择器 + !important），所以这里也用属性选择器 + !important ✓ */
+.prose a[data-repo-card]:hover, .prose a[data-repo-card]:focus, .prose a[data-repo-card]:active,
+.resource-preview a[data-repo-card]:hover, .resource-preview a[data-repo-card]:focus, .resource-preview a[data-repo-card]:active,
+.editor-content-area a[data-repo-card]:hover, .editor-content-area a[data-repo-card]:focus, .editor-content-area a[data-repo-card]:active,
+.prose a[href^="http"][data-repo-card]:hover,
+.resource-preview a[href^="http"][data-repo-card]:hover,
+.editor-content-area a[href^="http"][data-repo-card]:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-decoration-style: solid !important;
+  text-underline-offset: 0.3em !important;
+}
+/* 卡片里的 <strong> 也一并保证没有背景/圆角 */
+.prose a[data-repo-card] strong, .resource-preview a[data-repo-card] strong, .editor-content-area a[data-repo-card] strong {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
