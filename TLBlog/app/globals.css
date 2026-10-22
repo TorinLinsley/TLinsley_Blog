@@ -854,3 +854,14 @@ img[src*="skillicons.dev/icons?i="]:not([src*=","]) {
   width: auto !important;
   max-width: none !important;
 }
+/* 🧩 多图标长条：等比例铺满正文宽度 ✓（SVG 放大不会模糊 ✓ 左右边距与正文一致 ✓）*/
+img[src*="skillicons.dev/icons?i="][src*=","] {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+/* 铺满后不会再溢出，滚动条自然不出现 ✓（窄屏仍保留兜底 ✓）*/
