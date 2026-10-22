@@ -867,9 +867,7 @@ function ResourcesContent() {
                     .resource-preview ol { list-style-type: decimal !important; padding-left: 1.5rem !important; }
                     .resource-preview li { display: list-item !important; margin-bottom: 0.4rem !important; }
                     .resource-preview a { color: #6366f1 !important; font-weight: 600 !important; border-bottom: 1px dashed #6366f1 !important; transition: all 0.3s ease !important; }
-                    .resource-preview a:hover { color: #4f46e5 !important; border-bottom-style: solid !important; background-color: rgba(99,102,241,0.1) !important; border-radius: 0.2rem !important; }
                     .dark .resource-preview a { color: #a5b4fc !important; border-bottom-color: #a5b4fc !important; }
-                    .dark .resource-preview a:hover { color: #c7d2fe !important; border-bottom-color: #c7d2fe !important; background-color: rgba(165,180,252,0.16) !important; }
                     .resource-preview blockquote {
                       border-left: 4px solid #6366f1 !important; background-color: rgba(99,102,241,0.05) !important;
                       padding: 1rem 1.5rem !important; margin: 1.5rem 0 !important;

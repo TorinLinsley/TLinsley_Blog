@@ -924,3 +924,31 @@ html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area)
   text-decoration-thickness: 0.12em !important;
   text-underline-offset: 0.3em !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   📱 手机 / 触摸屏：**没有 hover 这回事**（用户 2026-10-22 要求）
+
+   现象：手机上点一个链接跳走，返回后那条链接会一直"卡在悬停态"（下划线变实线还下移了），
+        必须点一下别处才恢复 ✗
+
+   原因：`@media (hover: none)` 的设备上，浏览器会把"最后一次点过的元素"当成 :hover ✗
+        —— 触摸没有"移开"，这个状态就一直挂着 ✓（这是触屏浏览器的老规矩，不是我们的 bug）
+
+   解法：在**不支持 hover 的设备**上，把悬停态直接按普通态画：
+        · 下划线保持平时的虚线 + 原偏移 ✓
+        · 背景 / padding / 边框照旧清掉 ✓
+        · 卡片和图片链接不受影响（它们本来就没悬停样式）✓
+   ⚠️ 只包在 @media (hover: none) 里 ✓ 有鼠标的设备（含触摸板、手机插鼠标）一点不受影响 ✓
+   ═══════════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)):hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    text-decoration-line: underline !important;
+    text-decoration-style: dashed !important;
+    text-underline-offset: 0.18em !important;
+  }
+}
