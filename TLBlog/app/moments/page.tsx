@@ -12,10 +12,12 @@ import { renderMomentHtml } from '../../lib/momentMarkdown';
 
 // 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
 // ⚠️ 这里**故意不做 ISR 缓存**（用户 2026-10-22 反馈："发完说说要刷好几次才看见"）：
-//    之前是 revalidate = 30 → 页面缓存 30 秒，发布完刷新看到的还是旧快照 ✗
-//    说说数据量很小（就是读几个 .md + 渲染正文），实时渲染完全扛得住 ✓
-//    代价：<Link> 预取拿不到静态结果（点进去会花几十毫秒渲染），换来"刷新即最新" ✓ 值
-export const dynamic = 'force-dynamic';
+// 之前 revalidate = 30 → 页面缓存 30 秒，发布完刷新看到的还是旧快照 ✗
+// ⚠️ 又要"立即最新"，又不想给服务器加带宽/渲染负担 → 用**很短的 ISR**（3 秒）：
+//    · 页面仍然是静态结果 ✓ 命中缓存时**不渲染**、和原来一样省 ✓（带宽一点没多）
+//    · 最坏情况旧 3 秒 ✓ 刷新一下基本就是新的 ✓
+//    · 比 force-dynamic 好在：没人看的时候完全不渲染，冷启动也不会每次都跑一遍 remark ✓
+export const revalidate = 3;
 
 export const metadata = {
   title: "说说 | " + siteConfig.title,

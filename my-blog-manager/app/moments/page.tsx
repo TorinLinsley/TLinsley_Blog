@@ -11,10 +11,10 @@ import { stripInlineMarkdown } from '../../lib/repairMarkdown';
 import { renderMomentHtml } from '../../lib/momentMarkdown';
 
 // 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-// ⚠️ 这里**故意不做 ISR 缓存**（用户 2026-10-22 反馈："发完说说要刷好几次才看见"）：
-//    之前 revalidate = 30 → 页面缓存 30 秒，发布完刷新还是旧快照 ✗
-//    说说数据量小（读几个 .md + 渲染正文），实时渲染扛得住 ✓ 换来"刷新即最新" ✓
-export const dynamic = 'force-dynamic';
+// ⚠️ 又要"立即最新"，又不想加带宽/渲染负担 → 用**很短的 ISR**（3 秒）：
+//    · 页面仍然是静态结果 ✓ 命中缓存时不渲染 ✓ 带宽和原来一样 ✓
+//    · 最坏情况旧 3 秒 ✓（之前 30 秒，才会出现"刷好几次才看见"✗）
+export const revalidate = 3;
 
 export const metadata = {
   title: "说说 | " + siteConfig.title,
