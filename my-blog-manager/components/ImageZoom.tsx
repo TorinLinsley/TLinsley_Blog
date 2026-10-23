@@ -258,7 +258,8 @@ export default function ImageZoom() {
       btn.innerHTML = dir < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT;
       btn.style.cssText = [
         'pointer-events:auto',
-        'height:34px', 'min-width:54px', 'padding:0 14px',
+        // 圆形，直径和页码胶囊的**高度**一致（都是 34px）—— 只是等高，不拉长 ✓
+        'width:34px', 'height:34px', 'padding:0',
         'display:flex', 'align-items:center', 'justify-content:center',
         'border-radius:9999px',
         'border:1px solid rgba(255,255,255,0.14)',
@@ -482,8 +483,8 @@ export default function ImageZoom() {
           return;
         }
 
-        // ② 点空白处关闭（点图片、点按钮都不关）
-        if (moved < CLICK_SLOP && zoom <= 1.02 && !lastOnImage) {
+        // ② 点空白处关闭 —— **放大状态下也关** ✓（只有点在图片上或按钮上才不关）
+        if (moved < CLICK_SLOP && !lastOnImage) {
           if (e.pointerType !== 'mouse') swallowClickUntil = performance.now() + 500;
           close();
         }
