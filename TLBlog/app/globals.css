@@ -937,3 +937,47 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
   text-decoration-style: dashed !important;
   text-underline-offset: 0.18em !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   📝 说说卡片正文（Markdown 渲染后）的最小排版（用户 2026-10-22 要求）
+
+   背景：说说以前是纯文本，写了 `- 列表` 会被去掉减号 ✗
+        现在正文按 Markdown 渲染成 <ul>/<ol> ✓ 卡片空间小，间距/缩进都收得很紧 ✓
+   ⚠️ 链接/下划线/高亮/上下标这些走全局 .prose 那套规则（卡片里那层就带 .prose）✓
+   ═══════════════════════════════════════════════════════════════════ */
+.moment-content p { margin: 0 0 0.5rem; }
+.moment-content p:last-child { margin-bottom: 0; }
+.moment-content ul,
+.moment-content ol { margin: 0.35rem 0 0.6rem; padding-left: 1.25rem; }
+.moment-content ul { list-style: disc; }
+.moment-content ol { list-style: decimal; }
+.moment-content li { margin: 0.15rem 0; }
+.moment-content li::marker { opacity: 0.75; }
+.moment-content ul ul { list-style: circle; }
+.moment-content ul ol { list-style: lower-alpha; }
+.moment-content strong { font-weight: 800; }
+.moment-content code {
+  font-size: 0.88em;
+  padding: 0.08em 0.32em;
+  border-radius: 0.35rem;
+  background: rgba(99, 102, 241, 0.12);
+}
+.moment-content pre {
+  margin: 0.6rem 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  background: #282c34;
+  color: #abb2bf;
+}
+.moment-content pre code { background: transparent; padding: 0; }
+.moment-content img { max-width: 100%; height: auto; border-radius: 0.75rem; margin: 0.4rem 0; }
+.moment-content blockquote {
+  margin: 0.5rem 0;
+  padding: 0.35rem 0 0.35rem 0.75rem;
+  border-left: 3px solid rgba(99, 102, 241, 0.55);
+  opacity: 0.9;
+}
+.moment-content table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+.moment-content th,
+.moment-content td { border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.3rem 0.5rem; }

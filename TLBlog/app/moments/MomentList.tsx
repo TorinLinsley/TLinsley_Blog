@@ -110,7 +110,16 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         </div>
       </div>
 
-      <p className="text-slate-800 dark:text-slate-200 text-[14px] md:text-[16px] leading-relaxed whitespace-pre-wrap font-medium break-words">{moment.content}</p>
+      {/* 📝 正文按 Markdown 渲染（列表/加粗/代码/链接都正常）——
+          用户 2026-10-22 反馈：写 `- 站外链接…` 结果减号没了，因为以前是纯文本 + 去标记 ✗ */}
+      {moment.contentHtml ? (
+        <div
+          className="moment-content prose prose-sm max-w-none text-slate-800 dark:text-slate-200 text-[14px] md:text-[16px] leading-relaxed font-medium break-words"
+          dangerouslySetInnerHTML={{ __html: moment.contentHtml }}
+        />
+      ) : (
+        <p className="text-slate-800 dark:text-slate-200 text-[14px] md:text-[16px] leading-relaxed whitespace-pre-wrap font-medium break-words">{moment.content}</p>
+      )}
 
       {renderImages(moment.images)}
 
