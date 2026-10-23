@@ -31,8 +31,10 @@ const SWIPE_RATIO = 0.18;
 const SWIPE_VELOCITY = 0.45;
 /** 两张图之间的间距 */
 const GAP = 18;
-/** 底部按钮带高度 */
+/** 底部按钮带高度（图片可用高度要减掉它） */
 const BOTTOM_BAR = 72;
+/** 🏷️ 顶部描述带高度（用户要求：默认画面不能顶到顶部文字上，两行都是"虚空"区域） */
+const TOP_BAR = 72;
 const WHEEL_SENSITIVITY = 0.0015;
 const PINCH_SENSITIVITY = 0.02;
 const OVERLAY_Z = 2147483000;
@@ -95,18 +97,31 @@ export default function ImageZoom() {
     /** 是否正在动画（这时别再改 transform） */
     let animating = false;
 
-    const viewW = () => window.innerWidth;
-    const slideSpan = () => viewW() + GAP;
-
     const baseSize = () => ({
       w: imgCur?.offsetWidth || 1,
       h: imgCur?.offsetHeight || 1,
     });
 
+    const viewW = () => window.innerWidth;
+    const slideSpan = () => viewW() + GAP;
+    /**
+     * 中间"纯图片"区域的上边界：**动态**取顶部那行文字实际占到的底边 + 10px
+     * （描述可能换行、iPhone 还有刘海安全区，写死一个数会盖到文字上 ✗）
+     */
+    const bandTop = () => {
+      const rect = captionEl?.getBoundingClientRect();
+      const used = rect && rect.height > 0 ? rect.bottom + 10 : TOP_BAR;
+      return Math.max(TOP_BAR, used);
+    };
+    /** 中间区域高度：上下两条带都扣掉 ✓ */
+    const viewH = () => Math.max(120, window.innerHeight - bandTop() - BOTTOM_BAR);
+    /** 中间区域的垂直中心（缩放锚点用） */
+    const bandCenterY = () => bandTop() + viewH() / 2;
+
     const clampPan = () => {
       const { w, h } = baseSize();
       const maxX = Math.max(0, (w * zoom - viewW()) / 2);
-      const maxY = Math.max(0, (h * zoom - (window.innerHeight - BOTTOM_BAR)) / 2);
+      const maxY = Math.max(0, (h * zoom - viewH()) / 2);
       tx = Math.min(maxX, Math.max(-maxX, tx));
       ty = Math.min(maxY, Math.max(-maxY, ty));
     };
@@ -131,7 +146,7 @@ export default function ImageZoom() {
       if (anchorX !== undefined && anchorY !== undefined) {
         const k = target / zoom;
         const cx = anchorX - viewW() / 2;
-        const cy = anchorY - (window.innerHeight - BOTTOM_BAR) / 2;
+        const cy = anchorY - bandCenterY();
         tx = cx - k * (cx - tx);
         ty = cy - k * (cy - ty);
       } else {
@@ -157,6 +172,12 @@ export default function ImageZoom() {
         captionEl.textContent = cap;
         topEl.style.display = cap ? 'flex' : 'none';
       }
+
+      // 让三张幻灯片都从"顶部文字的下边界"开始，图片就不会顶到文字上 ✓
+      const topPx = bandTop();
+      [slotPrev, slotCur, slotNext].forEach((slot) => {
+        if (slot) slot.style.paddingTop = `${topPx}px`;
+      });
     };
 
     /** 把 prev / cur / next 三张图摆好（默认态、无缩放） */
@@ -302,7 +323,9 @@ export default function ImageZoom() {
       slot.style.cssText = [
         'position:absolute', 'inset:0',
         'display:flex', 'align-items:center', 'justify-content:center',
-        `padding-bottom:${BOTTOM_BAR}px`, 'box-sizing:border-box',
+        // 上下两条带都留空：默认等比例显示时，图片只会落在中间那块区域 ✓
+        `padding-top:${TOP_BAR}px`, `padding-bottom:${BOTTOM_BAR}px`,
+        'box-sizing:border-box',
         'will-change:transform',
       ].join(';');
       const im = document.createElement('img');
