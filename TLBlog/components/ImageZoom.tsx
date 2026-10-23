@@ -10,19 +10,16 @@ import { useEffect } from "react";
  *   · 默认态 = 按比例铺满屏幕（上下或左右贴边），这就是**最小态**，不能再缩小 ✓
  *   · 缩放：电脑滚轮 / 触控板捏合；手机双指捏合 ✓ 只作用于图片，**不会缩放整个网页** ✓
  *   · 放大后：电脑按住拖动、手机单指拖动 = 移动画面看细节 ✓
- *   · 切换：**只有默认态（没放大）**才能翻上/下一张 ——
- *       电脑鼠标按住左右拖、手机手指左右滑 ✓（翻页阈值 60px，斜着划不算 ✓）
- *       底部那排按钮也能翻：左箭头在最左、右箭头在最右、页码居中 ✓
- *       放大状态下拖动是"移画面"而不是"翻页" ✓
- *   · 关闭：点图片/按钮以外的**空白处** ✓、按 Esc ✓（手机上点空白同样有效）
- *   · 键盘：← → 也能翻页（有上一张/下一张时）✓
+ *   · 切换：**只有默认态（没放大）**才能翻上/下一张 —— 鼠标左右拖 / 手指左右滑；底部按钮也能翻 ✓
+ *   · 底部那排：**‹ [1/2] ›** 三件套居中并排在底部，箭头用原来那套 chevron 图标 ✓
+ *     （不再压在画面左右两侧 ✗ 手机上会挡住画面）
+ *   · 关闭：点图片/按钮以外的**空白处** ✓、Esc ✓、**手机系统返回键** ✓（见下面 pushState 那段）
+ *   · 键盘：← → 翻页 ✓
  *
- * 箭头为什么放底部：以前压在图片左右两侧，手机上正好挡住画面 ✗
+ * 📱 系统返回键：打开预览时往 history 里压一条记录，按返回=退掉这一条 → 关预览、文章页还留着 ✓
+ *    以前没这条：返回键把文章页退掉，预览层是自己 append 的 DOM，会孤零零留在最上层 ✗
  *
- * 兼容性：Pointer Events（鼠标/触摸一套逻辑）+ 滚轮 deltaMode 归一化（Firefox/Linux 按行给）
- *        + iOS 的 gesturestart/touch-action/overscroll-behavior（不让整页跟着缩放/回落）
- *
- * ⚠️ 编辑器正文（.editor-content-area / .ProseMirror）里的图**不接管** —— 那里点图是编辑，不能抢 ✗
+ * ⚠️ 编辑器正文（.editor-content-area / .ProseMirror）里的图**不接管** —— 那里点图是编辑 ✗
  */
 
 /** 哪些容器里的图片可以点开放大 */
@@ -41,10 +38,16 @@ const WHEEL_SENSITIVITY = 0.0015;
 const PINCH_SENSITIVITY = 0.02;
 /** 图层最高 */
 const OVERLAY_Z = 2147483000;
-/** 底部那排按钮占的高度（图片可用高度要减掉它，免得被挡住） */
-const BOTTOM_BAR = 64;
+/** 底部按钮带高度（图片可用高度要减掉它） */
+const BOTTOM_BAR = 72;
 /** 图片链接（点开还是图片）才接管点击 */
 const IMAGE_HREF = /\.(png|jpe?g|gif|webp|avif|svg|bmp)(\?|#|$)/i;
+
+/** 原来那套 chevron 图标（lucide 的 ChevronLeft / ChevronRight 同一条路径） */
+const CHEVRON_LEFT =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+const CHEVRON_RIGHT =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
 
 export type GalleryItem = { src: string; alt?: string };
 
@@ -62,8 +65,8 @@ declare global {
 export default function ImageZoom() {
   useEffect(() => {
     let overlay: HTMLDivElement | null = null;
-    let imgEl: HTMLImageElement | null = null;
     let bar: HTMLDivElement | null = null;
+    let imgEl: HTMLImageElement | null = null;
     let counterEl: HTMLSpanElement | null = null;
     let prevBtn: HTMLButtonElement | null = null;
     let nextBtn: HTMLButtonElement | null = null;
@@ -72,6 +75,8 @@ export default function ImageZoom() {
 
     /** 触摸关闭后浏览器补发的 click 要吃掉（否则会立刻又打开底下那张图） */
     let swallowClickUntil = 0;
+    /** 是不是"系统返回键"触发的关闭（那种情况不能再 history.back 一次） */
+    let closingByHistory = false;
 
     let items: GalleryItem[] = [];
     let index = 0;
@@ -85,7 +90,6 @@ export default function ImageZoom() {
     let ty = 0;
 
     const viewW = () => window.innerWidth;
-    /** 可用高度：减掉底部按钮带，图片不会被按钮压住 */
     const viewH = () => Math.max(120, window.innerHeight - BOTTOM_BAR);
 
     const clampPan = () => {
@@ -103,7 +107,12 @@ export default function ImageZoom() {
       imgEl.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${fit * zoom})`;
     };
 
-    /** 缩放：anchor 是屏幕坐标，缩放时把锚点钉住（滚轮/捏合手感一致） */
+    const updateCursor = () => {
+      if (!overlay) return;
+      overlay.style.cursor = zoom > 1.02 ? 'grab' : 'zoom-out';
+    };
+
+    /** 缩放：anchor 是屏幕坐标，缩放时把锚点钉住 */
     const zoomTo = (next: number, anchorX?: number, anchorY?: number) => {
       const target = Math.min(maxZoom, Math.max(1, next));
       if (Math.abs(target - zoom) < 0.0005) return;
@@ -111,7 +120,7 @@ export default function ImageZoom() {
       if (anchorX !== undefined && anchorY !== undefined) {
         const k = target / zoom;
         const cx = anchorX - viewW() / 2;
-        const cy = anchorY - (viewH() / 2);
+        const cy = anchorY - viewH() / 2;
         tx = cx - k * (cx - tx);
         ty = cy - k * (cy - ty);
       } else {
@@ -134,15 +143,15 @@ export default function ImageZoom() {
     const updateChrome = () => {
       if (!counterEl || !bar) return;
       const many = items.length > 1;
-      bar.style.display = many ? 'flex' : 'none';
+      bar.style.visibility = many ? 'visible' : 'hidden';
       counterEl.textContent = `${index + 1} / ${items.length}`;
-      if (prevBtn) prevBtn.style.visibility = many ? 'visible' : 'hidden';
-      if (nextBtn) nextBtn.style.visibility = many ? 'visible' : 'hidden';
     };
 
-    const updateCursor = () => {
+    /** 📱 系统返回键 / 浏览器后退 → 只关预览，不动文章页 */
+    const onPopState = () => {
       if (!overlay) return;
-      overlay.style.cursor = zoom > 1.02 ? 'grab' : 'zoom-out';
+      closingByHistory = true;
+      try { close(); } finally { closingByHistory = false; }
     };
 
     const close = () => {
@@ -160,6 +169,12 @@ export default function ImageZoom() {
       document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
       window.removeEventListener('resize', relayout);
       window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('popstate', onPopState);
+
+      // 手动关闭（点空白/Esc/按钮）→ 把刚才压进去的那条历史退掉，不留空记录
+      if (!closingByHistory && (history.state as { __tlImageViewer?: boolean } | null)?.__tlImageViewer) {
+        history.back();
+      }
     };
 
     /** 切到第 i 张（循环） */
@@ -207,26 +222,27 @@ export default function ImageZoom() {
       if (e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); go(1); }
     };
 
+    /** 箭头按钮：沿用原来那套 chevron 图标（不再用文字符号，那个本身就歪 ✗） */
     const makeBtn = (dir: -1 | 1): HTMLButtonElement => {
       const btn = document.createElement('button');
-      const chevron = dir < 0 ? '‹' : '›';
       btn.type = 'button';
       btn.setAttribute('aria-label', dir < 0 ? '上一张' : '下一张');
-      btn.textContent = chevron;
+      btn.innerHTML = dir < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT;
       btn.style.cssText = [
         'pointer-events:auto',
-        'width:44px', 'height:44px',
+        'width:42px', 'height:42px', 'flex:0 0 auto',
         'display:flex', 'align-items:center', 'justify-content:center',
         'border-radius:9999px',
-        'border:1px solid rgba(255,255,255,0.18)',
+        'border:1px solid rgba(255,255,255,0.14)',
         'background:rgba(255,255,255,0.12)',
-        'color:#fff', 'font-size:26px', 'line-height:1',
-        'cursor:pointer', 'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
+        'color:#fff',
+        'cursor:pointer',
+        'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
         'user-select:none', '-webkit-user-select:none',
         '-webkit-tap-highlight-color:transparent',
-        'transition:background .16s ease',
+        'transition:background .16s ease, transform .16s ease',
       ].join(';');
-      const light = () => { btn.style.background = 'rgba(255,255,255,0.22)'; };
+      const light = () => { btn.style.background = 'rgba(255,255,255,0.24)'; };
       const dark = () => { btn.style.background = 'rgba(255,255,255,0.12)'; };
       btn.addEventListener('pointerenter', light);
       btn.addEventListener('pointerleave', dark);
@@ -253,7 +269,7 @@ export default function ImageZoom() {
         'background:rgba(0,0,0,0.92)',
         'display:flex', 'align-items:center', 'justify-content:center',
         'overflow:hidden',
-        // 👇 底部留出按钮带的高度：图片按"屏幕高度 - 64"等比铺满并居中，不会被箭头/页码压住 ✓
+        // 底部留出按钮带：图片按"屏幕高度 - 72"等比铺满并居中，不会被箭头/页码压住 ✓
         `padding-bottom:${BOTTOM_BAR}px`,
         'box-sizing:border-box',
         'touch-action:none',
@@ -276,14 +292,14 @@ export default function ImageZoom() {
         'box-shadow:0 20px 60px rgba(0,0,0,0.45)',
       ].join(';');
 
-      /* ── 底部按钮带：左箭头 / 页码 / 右箭头（都在图片外面，不挡画面）── */
+      /* ── 底部：‹ [1/2] › 三件套居中并排 ✓（箭头和页码挨在一起，都在图片外面）── */
       bar = document.createElement('div');
       bar.style.cssText = [
         'position:fixed', 'left:0', 'right:0',
-        // iPhone 底部有手势条：安全区一起算进去，按钮不会被顶出屏幕
-        'bottom:calc(12px + env(safe-area-inset-bottom, 0px))',
-        'display:flex', 'align-items:center', 'justify-content:space-between',
-        'padding:0 16px', 'pointer-events:none', `z-index:${OVERLAY_Z + 1}`,
+        'bottom:calc(14px + env(safe-area-inset-bottom, 0px))',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        'gap:10px',
+        'pointer-events:none', `z-index:${OVERLAY_Z + 1}`,
       ].join(';');
 
       prevBtn = makeBtn(-1);
@@ -291,11 +307,13 @@ export default function ImageZoom() {
 
       counterEl = document.createElement('span');
       counterEl.style.cssText = [
-        'position:absolute', 'left:50%', 'transform:translateX(-50%)',
-        'padding:4px 12px', 'border-radius:9999px',
+        'pointer-events:none',
+        'display:inline-flex', 'align-items:center', 'justify-content:center',
+        'min-width:62px', 'height:34px', 'padding:0 14px',
+        'border-radius:9999px',
         'background:rgba(255,255,255,0.12)', 'border:1px solid rgba(255,255,255,0.14)',
-        'color:rgba(255,255,255,0.9)', 'font-size:12px', 'font-weight:800',
-        'letter-spacing:.12em', 'pointer-events:none',
+        'color:rgba(255,255,255,0.92)', 'font-size:12px', 'font-weight:800',
+        'letter-spacing:.12em',
         'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
       ].join(';');
 
@@ -307,8 +325,18 @@ export default function ImageZoom() {
       document.body.appendChild(overlay);
       document.body.appendChild(bar);
 
+      // 📱 压一条历史：系统返回键 = 退掉这条 = 关预览（文章页不动）✓
+      try {
+        if (!(history.state as { __tlImageViewer?: boolean } | null)?.__tlImageViewer) {
+          history.pushState({ __tlImageViewer: true }, '');
+        }
+      } catch {
+        /* 某些内置浏览器限制 pushState，退化成没有返回键支持，不影响其它交互 */
+      }
+      window.addEventListener('popstate', onPopState);
+
       /* ── 手势 ── */
-      type Press = { x: number; y: number; moved: number; startTx: number; startTy: number; onImage: boolean };
+      type Press = { x: number; y: number; moved: number; startTx: number; startTy: number };
       const presses = new Map<number, Press>();
       let pinchStartDist = 0;
       let pinchStartZoom = 1;
@@ -323,7 +351,6 @@ export default function ImageZoom() {
         presses.set(e.pointerId, {
           x: e.clientX, y: e.clientY, moved: 0,
           startTx: tx, startTy: ty,
-          onImage: e.target === imgEl,
         });
         lastOnImage = e.target === imgEl;
         lastStartX = e.clientX;
@@ -353,7 +380,7 @@ export default function ImageZoom() {
           return;
         }
 
-        // 单指/鼠标：放大后 = 拖动画布；默认态 = 什么也不做（松手才判翻页）
+        // 放大后 = 拖动画布；默认态 = 松手时判翻页
         if (zoom <= 1.02) return;
         tx = me.startTx + (e.clientX - me.x);
         ty = me.startTy + (e.clientY - me.y);
@@ -369,7 +396,7 @@ export default function ImageZoom() {
         const justPinched = performance.now() - lastPinchAt < 300;
         if (justPinched) { updateCursor(); return; }
 
-        // ① 默认态下的左右滑动/拖动 = 翻页（阈值 + 以横向为主）
+        // ① 默认态左右拖/滑 = 翻页
         if (me && zoom <= 1.02 && items.length > 1) {
           const dx = e.clientX - lastStartX;
           const dy = Math.abs(e.clientY - me.y);
@@ -380,17 +407,14 @@ export default function ImageZoom() {
         }
 
         // ② 点空白处关闭（点图片、点按钮都不关）
-        if (lastMoved < CLICK_SLOP) {
-          if (!lastOnImage) {
-            if (e.pointerType !== 'mouse') swallowClickUntil = performance.now() + 500;
-            close();
-            return;
-          }
+        if (lastMoved < CLICK_SLOP && !lastOnImage) {
+          if (e.pointerType !== 'mouse') swallowClickUntil = performance.now() + 500;
+          close();
+          return;
         }
         updateCursor();
       };
 
-      /** 浏览器活跃触摸列表为准清理残留条目 */
       const onTouchSync = (e: TouchEvent) => {
         const alive = e.touches.length;
         if (alive === 0) presses.clear();
@@ -410,13 +434,12 @@ export default function ImageZoom() {
         zoomTo(zoom * Math.exp(-dy * k), e.clientX, e.clientY);
       };
 
-      /** 挡住点击穿透（关闭交给 pointerup 那条路，这里只做兜底的鼠标单击） */
       const onClick = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (!overlay) return;
         if (performance.now() - lastPinchAt < 300) return;
-        if (e.target === imgEl) return;              // 点图片本身：不关
+        if (e.target === imgEl) return;                       // 点图片本身：不关
         if ((e.target as HTMLElement)?.closest('button')) return;
         if (lastMoved < CLICK_SLOP) close();
       };
@@ -456,7 +479,7 @@ export default function ImageZoom() {
       show(index);
     };
 
-    // ── 正文图片：事件委托，点哪张就把它所在的容器里所有图收成一组 ──
+    // ── 正文图片：事件委托，点哪张就把同容器里所有图收成一组 ──
     const onDocClick = (e: MouseEvent) => {
       if (overlay) return;
       if (performance.now() < swallowClickUntil) { e.preventDefault(); e.stopPropagation(); return; }
@@ -489,9 +512,8 @@ export default function ImageZoom() {
         src: im.currentSrc || im.src,
         alt: im.alt || '',
       }));
-      const startAt = Math.max(0, all.indexOf(img));
       if (!gallery.length) return;
-      openWith(gallery, startAt);
+      openWith(gallery, Math.max(0, all.indexOf(img)));
     };
 
     document.addEventListener('click', onDocClick, true);
