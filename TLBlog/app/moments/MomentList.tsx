@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { MapPin, MessageSquare, Clock, Sparkles, Search, ArrowDownAZ, ArrowUpZA, ChevronLeft, ChevronRight, Ghost } from 'lucide-react';
+import { MapPin, MessageSquare, Clock, Sparkles, Search, ArrowDownAZ, ArrowUpZA, Ghost } from 'lucide-react';
 import MomentComments from '../../components/MomentComments';
 
 function timeAgo(dateStr: string) {
@@ -19,7 +19,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
   const [openCommentId, setOpenCommentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [lightbox, setLightbox] = useState<{ images: string[], index: number } | null>(null);
 
   const processedMoments = useMemo(() => {
     let result = moments ? [...moments] : [];
@@ -40,16 +39,11 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
     return result;
   }, [moments, searchQuery, sortOrder]);
 
-  const nextImg = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!lightbox) return;
-    setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.images.length });
-  };
-
-  const prevImg = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!lightbox) return;
-    setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.images.length) % lightbox.images.length });
+  /** 🖼️ 点开大图：统一交给 components/ImageZoom.tsx 那一套浏览器（和正文图片完全同一套交互） */
+  const openLightbox = (images: string[], idx: number) => {
+    const gallery = (images || []).filter(Boolean).map((src) => ({ src, alt: '' }));
+    if (!gallery.length) return;
+    window.__tlImageViewer?.open(gallery, idx);
   };
 
   const renderImages = (images: string[]) => {
@@ -59,7 +53,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
     if (count === 1) {
       return (
         <div className="mt-4 md:mt-8 flex justify-start sm:justify-center w-full">
-          <div onClick={() => setLightbox({ images, index: 0 })} className="max-w-[80%] sm:max-w-[280px] overflow-hidden rounded-xl md:rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-lg md:shadow-xl cursor-zoom-in group">
+          <div onClick={() => openLightbox(images, 0)} className="max-w-[80%] sm:max-w-[280px] overflow-hidden rounded-xl md:rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-lg md:shadow-xl cursor-zoom-in group">
             <img src={images[0] || undefined} alt="moment" className="w-full h-auto max-h-[300px] md:max-h-[400px] object-contain group-hover:scale-105 transition-transform duration-500" />
           </div>
         </div>
@@ -75,7 +69,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
           {images.slice(0, 9).map((src, idx) => {
             const isLastVisible = idx === 8 && count > 9;
             return (
-              <div key={idx} onClick={() => setLightbox({ images, index: idx })} className="group relative aspect-square overflow-hidden rounded-lg md:rounded-xl bg-slate-200/20 dark:bg-slate-700/20 border border-slate-200/50 dark:border-white/10 cursor-zoom-in">
+              <div key={idx} onClick={() => openLightbox(images, idx)} className="group relative aspect-square overflow-hidden rounded-lg md:rounded-xl bg-slate-200/20 dark:bg-slate-700/20 border border-slate-200/50 dark:border-white/10 cursor-zoom-in">
                 <img src={src || undefined} alt="moment" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 {isLastVisible && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white backdrop-blur-[2px]">
@@ -205,28 +199,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         )}
       </LayoutGroup>
 
-      <AnimatePresence>
-        {lightbox && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-slate-950/98 backdrop-blur-xl flex items-center justify-center cursor-pointer overflow-hidden"
-            onClick={() => setLightbox(null)}
-          >
-            {lightbox.images.length > 1 && (
-              <>
-                <button className="absolute left-4 md:left-12 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-50 border border-white/5 backdrop-blur-md" onClick={prevImg}><ChevronLeft size={24} className="md:w-9 md:h-9"/></button>
-                <button className="absolute right-4 md:right-12 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-50 border border-white/5 backdrop-blur-md" onClick={nextImg}><ChevronRight size={24} className="md:w-9 md:h-9"/></button>
-              </>
-            )}
-            <motion.div key={lightbox.index} initial={{ opacity: 0, scale: 0.9, x: 50 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, x: -50 }} className="relative w-full h-full flex flex-col items-center justify-center p-4 md:p-12 pointer-events-none">
-              <img src={lightbox.images[lightbox.index] || undefined} className="max-w-full max-h-[75vh] md:max-h-[85vh] object-contain rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.5)] border border-white/10 pointer-events-auto" alt="fullscreen" />
-              <div className="absolute bottom-8 md:bottom-10 px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-white/10 backdrop-blur-md text-white/90 text-[10px] md:text-xs font-black tracking-widest border border-white/10">
-                {lightbox.index + 1} / {lightbox.images.length}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 🖼️ 灯箱已经统一交给 components/ImageZoom.tsx（全站一套：底部箭头、滑动翻页、滚轮/捏合缩放） */}
 
     </div>
   );
