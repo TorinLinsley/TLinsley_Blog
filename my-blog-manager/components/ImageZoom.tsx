@@ -67,6 +67,8 @@ export default function ImageZoom() {
     let stage: HTMLDivElement | null = null;
     let track: HTMLDivElement | null = null;
     let bar: HTMLDivElement | null = null;
+    let topEl: HTMLDivElement | null = null;
+    let captionEl: HTMLSpanElement | null = null;
     let counterEl: HTMLSpanElement | null = null;
 
     let slotPrev: HTMLDivElement | null = null;
@@ -147,6 +149,14 @@ export default function ImageZoom() {
       const many = items.length > 1;
       bar.style.visibility = many ? 'visible' : 'hidden';
       counterEl.textContent = `${index + 1} / ${items.length}`;
+
+      /* 📝 图片描述（alt / 标题）放在**屏幕顶部**（用户 2026-10-23 要求）：
+         照片墙那边原来把描述放在底部，和按钮挤在一起；现在统一到顶部居中显示 ✓ 空就不显示 ✓ */
+      if (topEl && captionEl) {
+        const cap = (items[index]?.alt || '').trim();
+        captionEl.textContent = cap;
+        topEl.style.display = cap ? 'flex' : 'none';
+      }
     };
 
     /** 把 prev / cur / next 三张图摆好（默认态、无缩放） */
@@ -176,8 +186,11 @@ export default function ImageZoom() {
       if (!overlay && !bar) return;
       overlay?.remove();
       bar?.remove();
+      topEl?.remove();
       overlay = null;
       bar = null;
+      topEl = null;
+      captionEl = null;
       stage = null;
       track = null;
       imgPrev = imgCur = imgNext = null;
@@ -262,17 +275,19 @@ export default function ImageZoom() {
         'width:34px', 'height:34px', 'padding:0',
         'display:flex', 'align-items:center', 'justify-content:center',
         'border-radius:9999px',
-        'border:1px solid rgba(255,255,255,0.14)',
-        'background:rgba(255,255,255,0.12)',
+        // 🎨 深底 + 白图标 + 亮描边 + 投影：铺满深色/浅色画面时都看得见（用户反馈：原来透明底在深色图上找不到）
+        'border:1px solid rgba(255,255,255,0.32)',
+        'background:rgba(0,0,0,0.55)',
         'color:#fff',
+        'box-shadow:0 4px 18px rgba(0,0,0,0.45)',
         'cursor:pointer',
-        'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
+        'backdrop-filter:blur(10px)', '-webkit-backdrop-filter:blur(10px)',
         'user-select:none', '-webkit-user-select:none',
         '-webkit-tap-highlight-color:transparent',
         'transition:background .16s ease',
       ].join(';');
-      btn.addEventListener('pointerenter', () => { btn.style.background = 'rgba(255,255,255,0.24)'; });
-      btn.addEventListener('pointerleave', () => { btn.style.background = 'rgba(255,255,255,0.12)'; });
+      btn.addEventListener('pointerenter', () => { btn.style.background = 'rgba(0,0,0,0.72)'; });
+      btn.addEventListener('pointerleave', () => { btn.style.background = 'rgba(0,0,0,0.55)'; });
       btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
       btn.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -364,17 +379,42 @@ export default function ImageZoom() {
         'display:inline-flex', 'align-items:center', 'justify-content:center',
         'min-width:54px', 'height:34px', 'padding:0 14px',
         'border-radius:9999px',
-        'background:rgba(255,255,255,0.12)', 'border:1px solid rgba(255,255,255,0.14)',
-        'color:rgba(255,255,255,0.92)', 'font-size:12px', 'font-weight:800',
+        // 和箭头同一套深色胶囊：任何底色上都清楚 ✓
+        'background:rgba(0,0,0,0.55)', 'border:1px solid rgba(255,255,255,0.32)',
+        'color:#ffffff', 'font-size:12px', 'font-weight:800',
         'letter-spacing:.12em',
-        'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
+        'box-shadow:0 4px 18px rgba(0,0,0,0.45)',
+        'backdrop-filter:blur(10px)', '-webkit-backdrop-filter:blur(10px)',
       ].join(';');
 
       bar.appendChild(makeBtn(-1));
       bar.appendChild(counterEl);
       bar.appendChild(makeBtn(1));
 
+      /* 📝 顶部：图片描述（照片墙的标题就显示在这） */
+      topEl = document.createElement('div');
+      topEl.style.cssText = [
+        'position:fixed', 'left:0', 'right:0',
+        'top:calc(14px + env(safe-area-inset-top, 0px))',
+        'display:none', 'align-items:center', 'justify-content:center',
+        'padding:0 16px', 'pointer-events:none', `z-index:${OVERLAY_Z + 1}`,
+      ].join(';');
+
+      captionEl = document.createElement('span');
+      captionEl.style.cssText = [
+        'max-width:min(90vw, 760px)',
+        'display:inline-block',
+        'padding:7px 16px', 'border-radius:9999px',
+        'background:rgba(0,0,0,0.55)', 'border:1px solid rgba(255,255,255,0.28)',
+        'color:#ffffff', 'font-size:13px', 'font-weight:700', 'line-height:1.35',
+        'text-align:center', 'word-break:break-word',
+        'box-shadow:0 4px 18px rgba(0,0,0,0.45)',
+        'backdrop-filter:blur(10px)', '-webkit-backdrop-filter:blur(10px)',
+      ].join(';');
+      topEl.appendChild(captionEl);
+
       document.body.appendChild(overlay);
+      document.body.appendChild(topEl);
       document.body.appendChild(bar);
 
       /* 📱 压 hash 历史：安卓 Edge/各家 WebView 上纯 pushState 会被吃掉，hash 这条最稳 ✓ */
