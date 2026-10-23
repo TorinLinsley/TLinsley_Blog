@@ -11,12 +11,10 @@ import { stripInlineMarkdown } from '../../lib/repairMarkdown';
 import { renderMomentHtml } from '../../lib/momentMarkdown';
 
 // 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-// ⚡ 改成 ISR（静态化 + 30 秒刷新）——只对**只读**页面这么干 ✓
-//   以前 force-dynamic → 每次切页都要服务端现渲染（实测首字节 1.155 秒 ✗）而且无法预取 ✗
-//   现在静态化 → 悬停预取 ✓ 切页几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（看数据够用 ✓）
-//   ⚠️ 编辑页（posts/[slug]、chatter/[slug]）**故意保持动态** ✗ 那里必须永远看到最新数据 ✓
-export const revalidate = 30;
+// ⚠️ 这里**故意不做 ISR 缓存**（用户 2026-10-22 反馈："发完说说要刷好几次才看见"）：
+//    之前 revalidate = 30 → 页面缓存 30 秒，发布完刷新还是旧快照 ✗
+//    说说数据量小（读几个 .md + 渲染正文），实时渲染扛得住 ✓ 换来"刷新即最新" ✓
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: "说说 | " + siteConfig.title,
