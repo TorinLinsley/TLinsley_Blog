@@ -12,7 +12,14 @@ import FadeInImage from '../../components/FadeInImage';
  */
 export default function PhotoWallClient({ albums }: { albums: Album[] }) {
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
-  const [selectedImage, setSelectedImage] = useState<{url: string, caption?: string} | null>(null);
+  /** 🖼️ 点开大图：统一交给 components/ImageZoom.tsx（底部箭头、滑动翻页、Esc、系统返回键都归它管）
+   *  以前照片墙自己写了个浮层 ✗ 手机上按系统返回键会把整个页面退掉（浮层不在历史里）✗ */
+  const openViewer = (photos: Array<{ url?: string; caption?: string }>, startIndex: number) => {
+    const list = (photos || []).filter((p) => p && p.url);
+    if (!list.length) return;
+    const gallery = list.map((p) => ({ src: p.url as string, alt: p.caption || '' }));
+    window.__tlImageViewer?.open(gallery, Math.min(Math.max(0, startIndex), gallery.length - 1));
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
@@ -84,7 +91,7 @@ export default function PhotoWallClient({ albums }: { albums: Album[] }) {
                       {matchedPhotos.map((photo, index) => (
                         <div
                           key={`search-photo-${index}`}
-                          onClick={() => setSelectedImage(photo)}
+                          onClick={() => openViewer(matchedPhotos, index)}
                           className="break-inside-avoid relative group rounded-2xl overflow-hidden cursor-zoom-in shadow-lg bg-white/20 dark:bg-slate-800/20 border border-white/30 dark:border-white/10 transition-transform duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-indigo-500/20"
                         >
                           <FadeInImage wrapperClassName="w-full" src={photo.url || undefined} alt={photo.caption} className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-105" loading="lazy" />
@@ -178,7 +185,7 @@ export default function PhotoWallClient({ albums }: { albums: Album[] }) {
                 {currentAlbum.photos.map((photo, index) => (
                   <div
                     key={`${photo.url}-${index}`}
-                    onClick={() => setSelectedImage(photo)}
+                    onClick={() => openViewer(currentAlbum.photos, index)}
                     className="break-inside-avoid relative group rounded-2xl overflow-hidden cursor-zoom-in shadow-lg bg-white/20 dark:bg-slate-800/20 border border-white/30 dark:border-white/10 transition-transform duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-indigo-500/20 animate-fade-in-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
@@ -199,29 +206,7 @@ export default function PhotoWallClient({ albums }: { albums: Album[] }) {
         </div>
       </PageTransition>
 
-      {selectedImage && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-4 sm:p-10 cursor-zoom-out animate-fade-in"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-
-          <img
-            src={selectedImage.url || undefined}
-            alt={selectedImage.caption || '全屏照片'}
-            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          {selectedImage.caption && (
-            <div className="absolute bottom-10 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-white text-sm font-medium tracking-wide shadow-2xl">
-              {selectedImage.caption}
-            </div>
-          )}
-        </div>
-      )}
+      {/* 🖼️ 灯箱统一交给 components/ImageZoom.tsx（Esc / 系统返回键 / 底部箭头 / 滑动翻页都在那边） */}
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
