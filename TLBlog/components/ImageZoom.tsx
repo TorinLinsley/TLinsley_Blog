@@ -6,48 +6,47 @@ import { useEffect } from "react";
  * 🔍 统一的图片浏览器（用户 2026-10-23 要求）
  *
  * 全站所有"点开看大图"的地方都走这一个组件，交互完全一致：
- *   · 打开：点正文图片（文章 / 杂谈 / 关于我 / 资源分享）+ 说说里的图片（由 MomentList 调 open）
- *   · 默认态 = 按比例铺满屏幕（上下或左右贴边），这就是**最小态**，不能再缩小 ✓
- *   · 缩放：电脑滚轮 / 触控板捏合；手机双指捏合 ✓ 只作用于图片，**不会缩放整个网页** ✓
- *   · 放大后：电脑按住拖动、手机单指拖动 = 移动画面看细节 ✓
- *   · 切换：**只有默认态（没放大）**才能翻上/下一张 —— 鼠标左右拖 / 手指左右滑；底部按钮也能翻 ✓
- *   · 底部那排：**‹ [1/2] ›** 三件套居中并排在底部，箭头用原来那套 chevron 图标 ✓
- *     （不再压在画面左右两侧 ✗ 手机上会挡住画面）
- *   · 关闭：点图片/按钮以外的**空白处** ✓、Esc ✓、**手机系统返回键** ✓（见下面 pushState 那段）
- *   · 键盘：← → 翻页 ✓
+ *   · 默认态 = 等比铺满屏幕（这就是最小态，不能再缩小）
+ *   · 缩放：电脑滚轮 / 触控板捏合；手机双指捏合 → **只作用于图片**，不缩放网页
+ *   · 放大后：拖动 = 移动画面看细节
+ *   · 翻页（**仅默认态**）：
+ *       · 拖动/滑动 → **跟手轮播**：拖到哪就显示到哪，左右两张图前后衔接（中间留 18px 间距），
+ *         松手按位移 + 甩动速度决定翻页或回弹，带非线性缓动（不是瞬间切换 ✓）
+ *       · 底部 ‹ [1/2] › 按钮、键盘 ← → → **瞬间切换**（这是刻意保留的快速通道）
+ *   · 关闭：点图片/按钮以外的空白处、Esc、**手机系统返回键**（hash 历史，页面不动）
  *
- * 📱 系统返回键：打开预览时往 history 里压一条记录，按返回=退掉这一条 → 关预览、文章页还留着 ✓
- *    以前没这条：返回键把文章页退掉，预览层是自己 append 的 DOM，会孤零零留在最上层 ✗
+ * 📱 返回键：安卓上纯 pushState 会被各家 WebView/Edge 吃掉，所以这里压的是 **URL hash**：
+ *    后退 = 去掉 hash → 触发 popstate / hashchange → 我们只关预览 ✓ 文章页不动 ✓
  *
- * ⚠️ 编辑器正文（.editor-content-area / .ProseMirror）里的图**不接管** —— 那里点图是编辑 ✗
+ * ⚠️ 编辑器正文（.editor-content-area / .ProseMirror）里的图不接管 —— 那里点图是编辑 ✗
  */
 
-/** 哪些容器里的图片可以点开放大 */
 const ZOOM_SELECTOR = '.prose, .resource-preview';
-/** 这些里面的图片不参与 */
 const SKIP_INSIDE = '.editor-content-area, .ProseMirror, [data-no-zoom]';
-/** 太小的图（图标、徽章）不参与，免得误触 */
 const MIN_RENDERED = 80;
-/** 拖动/捏合超过这个像素就算"拖动"而不是"单击" */
 const CLICK_SLOP = 6;
-/** 横向滑动超过这个距离就翻页 */
-const SWIPE_THRESHOLD = 60;
-/** 普通滚轮灵敏度 */
-const WHEEL_SENSITIVITY = 0.0015;
-/** 触控板捏合（wheel + ctrlKey）的灵敏度 */
-const PINCH_SENSITIVITY = 0.02;
-/** 图层最高 */
-const OVERLAY_Z = 2147483000;
-/** 底部按钮带高度（图片可用高度要减掉它） */
+/** 松手时：位移超过屏幕宽度的这个比例就翻页 */
+const SWIPE_RATIO = 0.18;
+/** 或者甩动速度超过这个值（px/ms）也翻页 */
+const SWIPE_VELOCITY = 0.45;
+/** 两张图之间的间距 */
+const GAP = 18;
+/** 底部按钮带高度 */
 const BOTTOM_BAR = 72;
-/** 图片链接（点开还是图片）才接管点击 */
+const WHEEL_SENSITIVITY = 0.0015;
+const PINCH_SENSITIVITY = 0.02;
+const OVERLAY_Z = 2147483000;
+const HASH = '#tl-image-viewer';
 const IMAGE_HREF = /\.(png|jpe?g|gif|webp|avif|svg|bmp)(\?|#|$)/i;
 
 /** 原来那套 chevron 图标（lucide 的 ChevronLeft / ChevronRight 同一条路径） */
 const CHEVRON_LEFT =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
 const CHEVRON_RIGHT =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+
+/** 松手的缓动：先快后慢（非线性 ✓） */
+const EASE_SNAP = 'cubic-bezier(.22,.61,.36,1)';
 
 export type GalleryItem = { src: string; alt?: string };
 
@@ -65,62 +64,72 @@ declare global {
 export default function ImageZoom() {
   useEffect(() => {
     let overlay: HTMLDivElement | null = null;
+    let stage: HTMLDivElement | null = null;
+    let track: HTMLDivElement | null = null;
     let bar: HTMLDivElement | null = null;
-    let imgEl: HTMLImageElement | null = null;
     let counterEl: HTMLSpanElement | null = null;
-    let prevBtn: HTMLButtonElement | null = null;
-    let nextBtn: HTMLButtonElement | null = null;
+
+    let slotPrev: HTMLDivElement | null = null;
+    let slotCur: HTMLDivElement | null = null;
+    let slotNext: HTMLDivElement | null = null;
+    let imgPrev: HTMLImageElement | null = null;
+    let imgCur: HTMLImageElement | null = null;
+    let imgNext: HTMLImageElement | null = null;
+
     let prevBodyOverflow = "";
     let prevHtmlOverscroll = "";
-
-    /** 触摸关闭后浏览器补发的 click 要吃掉（否则会立刻又打开底下那张图） */
     let swallowClickUntil = 0;
-    /** 是不是"系统返回键"触发的关闭（那种情况不能再 history.back 一次） */
     let closingByHistory = false;
 
     let items: GalleryItem[] = [];
     let index = 0;
 
-    let natW = 0;
-    let natH = 0;
-    let fit = 1;
     let zoom = 1;
-    let maxZoom = 8;
     let tx = 0;
     let ty = 0;
 
+    /** 拖动中的位移（track 的 translateX） */
+    let dragX = 0;
+    /** 是否正在动画（这时别再改 transform） */
+    let animating = false;
+
     const viewW = () => window.innerWidth;
-    const viewH = () => Math.max(120, window.innerHeight - BOTTOM_BAR);
+    const slideSpan = () => viewW() + GAP;
+
+    const baseSize = () => ({
+      w: imgCur?.offsetWidth || 1,
+      h: imgCur?.offsetHeight || 1,
+    });
 
     const clampPan = () => {
-      const w = natW * fit * zoom;
-      const h = natH * fit * zoom;
-      const maxX = Math.max(0, (w - viewW()) / 2);
-      const maxY = Math.max(0, (h - viewH()) / 2);
+      const { w, h } = baseSize();
+      const maxX = Math.max(0, (w * zoom - viewW()) / 2);
+      const maxY = Math.max(0, (h * zoom - (window.innerHeight - BOTTOM_BAR)) / 2);
       tx = Math.min(maxX, Math.max(-maxX, tx));
       ty = Math.min(maxY, Math.max(-maxY, ty));
     };
 
-    const paint = () => {
-      if (!imgEl) return;
+    const paintCurrent = () => {
+      if (!imgCur) return;
       clampPan();
-      imgEl.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${fit * zoom})`;
+      imgCur.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${zoom})`;
+      if (overlay) overlay.style.cursor = zoom > 1.02 ? 'grab' : 'zoom-out';
     };
 
-    const updateCursor = () => {
-      if (!overlay) return;
-      overlay.style.cursor = zoom > 1.02 ? 'grab' : 'zoom-out';
+    const paintTrack = () => {
+      if (!track) return;
+      track.style.transform = `translate3d(${dragX}px, 0, 0)`;
     };
 
     /** 缩放：anchor 是屏幕坐标，缩放时把锚点钉住 */
     const zoomTo = (next: number, anchorX?: number, anchorY?: number) => {
-      const target = Math.min(maxZoom, Math.max(1, next));
+      const target = Math.min(6, Math.max(1, next));
       if (Math.abs(target - zoom) < 0.0005) return;
 
       if (anchorX !== undefined && anchorY !== undefined) {
         const k = target / zoom;
         const cx = anchorX - viewW() / 2;
-        const cy = anchorY - viewH() / 2;
+        const cy = anchorY - (window.innerHeight - BOTTOM_BAR) / 2;
         tx = cx - k * (cx - tx);
         ty = cy - k * (cy - ty);
       } else {
@@ -130,14 +139,7 @@ export default function ImageZoom() {
 
       zoom = target;
       if (zoom <= 1.0001) { tx = 0; ty = 0; }
-      paint();
-      updateCursor();
-    };
-
-    const relayout = () => {
-      if (!overlay || !natW || !natH) return;
-      fit = Math.min(viewW() / natW, viewH() / natH);
-      paint();
+      paintCurrent();
     };
 
     const updateChrome = () => {
@@ -147,11 +149,27 @@ export default function ImageZoom() {
       counterEl.textContent = `${index + 1} / ${items.length}`;
     };
 
-    /** 📱 系统返回键 / 浏览器后退 → 只关预览，不动文章页 */
-    const onPopState = () => {
-      if (!overlay) return;
-      closingByHistory = true;
-      try { close(); } finally { closingByHistory = false; }
+    /** 把 prev / cur / next 三张图摆好（默认态、无缩放） */
+    const syncSlots = () => {
+      if (!imgPrev || !imgCur || !imgNext) return;
+      const at = (offset: number) => items[(index + offset + items.length) % items.length];
+      const set = (img: HTMLImageElement, it?: GalleryItem) => {
+        if (!it) { img.style.visibility = 'hidden'; return; }
+        img.style.visibility = 'visible';
+        if (img.getAttribute('src') !== it.src) img.src = it.src;
+        img.alt = it.alt || '';
+      };
+      set(imgPrev, items.length > 1 ? at(-1) : undefined);
+      set(imgCur, items[index]);
+      set(imgNext, items.length > 1 ? at(1) : undefined);
+
+      zoom = 1; tx = 0; ty = 0; dragX = 0;
+      if (imgCur) imgCur.style.transform = 'translate3d(0,0,0) scale(1)';
+      if (track) {
+        track.style.transition = 'none';
+        paintTrack();
+      }
+      updateChrome();
     };
 
     const close = () => {
@@ -160,69 +178,79 @@ export default function ImageZoom() {
       bar?.remove();
       overlay = null;
       bar = null;
-      imgEl = null;
+      stage = null;
+      track = null;
+      imgPrev = imgCur = imgNext = null;
+      slotPrev = slotCur = slotNext = null;
       counterEl = null;
-      prevBtn = null;
-      nextBtn = null;
       items = [];
       document.body.style.overflow = prevBodyOverflow;
       document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
-      window.removeEventListener('resize', relayout);
+      window.removeEventListener('resize', paintCurrent);
       window.removeEventListener('keydown', onKeyDown, true);
-      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('popstate', onHistoryBack);
+      window.removeEventListener('hashchange', onHistoryBack);
 
-      // 手动关闭（点空白/Esc/按钮）→ 把刚才压进去的那条历史退掉，不留空记录
-      if (!closingByHistory && (history.state as { __tlImageViewer?: boolean } | null)?.__tlImageViewer) {
+      if (!closingByHistory && location.hash === HASH) {
         history.back();
       }
     };
 
-    /** 切到第 i 张（循环） */
-    const show = (i: number) => {
-      if (!items.length) return;
-      index = ((i % items.length) + items.length) % items.length;
-      const item = items[index] || items[0];
+    /** 系统返回键 / 浏览器后退 / 点 hash → 只关预览 */
+    function onHistoryBack() {
+      if (!overlay) return;
+      closingByHistory = true;
+      try { close(); } finally { closingByHistory = false; }
+    }
 
-      zoom = 1;
-      tx = 0;
-      ty = 0;
-
-      const apply = (w: number, h: number) => {
-        natW = Math.max(1, w || 1);
-        natH = Math.max(1, h || 1);
-        fit = Math.min(viewW() / natW, viewH() / natH);
-        maxZoom = Math.min(12, Math.max(3, (1 / Math.max(fit, 0.0001)) * 2));
-        if (imgEl) {
-          imgEl.style.width = `${natW}px`;
-          imgEl.style.height = `${natH}px`;
-          imgEl.src = item.src;
-          imgEl.alt = item.alt || '';
-        }
-        paint();
-        updateChrome();
-        updateCursor();
-      };
-
-      const probe = new Image();
-      probe.onload = () => apply(probe.naturalWidth, probe.naturalHeight);
-      probe.onerror = () => apply(1, 1);
-      probe.src = item.src;
-      updateChrome();
+    const goInstant = (delta: number) => {
+      if (items.length < 2 || animating) return;
+      index = (index + delta + items.length) % items.length;
+      syncSlots();
     };
 
-    const go = (delta: number) => {
-      if (items.length < 2) return;
-      show(index + delta);
+    /** 拖到头：动画滑过去 → 切换 → 复位 */
+    const finishSwipe = (dir: -1 | 1, fromX: number) => {
+      if (!track) return;
+      animating = true;
+      track.style.transition = `transform 280ms ${EASE_SNAP}`;
+      track.style.transform = `translate3d(${dir > 0 ? -slideSpan() : slideSpan()}px, 0, 0)`;
+
+      const done = () => {
+        track?.removeEventListener('transitionend', done);
+        animating = false;
+        index = (index + dir + items.length) % items.length;
+        syncSlots();
+      };
+      track.addEventListener('transitionend', done, { once: true });
+      // 兜底：某些浏览器没有 transitionend
+      window.setTimeout(() => { if (animating) done(); }, 340);
+      void fromX;
+    };
+
+    /** 回弹到原位 */
+    const springBack = () => {
+      if (!track) return;
+      animating = true;
+      track.style.transition = `transform 240ms ${EASE_SNAP}`;
+      track.style.transform = 'translate3d(0,0,0)';
+      const done = () => {
+        track?.removeEventListener('transitionend', done);
+        animating = false;
+        dragX = 0;
+      };
+      track.addEventListener('transitionend', done, { once: true });
+      window.setTimeout(() => { if (animating) done(); }, 300);
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!overlay) return;
       if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
-      if (e.key === 'ArrowLeft') { e.stopPropagation(); e.preventDefault(); go(-1); return; }
-      if (e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); go(1); }
+      if (e.key === 'ArrowLeft') { e.stopPropagation(); e.preventDefault(); goInstant(-1); return; }
+      if (e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); goInstant(1); }
     };
 
-    /** 箭头按钮：沿用原来那套 chevron 图标（不再用文字符号，那个本身就歪 ✗） */
+    /** 按钮：和页码同尺寸（高 34px 的胶囊），图标 18px */
     const makeBtn = (dir: -1 | 1): HTMLButtonElement => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -230,7 +258,7 @@ export default function ImageZoom() {
       btn.innerHTML = dir < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT;
       btn.style.cssText = [
         'pointer-events:auto',
-        'width:42px', 'height:42px', 'flex:0 0 auto',
+        'height:34px', 'min-width:54px', 'padding:0 14px',
         'display:flex', 'align-items:center', 'justify-content:center',
         'border-radius:9999px',
         'border:1px solid rgba(255,255,255,0.14)',
@@ -240,20 +268,40 @@ export default function ImageZoom() {
         'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
         'user-select:none', '-webkit-user-select:none',
         '-webkit-tap-highlight-color:transparent',
-        'transition:background .16s ease, transform .16s ease',
+        'transition:background .16s ease',
       ].join(';');
-      const light = () => { btn.style.background = 'rgba(255,255,255,0.24)'; };
-      const dark = () => { btn.style.background = 'rgba(255,255,255,0.12)'; };
-      btn.addEventListener('pointerenter', light);
-      btn.addEventListener('pointerleave', dark);
-      const stop = (ev: Event) => { ev.stopPropagation(); };
-      btn.addEventListener('pointerdown', stop);
+      btn.addEventListener('pointerenter', () => { btn.style.background = 'rgba(255,255,255,0.24)'; });
+      btn.addEventListener('pointerleave', () => { btn.style.background = 'rgba(255,255,255,0.12)'; });
+      btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
       btn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         ev.preventDefault();
-        go(dir);
+        goInstant(dir);
       });
       return btn;
+    };
+
+    const makeSlot = () => {
+      const slot = document.createElement('div');
+      slot.style.cssText = [
+        'position:absolute', 'inset:0',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        `padding-bottom:${BOTTOM_BAR}px`, 'box-sizing:border-box',
+        'will-change:transform',
+      ].join(';');
+      const im = document.createElement('img');
+      im.draggable = false;
+      im.style.cssText = [
+        'max-width:100%', 'max-height:100%', 'object-fit:contain',
+        'pointer-events:auto',
+        'user-select:none', '-webkit-user-select:none',
+        '-webkit-user-drag:none', '-webkit-touch-callout:none',
+        'box-shadow:0 20px 60px rgba(0,0,0,0.45)',
+        'border-radius:2px',
+        'transform-origin:center center',
+      ].join(';');
+      slot.appendChild(im);
+      return { slot, im };
     };
 
     const build = () => {
@@ -267,11 +315,7 @@ export default function ImageZoom() {
       overlay.style.cssText = [
         'position:fixed', 'inset:0', `z-index:${OVERLAY_Z}`,
         'background:rgba(0,0,0,0.92)',
-        'display:flex', 'align-items:center', 'justify-content:center',
         'overflow:hidden',
-        // 底部留出按钮带：图片按"屏幕高度 - 72"等比铺满并居中，不会被箭头/页码压住 ✓
-        `padding-bottom:${BOTTOM_BAR}px`,
-        'box-sizing:border-box',
         'touch-action:none',
         'overscroll-behavior:contain',
         'cursor:zoom-out',
@@ -281,35 +325,43 @@ export default function ImageZoom() {
         'animation:imageZoomFade .16s ease-out',
       ].join(';');
 
-      imgEl = document.createElement('img');
-      imgEl.draggable = false;
-      imgEl.style.cssText = [
-        'max-width:none', 'max-height:none', 'border-radius:0',
-        'transform-origin:center center', 'will-change:transform',
-        'pointer-events:auto',
-        'user-select:none', '-webkit-user-select:none',
-        '-webkit-user-drag:none', '-webkit-touch-callout:none',
-        'box-shadow:0 20px 60px rgba(0,0,0,0.45)',
-      ].join(';');
+      stage = document.createElement('div');
+      stage.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
 
-      /* ── 底部：‹ [1/2] › 三件套居中并排 ✓（箭头和页码挨在一起，都在图片外面）── */
+      track = document.createElement('div');
+      track.style.cssText = 'position:absolute;inset:0;will-change:transform;';
+
+      const a = makeSlot();
+      const b = makeSlot();
+      const c = makeSlot();
+      slotPrev = a.slot; imgPrev = a.im;
+      slotCur = b.slot; imgCur = b.im;
+      slotNext = c.slot; imgNext = c.im;
+
+      // 左右两张摆在两侧（间距 GAP）
+      slotPrev.style.transform = `translate3d(${-(viewW() + GAP)}px, 0, 0)`;
+      slotNext.style.transform = `translate3d(${viewW() + GAP}px, 0, 0)`;
+
+      track.appendChild(slotPrev);
+      track.appendChild(slotCur);
+      track.appendChild(slotNext);
+      stage.appendChild(track);
+      overlay.appendChild(stage);
+
+      /* 底部：‹ [1/2] › 居中并排，三个都是 34px 高的胶囊，视觉一致 ✓ */
       bar = document.createElement('div');
       bar.style.cssText = [
         'position:fixed', 'left:0', 'right:0',
         'bottom:calc(14px + env(safe-area-inset-bottom, 0px))',
         'display:flex', 'align-items:center', 'justify-content:center',
-        'gap:10px',
-        'pointer-events:none', `z-index:${OVERLAY_Z + 1}`,
+        'gap:10px', 'pointer-events:none', `z-index:${OVERLAY_Z + 1}`,
       ].join(';');
-
-      prevBtn = makeBtn(-1);
-      nextBtn = makeBtn(1);
 
       counterEl = document.createElement('span');
       counterEl.style.cssText = [
         'pointer-events:none',
         'display:inline-flex', 'align-items:center', 'justify-content:center',
-        'min-width:62px', 'height:34px', 'padding:0 14px',
+        'min-width:54px', 'height:34px', 'padding:0 14px',
         'border-radius:9999px',
         'background:rgba(255,255,255,0.12)', 'border:1px solid rgba(255,255,255,0.14)',
         'color:rgba(255,255,255,0.92)', 'font-size:12px', 'font-weight:800',
@@ -317,47 +369,45 @@ export default function ImageZoom() {
         'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
       ].join(';');
 
-      bar.appendChild(prevBtn);
+      bar.appendChild(makeBtn(-1));
       bar.appendChild(counterEl);
-      bar.appendChild(nextBtn);
+      bar.appendChild(makeBtn(1));
 
-      overlay.appendChild(imgEl);
       document.body.appendChild(overlay);
       document.body.appendChild(bar);
 
-      // 📱 压一条历史：系统返回键 = 退掉这条 = 关预览（文章页不动）✓
+      /* 📱 压 hash 历史：安卓 Edge/各家 WebView 上纯 pushState 会被吃掉，hash 这条最稳 ✓ */
       try {
-        if (!(history.state as { __tlImageViewer?: boolean } | null)?.__tlImageViewer) {
-          history.pushState({ __tlImageViewer: true }, '');
+        if (location.hash !== HASH) {
+          history.pushState({ __tlImageViewer: true }, '', `${location.pathname}${location.search}${HASH}`);
         }
-      } catch {
-        /* 某些内置浏览器限制 pushState，退化成没有返回键支持，不影响其它交互 */
-      }
-      window.addEventListener('popstate', onPopState);
+      } catch { /* 忽略 */ }
+      window.addEventListener('popstate', onHistoryBack);
+      window.addEventListener('hashchange', onHistoryBack);
 
       /* ── 手势 ── */
-      type Press = { x: number; y: number; moved: number; startTx: number; startTy: number };
+      type Press = { x: number; y: number; moved: number; lastX: number; lastT: number; vx: number; startTx: number; startTy: number };
       const presses = new Map<number, Press>();
       let pinchStartDist = 0;
       let pinchStartZoom = 1;
       let lastPinchAt = 0;
-      let lastMoved = 0;
       let lastOnImage = false;
-      let lastStartX = 0;
+      let startX = 0;
 
       const onPointerDown = (e: PointerEvent) => {
         if (!overlay) return;
         if (e.pointerType === 'mouse') { try { overlay.setPointerCapture(e.pointerId); } catch { /* 忽略 */ } }
         presses.set(e.pointerId, {
           x: e.clientX, y: e.clientY, moved: 0,
+          lastX: e.clientX, lastT: performance.now(), vx: 0,
           startTx: tx, startTy: ty,
         });
-        lastOnImage = e.target === imgEl;
-        lastStartX = e.clientX;
+        lastOnImage = e.target === imgCur;
+        startX = e.clientX;
 
         if (presses.size === 2) {
-          const [a, b] = [...presses.values()];
-          pinchStartDist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+          const [p, q] = [...presses.values()];
+          pinchStartDist = Math.hypot(p.x - q.x, p.y - q.y) || 1;
           pinchStartZoom = zoom;
         }
       };
@@ -369,50 +419,74 @@ export default function ImageZoom() {
 
         const active = [...presses.values()];
         if (active.length >= 2) {
-          const [a, b] = active;
-          const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+          const [p, q] = active;
+          const dist = Math.hypot(p.x - q.x, p.y - q.y) || 1;
           me.x = e.clientX;
           me.y = e.clientY;
           if (Math.abs(dist - pinchStartDist) > 2) {
             lastPinchAt = performance.now();
-            zoomTo(pinchStartZoom * (dist / pinchStartDist), (a.x + b.x) / 2, (a.y + b.y) / 2);
+            zoomTo(pinchStartZoom * (dist / pinchStartDist), (p.x + q.x) / 2, (p.y + q.y) / 2);
           }
           return;
         }
 
-        // 放大后 = 拖动画布；默认态 = 松手时判翻页
-        if (zoom <= 1.02) return;
-        tx = me.startTx + (e.clientX - me.x);
-        ty = me.startTy + (e.clientY - me.y);
-        paint();
+        // 放大后：拖动画布
+        if (zoom > 1.02) {
+          tx = me.startTx + (e.clientX - me.x);
+          ty = me.startTy + (e.clientY - me.y);
+          paintCurrent();
+          return;
+        }
+
+        // 默认态：跟手轮播（两头加阻尼）
+        if (items.length < 2 || animating) return;
+        const now = performance.now();
+        const dt = Math.max(1, now - me.lastT);
+        me.vx = (e.clientX - me.lastX) / dt;
+        me.lastX = e.clientX;
+        me.lastT = now;
+
+        let dx = e.clientX - startX;
+        const atStart = index === 0;
+        const atEnd = index === items.length - 1;
+        if ((dx > 0 && atStart) || (dx < 0 && atEnd)) dx *= 0.32;   // 阻尼，拖不出去
+        dragX = dx;
+        paintTrack();
       };
 
       const onPointerUp = (e: PointerEvent) => {
         if (!overlay) return;
         const me = presses.get(e.pointerId);
         presses.delete(e.pointerId);
-        lastMoved = me ? me.moved : 0;
+        const moved = me ? me.moved : 0;
+        const velocity = me ? me.vx : 0;
 
         const justPinched = performance.now() - lastPinchAt < 300;
-        if (justPinched) { updateCursor(); return; }
+        if (justPinched) return;
 
-        // ① 默认态左右拖/滑 = 翻页
-        if (me && zoom <= 1.02 && items.length > 1) {
-          const dx = e.clientX - lastStartX;
-          const dy = Math.abs(e.clientY - me.y);
-          if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dx) > dy * 1.2) {
-            go(dx < 0 ? 1 : -1);
+        // ① 默认态拖动结束 → 翻页 or 回弹（不是瞬间切换 ✓）
+        if (me && zoom <= 1.02 && items.length > 1 && Math.abs(dragX) > 0) {
+          const dx = dragX;
+          const far = Math.abs(dx) > viewW() * SWIPE_RATIO;
+          const fast = Math.abs(velocity) > SWIPE_VELOCITY;
+          const left = dx < 0;
+
+          if (far || fast) {
+            const dir: -1 | 1 = left ? 1 : -1;
+            const canGo = left ? index < items.length - 1 : index > 0;
+            if (!canGo) { springBack(); return; }
+            finishSwipe(dir, dx);
             return;
           }
+          springBack();
+          return;
         }
 
         // ② 点空白处关闭（点图片、点按钮都不关）
-        if (lastMoved < CLICK_SLOP && !lastOnImage) {
+        if (moved < CLICK_SLOP && zoom <= 1.02 && !lastOnImage) {
           if (e.pointerType !== 'mouse') swallowClickUntil = performance.now() + 500;
           close();
-          return;
         }
-        updateCursor();
       };
 
       const onTouchSync = (e: TouchEvent) => {
@@ -439,9 +513,8 @@ export default function ImageZoom() {
         e.stopPropagation();
         if (!overlay) return;
         if (performance.now() - lastPinchAt < 300) return;
-        if (e.target === imgEl) return;                       // 点图片本身：不关
+        if (e.target === imgCur) return;
         if ((e.target as HTMLElement)?.closest('button')) return;
-        if (lastMoved < CLICK_SLOP) close();
       };
 
       const swallow = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
@@ -459,16 +532,19 @@ export default function ImageZoom() {
       overlay.addEventListener('click', onClick);
       overlay.addEventListener('dblclick', swallow);
       overlay.addEventListener('contextmenu', swallow);
-      // iOS Safari：双指捏合默认会缩放整个网页 —— 挡掉
       overlay.addEventListener('gesturestart', swallow as EventListener);
       overlay.addEventListener('gesturechange', swallow as EventListener);
       overlay.addEventListener('gestureend', swallow as EventListener);
 
-      window.addEventListener('resize', relayout);
+      window.addEventListener('resize', () => {
+        if (!slotPrev || !slotNext) return;
+        slotPrev.style.transform = `translate3d(${-(viewW() + GAP)}px, 0, 0)`;
+        slotNext.style.transform = `translate3d(${viewW() + GAP}px, 0, 0)`;
+        paintCurrent();
+      });
       window.addEventListener('keydown', onKeyDown, true);
     };
 
-    /** 对外入口：打开一组图片中的第 index 张 */
     const openWith = (list: GalleryItem[], startIndex = 0) => {
       const filtered = (list || []).filter((it) => it && it.src);
       if (!filtered.length) return;
@@ -476,10 +552,9 @@ export default function ImageZoom() {
       items = filtered;
       index = Math.min(Math.max(0, startIndex), filtered.length - 1);
       build();
-      show(index);
+      syncSlots();
     };
 
-    // ── 正文图片：事件委托，点哪张就把同容器里所有图收成一组 ──
     const onDocClick = (e: MouseEvent) => {
       if (overlay) return;
       if (performance.now() < swallowClickUntil) { e.preventDefault(); e.stopPropagation(); return; }
