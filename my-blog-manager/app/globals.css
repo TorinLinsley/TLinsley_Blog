@@ -510,6 +510,22 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   font-style: normal !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   🔠 深色模式下粗体要「一眼看得出来」（用户 2026-10-24 反馈）
+
+   现象：深色下粗体和正文看着差不多粗，浅色模式反而还能看出一点 ✗
+   原因：深底浅字本来就涨墨，正文已经显得偏粗，700 拉不开差距；
+        正文颜色又接近纯白，颜色上也帮不上忙。
+   解法：深色下正文容器里的粗体顶到 900（字体是可变字重 400–900，
+        都是真粗细，不是浏览器合成的假粗体），并给纯白 —— 粗细 + 明度
+        两条一起拉开 ✓  浅色模式一行不动 ✓
+   ⚠️ 只作用在正文容器里的 <strong>/<b>：标题、按钮、界面文字都不碰 ✓
+   ═══════════════════════════════════════════════════════════════════ */
+.dark :is(.prose, .resource-preview, .chatter-preview, .editor-content-area, .moment-content) :is(strong, b) {
+  font-weight: 900;
+  color: #ffffff;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    ✍️ 编辑器正文区 .editor-content-area
    —— 原来写在 components/editor/RichTextEditor.tsx 的内联 <style> 里，
@@ -555,7 +571,7 @@ padding: 1rem 1.5rem !important;
 margin: 1.5rem 0 !important;
 border-radius: 0 1.25rem 1.25rem 0 !important;
 font-style: normal !important;
-color: #64748b !important;
+color: inherit !important;
 line-height: 1.5 !important;
         }
         .editor-content-area blockquote p {
@@ -573,7 +589,7 @@ padding-bottom: 0.25rem !important;
         .dark .editor-content-area blockquote {
 border-left-color: #818cf8 !important;
 background-color: rgba(129, 140, 248, 0.1) !important;
-color: #94a3b8 !important;
+color: inherit !important;
         }
 
         /* 等宽字体也照预览/博客那一套来（原来前面挂了 ui-rounded/Quicksand，字宽和间距都不一样） */
@@ -1290,7 +1306,7 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
   margin: 0.5rem 0;
   padding: 0.35rem 0 0.35rem 0.75rem;
   border-left: 3px solid rgba(99, 102, 241, 0.55);
-  opacity: 0.9;
+  /* 不压透明度：引用块里的字要和外面正文同色同亮度（用户 2026-10-24）*/
 }
 .moment-content table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
 .moment-content th,

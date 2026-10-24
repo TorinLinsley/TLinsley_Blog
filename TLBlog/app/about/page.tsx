@@ -157,7 +157,7 @@ export default async function AboutPage() {
               margin: 1.5rem 0 !important;
               border-radius: 0 1.25rem 1.25rem 0 !important;
               font-style: normal !important;
-              color: #64748b !important;
+              color: inherit !important;
               quotes: none !important; /* 强制移除 Tailwind 原生的丑陋大引号 */
             }
             .prose blockquote p {
@@ -174,7 +174,7 @@ export default async function AboutPage() {
             .dark .prose blockquote {
               border-left-color: #818cf8 !important;
               background-color: rgba(129, 140, 248, 0.1) !important;
-              color: #94a3b8 !important;
+              color: inherit !important;
             }
             
             /* 🌟 果冻极客风代码字体：更圆滑、更饱满！大圆角拉满！ */

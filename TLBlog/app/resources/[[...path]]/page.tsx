@@ -245,10 +245,10 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
                   .resource-preview blockquote {
                     border-left: 4px solid #6366f1 !important; background-color: rgba(99,102,241,0.05) !important;
                     padding: 1rem 1.5rem !important; margin: 1.5rem 0 !important;
-                    border-radius: 0 1.25rem 1.25rem 0 !important; font-style: normal !important; color: #64748b !important;
+                    border-radius: 0 1.25rem 1.25rem 0 !important; font-style: normal !important; color: inherit !important;
                   }
                   .resource-preview blockquote p { margin: 0 !important; color: inherit !important; }
-                  .dark .resource-preview blockquote { border-left-color: #818cf8 !important; background-color: rgba(129,140,248,0.1) !important; color: #94a3b8 !important; }
+                  .dark .resource-preview blockquote { border-left-color: #818cf8 !important; background-color: rgba(129,140,248,0.1) !important; color: inherit !important; }
                   .resource-preview pre { background-color: #282c34 !important; color: #abb2bf !important; padding: 1.25rem !important; border-radius: 0.75rem !important; overflow-x: auto !important; margin: 1.5rem 0 !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.3) !important; }
                   .resource-preview pre code { background-color: transparent !important; color: inherit !important; font-size: 0.9em !important; padding: 0 !important; }
                   .resource-preview code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, ui-monospace, monospace !important; }

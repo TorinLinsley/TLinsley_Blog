@@ -220,7 +220,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                     margin: 1.5rem 0 !important;
                     border-radius: 0 1.25rem 1.25rem 0 !important;
                     font-style: normal !important;
-                    color: #64748b !important;
+                    color: inherit !important;
                   }
                   .prose blockquote p {
                     margin: 0 !important; 
@@ -229,7 +229,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                   .dark .prose blockquote {
                     border-left-color: #818cf8 !important;
                     background-color: rgba(129, 140, 248, 0.1) !important;
-                    color: #94a3b8 !important;
+                    color: inherit !important;
                   }
                   
                   .prose pre {
