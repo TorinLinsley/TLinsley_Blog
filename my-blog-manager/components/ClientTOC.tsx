@@ -152,7 +152,7 @@ function noClass(isActive: boolean) {
   return isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500';
 }
 
-export default function ClientTOC({ toc }: { toc: TocItem[] }) {
+export default function ClientTOC({ toc, panelClass = 'bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl' }: { toc: TocItem[]; panelClass?: string }) {
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
@@ -241,7 +241,7 @@ export default function ClientTOC({ toc }: { toc: TocItem[] }) {
 
   return (
     <div
-      className="page-scroll-keys max-lg:hidden bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl sticky top-28 max-lg:top-16 transition-colors duration-700 max-h-[75vh] overflow-y-auto custom-scrollbar"
+      className={`page-scroll-keys max-lg:hidden ${panelClass} rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl sticky top-28 max-lg:top-16 transition-colors duration-700 max-h-[75vh] overflow-y-auto custom-scrollbar`}
       onKeyDownCapture={pageScrollKeys}
     >
       <h3 className="font-black text-slate-900 dark:text-white mb-4 border-l-4 border-indigo-500 pl-2 text-sm uppercase tracking-widest">
