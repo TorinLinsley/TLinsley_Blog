@@ -182,7 +182,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
             想让正文行别拉太长，可以再给 .prose 单独限宽（例如 max-w-[72ch] mx-auto）。 */}
         <main className="w-[95%] md:w-[90%] max-w-[1900px] mx-auto mt-24 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
 
-          <article className="flex-1 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
+          <article className="flex-1 bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px] rounded-3xl shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
             <div className="w-full aspect-video bg-slate-200 dark:bg-slate-700 relative group">
               <img src={postData.cover || undefined} alt="封面" className="w-full h-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-105" />
             </div>
@@ -316,7 +316,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
           </article>
 
           <aside className="w-full lg:w-[320px] flex flex-col gap-6 flex-shrink-0">
-            <div className="bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl text-center">
+            <div className="bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px] rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl text-center">
               <div className="w-20 h-20 mx-auto rounded-full p-1 bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md mb-4 transition-transform duration-500 hover:rotate-3">
                 <img src={siteConfig.avatarUrl || undefined} alt="avatar" className="w-full h-full rounded-full object-cover bg-white" />
               </div>
@@ -325,9 +325,9 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
               <ClientSocials />
             </div>
 
-            <SidebarLyric />
+            <SidebarLyric panelClass="bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px]" />
 
-            <div className="bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl">
+            <div className="bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px] rounded-3xl p-6 border border-white/40 dark:border-white/10 shadow-xl">
               <h3 className="font-black text-slate-900 dark:text-white mb-4 border-l-4 border-indigo-500 pl-2 text-sm">RECOMMENDED</h3>
               <div className="space-y-4">
                 {recentPosts.map(p => (
@@ -346,7 +346,7 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
                    「包含块」，而它的高度正好等于大纲卡片本身 → sticky 顶不动，就变成
                    跟着页面一起滚了 ✗（这个坑踩过一次） */}
             {postData.toc.length > 0 && (
-              <ClientTOC toc={postData.toc} />
+              <ClientTOC toc={postData.toc} panelClass="bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px]" />
             )}
           </aside>
         </main>
