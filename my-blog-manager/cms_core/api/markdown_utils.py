@@ -164,6 +164,13 @@ def glue_image_blocks(markdown_text: str) -> str:
             if prev.strip() and not _BAD_LEAD_RE.match(prev.lstrip()):
                 # ✓ 上一行是普通正文 → 这些空行不要了（图片行首残留的零宽标记也一起清掉）
                 out.append(re.sub(r"^[" + _INVISIBLE + r"]+", "", stripped))
+            elif any(_MARKER_LINE_RE.match(l) for l in popped):
+                # ⚠️ 列表 / 标题 / 引用上面：**纯空行**是语法必需的（去掉图片就会被吞进上一个块 ✗），
+                #    但「零宽标记行」不是 —— 那是编辑器空段落落盘的残留，读回去又会变成
+                #    图片上面的一行空白，看着就是"空行怎么删都删不掉"✗（用户 2026-10-25 反馈）
+                #    → 只留一个真正的空行，标记行丢掉 ✓
+                out.append("")
+                out.append(line)
             else:
                 # 标题/列表/引用/表格/围栏上面：空行是语法必需的，原样放回 ✓
                 out.extend(reversed(popped))
@@ -213,6 +220,13 @@ _EMPTY_P_BEFORE_IMG_RE = re.compile(
     r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<p\b[^>]*>\s*<img\b)",
     re.I,
 )
+# ⚠️ 同上，但图片是**裸 <img>**（草稿箱 JSON 里存的就是编辑器原样 HTML：图片不裹 <p>）。
+#    老版本只认「<p><img></p>」这一种，所以草稿快照里图片上面那个空段落一直删不掉 →
+#    用户把那一行删了、一存又回来 ✗（2026-10-25 实测：.md 干净了，重新进编辑器还是多一行）
+_EMPTY_P_BEFORE_RAW_IMG_RE = re.compile(
+    r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<img\b)",
+    re.I,
+)
 
 
 def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
@@ -237,6 +251,7 @@ def unbreak_image_lines(html: str) -> str:
     # 一次正则只能收掉紧挨着图片的那一个，所以循环收到不动为止（最多几轮，删没了自然就停）
     for _ in range(6):
         trimmed = _EMPTY_P_BEFORE_IMG_RE.sub("", out)
+        trimmed = _EMPTY_P_BEFORE_RAW_IMG_RE.sub("", trimmed)
         if trimmed == out:
             break
         out = trimmed

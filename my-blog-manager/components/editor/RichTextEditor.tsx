@@ -157,6 +157,38 @@ function convertTaskLists(body: HTMLElement) {
 }
 
 /**
+ * 🔢 把「紧挨着、中间什么都没有」的同类型列表合并回一个。
+ *
+ * 病根：markdown-it 偶尔会把**同一个**序号列表切成两段（比如 `1.` 和 `2)` 混用、
+ * 或者列表中间混进了一个空块）→ 粘进来就是两个 <ol>，编号各从 1 开始 ✗
+ * 用户看到的样子：1. / 1. / 2. 这种"莫名其妙的编号"（Obsidian 里写的好好的）。
+ *
+ * 只合并**语法上本来就是同一个**的那些：
+ *   · 列表本身没有 start（= 从 1 开始）  → 合并
+ *   · start 正好接在已往条目数后面（5. 接在 4 条后面）→ 合并 ✓
+ *   · 其它情况（作者真的想重新从某个号开始）→ 不动 ✓
+ */
+function mergeSiblingLists(body: HTMLElement) {
+  body.querySelectorAll('ol, ul').forEach(list => {
+    for (;;) {
+      const next = list.nextElementSibling as HTMLElement | null;
+      if (!next || next.tagName !== list.tagName) break;
+
+      if (list.tagName === 'OL') {
+        const baseStart = parseInt(list.getAttribute('start') || '1', 10) || 1;
+        const nextStart = parseInt(next.getAttribute('start') || '1', 10) || 1;
+        const count = Array.from(list.children).filter(el => el.tagName === 'LI').length;
+        const continues = nextStart === 1 || nextStart === baseStart + count;
+        if (!continues) break;
+      }
+
+      while (next.firstChild) list.appendChild(next.firstChild);
+      next.remove();
+    }
+  });
+}
+
+/**
  * Markdown 源码 → 可直接 replaceSelection 的 Slice。
  *
  * 顺序有讲究：先丢 frontmatter（不然会被渲染成「分隔线 + 一堆列表项」）→ 再渲染 →
@@ -170,6 +202,7 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     .parseFromString(PASTE_MD.render(stripFrontmatter(raw)), 'text/html')
     .body;
   tidyPasteWhitespace(body);
+  mergeSiblingLists(body);
   convertTaskLists(body);
   /* ⌨️ 代码块：砍掉 markdown-it 在收尾前多输出的**那一个**换行 ✓
    *
