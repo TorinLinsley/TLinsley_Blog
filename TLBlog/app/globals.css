@@ -650,14 +650,17 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   text-decoration-thickness: 0.25em !important;
   text-underline-offset: 0.08em !important;
 }
-/* ② 超链接：平时**虚线**、悬停**变实线并略微下移**（不再有背景变亮/变淡 ✗） */
+/* ② 超链接：平时**虚线**、悬停**变实线并下移到两行文字的中间**（不再有背景变亮/变淡 ✗）
+   悬停下划线落在 0.5em：正文行高 1.75~1.8、字形升降部约 0.88/0.12（Noto Serif SC）→
+   文字下沿到下一行文字上沿这段空隙的中点，正好在基线下约 0.5em 处 ✓
+   （用户 2026-10-25：要"刚好在文本底部与下一行顶部之间的上下中间"，动画要非线性）*/
 .prose a[href^="http"]:not(.repo-card), .resource-preview a[href^="http"]:not(.repo-card), .editor-content-area a[href^="http"]:not(.repo-card) {
   text-decoration-line: underline !important;
   text-decoration-style: dashed !important;
   text-decoration-thickness: 0.12em !important;
   text-underline-offset: 0.18em !important;
   background: transparent !important;
-  transition: text-underline-offset 0.18s ease !important;
+  transition: text-underline-offset 0.22s cubic-bezier(.22,.61,.36,1) !important;
 }
 /* 🖱️ 悬停效果**只给真的有鼠标的设备**（用户 2026-10-22 要求）
       手机/平板根本没有"悬停"这回事，干脆一条 :hover 规则都不给它 ✓
@@ -667,7 +670,7 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 @media (hover: hover) and (pointer: fine) {
   .prose a[href^="http"]:not(.repo-card):hover, .resource-preview a[href^="http"]:not(.repo-card):hover, .editor-content-area a[href^="http"]:not(.repo-card):hover {
     text-decoration-style: solid !important;
-    text-underline-offset: 0.3em !important;
+    text-underline-offset: 0.5em !important;
     background: transparent !important;
   }
 }
@@ -714,13 +717,13 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  transition: text-underline-offset 0.18s ease !important;
+  transition: text-underline-offset 0.22s cubic-bezier(.22,.61,.36,1) !important;
 }
 /* 悬停态：只在有鼠标的设备上生效 ✓（手机没有 hover，自然不会有"卡住"✓） */
 @media (hover: hover) and (pointer: fine) {
   .prose a:not(.repo-card):hover, .resource-preview a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):hover {
     text-decoration-style: solid !important;
-    text-underline-offset: 0.3em !important;
+    text-underline-offset: 0.5em !important;
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
@@ -730,7 +733,7 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 /* 键盘 Tab 的高亮不受影响 ✓（手机/平板上插键盘照样能用） */
 .prose a:not(.repo-card):focus-visible, .resource-preview a:not(.repo-card):focus-visible, .editor-content-area a:not(.repo-card):focus-visible {
   text-decoration-style: solid !important;
-  text-underline-offset: 0.3em !important;
+  text-underline-offset: 0.5em !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
