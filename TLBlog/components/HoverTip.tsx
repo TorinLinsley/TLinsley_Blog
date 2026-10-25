@@ -6,14 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 export type HoverTipState = { text: string; x: number; y: number } | null;
 
-/**
- * 悬停提示：列表栏不够宽、名称被截断时，鼠标悬停用气泡显示完整名称。
- *
- * - 出现很快（0.1s 淡入），鼠标一划走立刻退场
- * - 用 AnimatePresence，所以快速划过时动画会「被打断并接管」，
- *   不会排队、不会残留、也不会闪
- * - 通过 portal 挂到 body 上，避免被父级的 overflow-hidden / backdrop-blur 裁掉
- */
 export default function HoverTip({ tip }: { tip: HoverTipState }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);

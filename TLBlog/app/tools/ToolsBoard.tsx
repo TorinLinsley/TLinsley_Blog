@@ -4,13 +4,6 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { SPRING_MORPH } from '../../lib/motion';
 
-/**
- * 🧰 工具导航面板（前台展示用，和「杂谈」同一套视觉）：
- *   大标题 + 一行小字 + 搜索框 + 标签筛选 + 卡片列表。
- *
- * 卡片点击后**在当前标签页**跳转到工具本体（/tools/<目录>/<主网页文件>）——
- * 和普通站内链接一样，浏览器后退键就能回到这张导航表。
- */
 export type ToolItem = {
   name: string;
   dir: string;
@@ -20,14 +13,6 @@ export type ToolItem = {
   tags?: string[];
 };
 
-/**
- * 🎭 工具图标画法（和控制台那边是同一套）。
- *
- * · 网络图标（`iconify:库:名字`）和 .svg 文件 → 用 **CSS mask** 画：
- *   只取形状，颜色交给 `currentColor`，所以**深色模式自动变白、浅色自动变深** ✓
- *   （用 <img> 的话颜色是 SVG 文件里写死的，深色模式下就是一团黑 ✗）
- * · png / jpg / ico 这类位图 → 仍用 <img>，保留它自己的颜色 ✓
- */
 function ToolIcon({ icon, className = 'w-full h-full' }: { icon?: string; className?: string }) {
   const raw = String(icon || '').trim();
   if (!raw) return null;
@@ -64,7 +49,6 @@ export default function ToolsBoard({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTag] = useState('全部');
-  /** 选中态指示器：减少动效时不滑动、直接瞬移 */
   const reduceMotion = useReducedMotion();
   const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
 
@@ -161,7 +145,6 @@ export default function ToolsBoard({
                   className="block h-full rounded-2xl md:rounded-[32px] bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border border-white/50 dark:border-white/5 shadow-md md:shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group overflow-hidden"
                 >
                   <div className="p-4 md:p-7 flex gap-4 md:gap-5 items-start">
-                    {/* 图标：没设置就是一个虚线占位方块 */}
                     <div className="w-12 h-12 md:w-16 md:h-16 shrink-0 rounded-xl md:rounded-2xl bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-500/15 flex items-center justify-center overflow-hidden text-slate-800 dark:text-white">
                       {tool.icon ? (
                         <ToolIcon icon={tool.icon} />

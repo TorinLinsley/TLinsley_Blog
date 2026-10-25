@@ -10,20 +10,16 @@ import Link from 'next/link';
 export default function TimelineClient({ posts: initialPosts, tags }: { posts: any[], tags: { name: string, count: number }[] }) {
   const [posts, setPosts] = useState(initialPosts);
   const [selectedTag, setSelectedTag] = useState<string>('All');
-  /** 选中态指示器：减少动效时不滑动、直接瞬移（更轻，但状态提示仍在） */
   const reduceMotion = useReducedMotion();
   const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // 🌟 默认视图模式 ('timeline' | 'card')
   const [viewMode, setViewMode] = useState<'timeline' | 'card'>('timeline');
-  // 🗑️ 原来这里有一个 `showScrollTop` 状态，只给那个被删掉的"火箭回顶部"按钮用 ✗
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
 
-  // 🌟 核心魔法 1：强制移动端为矩阵模式
   useEffect(() => {
     const enforceMobileView = () => {
       if (window.innerWidth < 768) {
@@ -31,9 +27,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
       }
     };
 
-    // 初始化检测
     enforceMobileView();
-    // 监听窗口大小变化
     window.addEventListener('resize', enforceMobileView);
     return () => window.removeEventListener('resize', enforceMobileView);
   }, []);
@@ -63,10 +57,6 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
     });
   }, [posts, selectedTag]);
 
-  // 🗑️ 这里原来还有 handleGridScroll / scrollToTop 两个函数，只服务上面那个被删掉的
-  //    "火箭回顶部"按钮（还有一个每次滚动都 setState 的状态 ✗ —— 白让整个时间线重渲染 ✗）。
-  //    按钮删掉后它们就没用了 ✓ 一并删掉，顺带省掉滚动时的无谓重渲染 ✓
-  //    ⚠️ 想恢复那个按钮：把这两个函数 + showScrollTop 状态 + 那段 JSX 一起加回来 ✓
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-28 px-4 sm:px-10 relative z-10">
@@ -164,7 +154,6 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
             ))}
           </div>
 
-          {/* 🌟 核心魔法 2：隐藏手机端的视图切换按钮 (hidden md:flex) */}
           <div className="hidden md:flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-2xl shadow-inner shrink-0">
             <button onClick={() => setViewMode('timeline')} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${viewMode === 'timeline' ? 'bg-white dark:bg-slate-700 text-indigo-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
               <ListTree size={16} />
@@ -181,7 +170,6 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
 
       <AnimatePresence mode="wait">
 
-        {/* ================= 模式 1：网格卡片流 (手机端强制此模式) ================= */}
         {viewMode === 'card' && (
           <motion.div
             key="card-view"
@@ -203,24 +191,20 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
   
               className="h-[75vh] overflow-y-auto cyber-scrollbar pr-2 sm:pr-5 pb-10 fade-edges"
             >
-              {/* 🌟 核心魔法 3：强制手机端 grid-cols-2 双列显示，减小 gap */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 pt-4 pb-10">
                 {timelinePosts.map((post, idx) => (
                   <motion.div key={post.slug} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3, delay: idx * 0.05 }}>
                     <div className="bg-white/60 dark:bg-slate-800/70 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-2xl md:rounded-3xl overflow-hidden shadow-lg flex flex-col h-full group relative hover:-translate-y-1 transition-transform duration-300">
 
                       <Link href={`/posts/${post.slug}`} className="block flex-1 flex flex-col cursor-pointer">
-                        {/* 🌟 图片高度自适应：手机变矮，电脑变高 */}
                         <div className="relative h-28 sm:h-36 md:h-40 overflow-hidden">
                           <img src={post.cover || undefined} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                          {/* 🌟 日期标签微缩 */}
                           <span className="absolute bottom-2 left-2 md:bottom-3 md:left-4 text-white/90 text-[9px] md:text-xs font-mono font-bold bg-black/40 backdrop-blur-sm px-1.5 py-0.5 md:px-2 md:py-1 rounded flex items-center gap-1">
                             <Calendar size={10} className="md:w-3 md:h-3"/> {post.date.split(' ')[0]}
                           </span>
                         </div>
 
-                        {/* 🌟 文本边距和字号全方位缩放 */}
                         <div className="p-3 md:p-5 flex-1 flex flex-col">
                           <h3 className="text-xs sm:text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100 mb-1 md:mb-2 line-clamp-2 transition-colors group-hover:text-indigo-500">{post.title}</h3>
                           <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-2 md:mb-4 line-clamp-2 flex-1 leading-snug">{post.description || "暂时没有描述喵..."}</p>
@@ -238,16 +222,12 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
               </div>
             </div>
 
-            {/* 🗑️ 这里原来有一个自带的"火箭回顶部"按钮（紫色渐变圆圈 + 向上箭头）——
-                和全站那个 BackToTop 重复了：手机上滑到卡片最底下会在右下角**同时**冒出两个
-                （全局那个小的 + 这个大的）✗ 用户 2026-10-14 指出这是多余的一个 ✗
-                已经删掉 ✓ 回顶部统一交给全站那个 BackToTop（见 app/layout.tsx）✓
-                ⚠️ 想恢复就把这段加回来：motion.button + AnimatePresence + showScrollTop 判断 ✓ */}
+            {
+}
 
           </motion.div>
         )}
 
-        {/* ================= 模式 2：传统时间线 (前台纯净版) ================= */}
         {viewMode === 'timeline' && (
           <motion.div
             key="timeline-view"

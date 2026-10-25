@@ -19,10 +19,8 @@ from markdown.extensions import Extension
 from markdown.postprocessors import Postprocessor
 from markdown.preprocessors import Preprocessor
 
-# 这些类名等于「没指定语言」，不该写进围栏
 _IGNORED = {"none", "nohighlight", "plain", "plaintext", "text", "txt", "hljs", "null"}
 
-# 占位符用私用区字符：正文里不会出现，也不会被 Markdown 转义（和 resources.py 的内联标签占位符一个思路）
 _TABLE_SLOT = "\ue000TABLE{}\ue001"
 
 
@@ -92,38 +90,13 @@ def collapse_blank_lines(markdown_text: str) -> str:
     return "\n".join(out)
 
 
-# ═════════════════════════════════════════════════════════════
-# 🖼️ 图片紧贴上一段正文（去掉图片上面凭空多出来的那个空行）
-#
-# 病根：编辑器里图片是**块级节点**，而插入图片时 ProseMirror 还会在它前面留下
-#   一个空段落（插入前光标所在的那个空行）。落盘时两边一起放大：
-#     · 空段落 → 本文件规定的"空行"写法 `<br>&zwj;` → 变成「一个空行 + 一行零宽字符」
-#     · 块级图片 → markdownify 前后各补一个空行
-#   于是图片上面凭空多出**两个空行 + 一行看不见的零宽字符** ✗
-#   刷新一读，那行零宽字符还变成编辑器里**真的空段落** —— 删掉再存又回来 ✗
-#   （用户实测："插入图片后保存，图片上一行明明没有空行，保存之后就有了；
-#     给它删了再保存还是看见有，预览和编辑器都一样，前台也一样"）
-#
-# 做法（只在**顶层正文**里动）：图片行上面那一个空行去掉；
-#   若上面还压着"空行标记行"（整行都是零宽字符），连它和它下面的空行一起去掉。
-#
-# ⚠️ 只认「上一行是普通正文段落」。标题 / 列表 / 引用·callout / 表格 / 围栏
-#    上面的图片一个字都不动 —— 那些空行是**语法必需**的：
-#    去掉图片就会变成标题的一部分、或被吞进上一个列表项 ✗
-# ⚠️ 围栏（```/~~~）里的内容完全不看；表格行以 | 开头、callout 行以 > 开头，
-#    天然不可能匹配成"图片行" ✓（表格/代码块/callout 一个字都不会被碰 ✓）
-# ═════════════════════════════════════════════════════════════
 
-# 空行的零宽标记字符（编辑器用 <br>&zwj; 表示空行）
 _INVISIBLE = "\u200b\u200d\ufeff"
 
-# 整行就是一张图（行首允许残留的零宽标记 —— 老文件里黏在图片前的那种）
 _IMG_LINE_RE = re.compile(r"^[" + _INVISIBLE + r"]*!\[[^\]]*\]\([^)]*\)\s*$")
-# 整行都是零宽标记（= 编辑器里的一个空段落；允许前后带空白）
 _MARKER_LINE_RE = re.compile(
     r"^[\s" + _INVISIBLE + r"]*[" + _INVISIBLE + r"][\s" + _INVISIBLE + r"]*$"
 )
-# 「上一行不是普通正文」的判据：标题 / 引用 / callout / 表格 / 围栏 / 列表 / 分隔线 / 裸 HTML / 图片
 _BAD_LEAD_RE = re.compile(
     r"^(?:#{1,6}(?:\s|$)|>|\||```|~~~|[-*+](?:\s|$)|\d+[.)](?:\s|$)|<|!\[|(?:[-*_]\s*){3,}$)"
 )
@@ -155,24 +128,17 @@ def glue_image_blocks(markdown_text: str) -> str:
         if _IMG_LINE_RE.match(stripped) and out and (
             out[-1].strip() == "" or _MARKER_LINE_RE.match(out[-1])
         ):
-            # 往回剥：图片上面连着的空行 / 空行标记行（都是编辑器留下的空段落）
             popped: List[str] = []
             while out and (out[-1].strip() == "" or _MARKER_LINE_RE.match(out[-1])):
                 popped.append(out.pop())
 
             prev = out[-1] if out else ""
             if prev.strip() and not _BAD_LEAD_RE.match(prev.lstrip()):
-                # ✓ 上一行是普通正文 → 这些空行不要了（图片行首残留的零宽标记也一起清掉）
                 out.append(re.sub(r"^[" + _INVISIBLE + r"]+", "", stripped))
             elif any(_MARKER_LINE_RE.match(l) for l in popped):
-                # ⚠️ 列表 / 标题 / 引用上面：**纯空行**是语法必需的（去掉图片就会被吞进上一个块 ✗），
-                #    但「零宽标记行」不是 —— 那是编辑器空段落落盘的残留，读回去又会变成
-                #    图片上面的一行空白，看着就是"空行怎么删都删不掉"✗（用户 2026-10-25 反馈）
-                #    → 只留一个真正的空行，标记行丢掉 ✓
                 out.append("")
                 out.append(line)
             else:
-                # 标题/列表/引用/表格/围栏上面：空行是语法必需的，原样放回 ✓
                 out.extend(reversed(popped))
                 out.append(line)
             continue
@@ -182,47 +148,16 @@ def glue_image_blocks(markdown_text: str) -> str:
     return "\n".join(out)
 
 
-# ═════════════════════════════════════════════════════════════
-# 🖼️ 读回来的时候，图片上面也不许留那一行空白
-#
-# 上面那个 glue_image_blocks 管的是**落盘**（.md 里图片紧贴上一段正文 ✓）。
-# 但"读回编辑器"这条路还有第二个独立的原因会让图片上面出现一行空白：
-#
-#   .md：`文字 ↵ ![](x)`（图片紧贴上一行）
-#     → python-markdown 挂 nl2br → `<p>文字<br><img></p>`      ← 那个换行变成了 <br>
-#     → 编辑器里图片是**块级节点**，装不进段落，就地拆成独立段落
-#     → `<p>文字<br></p><p><img></p>`                          ← <br> 落到图片上面 ✗
-#     → 行号栏实打实给它一个号，看着就是"图片上面多了一个空行" ✗
-#        （用户截图：260 文字 / 261 空 / 262 图片）
-#
-# 最坑的是：在编辑器里把那一行删掉（= 删掉那个 <br>）再保存，.md 确实是
-# `文字 ↵ ![](x)`（完全正确 ✓），可一读回来又变出 <br> —— 看着就是"空行永远删不掉" ✗
-#
-# 做法：读的时候把「紧贴图片的那一个 <br>」换成段落分界（图片自己一段），
-#   再顺手收拾掉图片上面「只剩零宽字符 / 只剩一个 <br>」的空段落（老文件里的空行标记）。
-#
-# ⚠️ 只在 `<p>` 段落内部动手：
-#   · 表格单元格的内容不是 `<p>` → 表格天然碰不到 ✓
-#   · 围栏代码块里的 `<img>` 是转义过的（&lt;img）→ 也碰不到 ✓
-#   · callout 的 <div> 外壳、引用块结构、正文文字一个字都不改 ✓
-# ═════════════════════════════════════════════════════════════
 
 _BR_IMG_END_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)\s*</p>", re.I)
 _BR_IMG_RE = re.compile(r"<br\s*/?>\s*(<img\b[^>]*>)", re.I)
-# 老文件里"零宽标记黏在图片前面"（.md 那一行长成 `‍![](x)`）—— 标记是空行用的，
-# 不许黏在图片上（编辑器里它会自己变成图片上面的一行空白 ✗）
 _INV_BEFORE_IMG_RE = re.compile(r"[" + _INVISIBLE + r"]+(?=<img\b)", re.I)
 _P_RE = re.compile(r"<p\b[^>]*>[\s\S]*?</p>", re.I)
-# 图片独自占一个 <p>（`<p><img …></p>`）—— 编辑器里图片是**块级节点**，装不进段落：
-# 这个 <p> 壳会让 ProseMirror 就地留下一个**空段落**，显示出来就是"图片上面多一行" ✗
 _IMG_ONLY_P_RE = re.compile(r"<p\b[^>]*>\s*(<img\b[^>]*>)\s*</p>", re.I)
 _EMPTY_P_BEFORE_IMG_RE = re.compile(
     r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<p\b[^>]*>\s*<img\b)",
     re.I,
 )
-# ⚠️ 同上，但图片是**裸 <img>**（草稿箱 JSON 里存的就是编辑器原样 HTML：图片不裹 <p>）。
-#    老版本只认「<p><img></p>」这一种，所以草稿快照里图片上面那个空段落一直删不掉 →
-#    用户把那一行删了、一存又回来 ✗（2026-10-25 实测：.md 干净了，重新进编辑器还是多一行）
 _EMPTY_P_BEFORE_RAW_IMG_RE = re.compile(
     r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|<br\s*/?>|[" + _INVISIBLE + r"])*</p>\s*(?=<img\b)",
     re.I,
@@ -234,12 +169,8 @@ def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
     block = match.group(0)
     if "<img" not in block:
         return block
-    # ① 图片前面黏着的零宽标记（空行标记）先去掉 —— 它在编辑器里就是图片上面那一行空白
-    #    ⚠️ 必须在拆 <br> 之前做：`文字<br>‍<img>` 去掉标记后才露出"<br> 紧贴图片"
     block = _INV_BEFORE_IMG_RE.sub("", block)
-    # ② 图片正好收尾：`<p>文字<br><img></p>` → 两段
     block = _BR_IMG_END_RE.sub(r"</p>\n<p>\1</p>", block)
-    # ③ 图片后面还有内容：`<p>文字<br><img><br>后面的字</p>` → 先断开，后面的内容另起一段
     block = _BR_IMG_RE.sub(r"</p>\n<p>\1</p>\n<p>", block)
     return block
 
@@ -247,15 +178,12 @@ def _unbreak_image_paragraph(match: "re.Match[str]") -> str:
 def unbreak_image_lines(html: str) -> str:
     """读回来时去掉「图片上面那一行空白」（<br> 顶出来的、以及老文件残留的空行标记）"""
     out = _P_RE.sub(_unbreak_image_paragraph, html)
-    # 图片上面可能叠着好几个空段落（一个空段落 + 一行零宽标记…）——
-    # 一次正则只能收掉紧挨着图片的那一个，所以循环收到不动为止（最多几轮，删没了自然就停）
     for _ in range(6):
         trimmed = _EMPTY_P_BEFORE_IMG_RE.sub("", out)
         trimmed = _EMPTY_P_BEFORE_RAW_IMG_RE.sub("", trimmed)
         if trimmed == out:
             break
         out = trimmed
-    # 图片独自占一个 <p> → 去掉这层壳（给编辑器裸 <img>，免得留下一个空段落；预览里渲染结果一样 ✓）
     out = _IMG_ONLY_P_RE.sub(r"\1", out)
     return out
 
@@ -266,7 +194,6 @@ def _cell_to_md(cell) -> str:
 
     inner = "".join(str(child) for child in cell.children)
     text = md(inner, heading_style="ATX", keep=["img", "br"])
-    # 编辑器用 <br>&zwj; 表示空行，markdownify 会把那个零宽连接符留下来 —— 清掉
     text = text.replace("\u200d", "").replace("\u200b", "").replace("\ufeff", "")
     text = text.replace("|", "\\|")
     return " ".join(text.split())
@@ -325,22 +252,6 @@ def restore_tables(text: str, tables: List[str]) -> str:
     return text
 
 
-# ═════════════════════════════════════════════════════════════
-# 🧩 相邻的引用块被 python-markdown 并成一个 ✗
-#
-# CommonMark / Obsidian / 前端的 remark 里：
-#     > 第一块
-#     （空行）
-#     > 第二块            → 这是**两个**引用块 ✓
-# python-markdown 却会把它并成**一个** blockquote（两个 <p>）✗，于是：
-#   · 你分开写的引用块，在控制台里糊成一大坨 ✗
-#   · 紧跟着的 `> [!info]` 不再是"引用块的第一段" → callout 直接失效、
-#     退化成一行 `[!info]` 原文 ✗（用户遇到的就是这个）
-#
-# 办法：这种"空行分隔的两个引用块"之间插一行 HTML 注释挡住合并
-#      （和下面拆 callout 用的是同一招，已验证有效 ✓）。
-# ⚠️ 引用块**内部**的空行写成 `>`（空引用行）—— 那不是分隔，不动 ✓
-# ═════════════════════════════════════════════════════════════
 
 def separate_blockquotes(md_text: str) -> str:
     """把"空行分隔的相邻引用块"用 HTML 注释隔开，免得被并成一个（围栏内不动）"""
@@ -357,7 +268,6 @@ def separate_blockquotes(md_text: str) -> str:
         elif fence is not None and stripped.startswith(fence):
             fence = None
 
-        # 空行 且 前一行是引用、下一个非空行也是引用 → 两个引用块的分界，插注释 ✓
         if fence is None and line.strip() == "" and out:
             prev = next((l for l in reversed(out) if l.strip()), "")
             nxt = next((l for l in lines[i + 1:] if l.strip()), "")
@@ -372,14 +282,6 @@ def separate_blockquotes(md_text: str) -> str:
     return "\n".join(out)
 
 
-# ═════════════════════════════════════════════════════════════
-# 🧩 保存时：把 callout 外壳变回 `> [!type] 标题` 的 Markdown
-#
-# 不这么干的话，markdownify 会把 callout 里的 <span>/<svg> 当**裸 HTML** 吐进 .md ✗
-# —— 表现就是「保存一次，callout 样式全没了，满屏 span 标签」，
-#    而且前端再读也认不出它是 callout（用户："连显示效果都没了"）。
-# 思路和表格一样：先把外壳抠成占位符，markdownify 之后再放回 Markdown 文本 ✓
-# ═════════════════════════════════════════════════════════════
 
 _CALLOUT_SLOT = "\ue002CALLOUT{}\ue003"
 
@@ -398,7 +300,6 @@ def callout_html_to_markdown(div_html: str) -> str:
     kind = str(box.get("data-callout") or "note").strip() or "note"
 
     title_el = box.select_one(".callout-title-text")
-    # 标题也走 markdownify：这样标题里的加粗/斜体（> [!info] **标题**）不会丢 ✓
     if title_el is not None:
         title = _md(title_el.decode_contents(), heading_style="ATX").strip() or kind.capitalize()
     else:
@@ -452,11 +353,6 @@ def restore_callouts(text: str, callouts: List[str]) -> str:
 
 
 
-# ─────────────────────────────────────────────────────────────
-# Obsidian 风格的 Callout（标注块）：> [!note] 标题
-# 和博客前台（lib/rehypeCallout.ts）那套保持一致 —— 只认首段以 [!类型] 开头的引用块，
-# 普通引用一个字都不动。
-# ─────────────────────────────────────────────────────────────
 def _icon(inner: str) -> str:
     return (
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -490,7 +386,6 @@ CALLOUT_ICONS = {
     "todo": _icon('<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>'),
 }
 
-# 只匹配"首段以 [!类型] 开头"的引用块；普通引用不匹配，保持原样
 _CALLOUT_RE = re.compile(
     r"<blockquote>\s*<p>\s*\[!\s*([A-Za-z0-9_-]+)\s*\]\s*[-+]?\s*([\s\S]*?)</p>([\s\S]*?)</blockquote>",
     re.IGNORECASE,
@@ -529,21 +424,6 @@ def render_callouts(html: str) -> str:
     return _CALLOUT_RE.sub(_repl, html)
 
 
-# ─────────────────────────────────────────────────────────────
-# 🧩 拆开「挤在同一个引用块里的多个 callout」
-#
-# 编辑器导出 Markdown 时，相邻的 callout 会连成一片：
-#     > [!note] 标题一
-#     > 正文一
-#     > [!abstract] 标题二
-#     > 正文二
-# ⚠️ 在 Markdown 里这**是同一个 blockquote**（中间没有空行），所以渲染时
-#    只有第一个能变成 callout，后面全部退化成普通引用里的一行字 ——
-#    表现就是「控制台编辑器里明明好好的，一保存 / 到前台就全是 [!xxx] 原文」。
-#
-# 这里给每个新 callout 前面补一个空行，把它们拆成各自独立的引用块。
-# ⚠️ 围栏代码块里的内容一个字都不动。
-# ─────────────────────────────────────────────────────────────
 
 _CALLOUT_LINE = re.compile(r"^\s*>\s*\[!\s*[A-Za-z0-9_-]+\s*\]")
 
@@ -568,9 +448,6 @@ def split_callout_blockquotes(md_text: str) -> str:
             and out[-1].strip()
             and out[-1].lstrip().startswith(">")
         ):
-            # ⚠️ 只插一个空行**不管用**：Python-Markdown 比 CommonMark 宽容，
-            #    空行 + 后面还是 `>` 开头的行，它仍然算同一个 blockquote ✗
-            #    所以插一行**不带 `>` 的 HTML 注释**把它切断（注释在页面上不可见 ✓）
             out.append("")
             out.append("<!-- -->")
             out.append("")
@@ -580,32 +457,9 @@ def split_callout_blockquotes(md_text: str) -> str:
     return "\n".join(out)
 
 
-# ─────────────────────────────────────────────────────────────
-# 🧮 数学公式（$…$ / $$…$$）
-#
-# 背景：资源分享和草稿箱的正文是 python-markdown 渲染的，它**默认不认识数学公式**，
-# 而且它那套转义规则会**当场改坏公式**。实测（Markdown==3.10.3 + fenced_code/tables/nl2br）：
-#
-#   $\{a\}$                              →  ${a}$        ← 反斜杠被吃掉
-#   \begin{pmatrix} a & b \\ c & d …     →  … b \ c …    ← TeX 换行符 \\ 被吃成一个 \
-#   $$ ⏎ \int … ⏎ $$                      →  $$<br>…<br>$$ ← nl2br 往公式中间插 <br>
-#
-# 第三条尤其致命：公式被 <br> 切开后，前端 KaTeX 连"一对 $$"都找不齐，怎么渲染都渲染不出来。
-#
-# 所以这里不引新依赖（pymdownx 得额外 pip 一遍，服务器上还得再装），自己写三十行：
-#   ① 预处理：把公式抠成私用区占位符（和本文件表格那个 _TABLE_SLOT 一个思路），
-#      顺带跳过 ``` 围栏和 `行内代码` 里的内容；
-#   ② 后处理：把占位符换回**原样的公式文本**（HTML 转义一下，`&lt;` 进 DOM 还会变回 `<`）。
-#
-# 这里只管「别把公式改坏」，不负责渲染 —— 渲染在前端做（控制台资源预览页，
-# 见 my-blog-manager/lib/renderMath.ts）。为什么不在这儿包一层 span 给前端当标记：
-# 资源页点「编辑」再点「预览」时，预览用的是**编辑器吐出来的 HTML**，而 tiptap 会把
-# 它不认识的 span 拆掉，标记当场就没了。所以前端按同一套规则扫文本节点，两条路走同一段代码。
-# ─────────────────────────────────────────────────────────────
 
 _MATH_SLOT = "\ue100{}\ue101"
 
-# 行内代码 | 块级公式 | 行内公式（按顺序，代码优先；公式里允许 \$ \\ 这类转义）
 _MATH_RE = re.compile(
     r"(?P<code>`+[^`]*`+)"
     r"|(?P<display>\$\$[\s\S]+?\$\$)"
@@ -690,40 +544,12 @@ class MathExtension(Extension):
         md.postprocessors.register(MathPostprocessor(md, stash), "xh_math", 30)
 
 
-# ─────────────────────────────────────────────────────────────
-# 🎨 Markdown 里没有对应写法的内联标签：颜色/字号(span style)、高亮(mark)、
-#    下划线(u，带 text-decoration-color 就是"彩色下划线")、上下标(sub/sup)。
-#
-# markdownify 转换时会把它们连同样式一起丢掉 ——
-# 表现就是「编辑器里明明标了色/画了彩色下划线，一保存就变回原样」。
-# 办法：转换前先把这些标签抠成占位符，转成 Markdown 之后原样放回去。
-# Markdown 允许内嵌 HTML，博客前台（remark + allowDangerousHtml）和控制台预览
-# （python-markdown）都能把原样 HTML 渲染出来 ✓
-#
-# ⚠️ 以前这套只写在 resources.py 里 → **只有资源分享**能保住颜色/下划线 ✗
-#    文章、杂谈、关于我走的是 drafts.py，没有这一步 → 保存后彩色下划线、颜色全丢 ✗
-#    现在收到公共模块，两条路（resources.py / drafts.py）用同一份 ✓
-# ─────────────────────────────────────────────────────────────
-# ⚠️ 用 (?![^>]*class="callout-) 把 **callout 自己的 span** 排除掉：
-#    callout 的图标/标题就是 <span class="callout-icon"> / <span class="callout-title-text">，
-#    它们马上会被 stash_callouts 转成 Markdown（> [!info] 标题）✓ 不需要保护。
-#    不排除的话会被抠成占位符 → 取标题时拿到的是个占位符、只能退回兜底的 "Info" ✗
-#    （callout **正文里**你自己加的颜色/字号 span 不在排除范围，照旧被保护 ✓）
 _KEEP_INLINE_RE = re.compile(
     r"<(span|mark|u|sub|sup)\b(?![^>]*class=\"callout-)[^>]*>.*?</\1\s*>",
     re.S | re.I,
 )
-_INLINE_SLOT = "\ue000INLINE{}\ue001"  # 私用区字符，正文里不会出现，也不会被 Markdown 转义
+_INLINE_SLOT = "\ue000INLINE{}\ue001"
 
-# ⚠️⚠️ 粗体/斜体/删除线套着带样式内联标签时，**必须整段按原始 HTML 存** ✗ 不能生成 `**…**`
-#    原因（用户实测反馈：前台冒出两个星号 ✗「我也没写星号啊」）：
-#      编辑器里"粗体 + 彩色下划线"叠加 → HTML 是 <strong><u style>原版生存</u></strong>
-#      → markdownify 会吐成 `**<u style>原版生存</u>**`
-#    控制台的 python-markdown 比较宽松，能解析 ✓
-#    但**博客前台用的 remark 走 CommonMark 规则**：
-#      `**` 后面紧跟 `<`（标点）→ 判定为"不能开粗体" ✗ → 星号原样显示，字也不粗 ✗
-#    所以这里把「外层 strong/b/em/i/s/del 里含有带样式标签」的整段先抠出来 ✓
-#    → .md 里直接是 <strong><u style>…</u></strong> ✓ 两边渲染器都按原始 HTML 输出 ✓
 _EMPH_WRAP_INLINE_RE = re.compile(
     r"<(strong|b|em|i|s|del|strike)\b[^>]*>"
     r"(?:(?!</\1\s*>).)*?"
@@ -742,9 +568,7 @@ def protect_inline_tags(html: str):
         stash.append(m.group(0))
         return _INLINE_SLOT.format(len(stash) - 1)
 
-    # ① 先把「粗体/斜体/删除线 包着带样式标签」的整段抠掉（避免生成 `**…**` 那种坏写法）
     html = _EMPH_WRAP_INLINE_RE.sub(_stash, html)
-    # ② 再抠剩下的单个带样式标签
     return _KEEP_INLINE_RE.sub(_stash, html), stash
 
 

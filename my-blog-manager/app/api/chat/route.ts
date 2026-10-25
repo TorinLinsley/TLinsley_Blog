@@ -1,22 +1,5 @@
-// app/api/chat/route.ts
 import { siteConfig } from '../../../siteConfig';
 
-/**
- * 🐾 控制台里的 AI 煤球（和前台 TLBlog 那份是同一套逻辑，改一份要同步另一份）。
- *
- * 控制台只监听 127.0.0.1、靠 SSH 隧道访问，公网打不到，
- * 所以这里**不加**同源校验/限流（那是前台那份才需要的）。
- *
- * 🔌 支持两类模型后端，**优先用 OpenAI 兼容那套**（国内直连，不用梯子）：
- *    ① AI_API_KEY / AI_BASE_URL / AI_MODEL
- *       默认智谱：https://open.bigmodel.cn/api/paas/v4 + glm-4-flash-250414
- *       ⚠️ 模型名刻意钉在**官方文档标注为免费的那一个快照版本**（不用别名，
- *          别名将来可能被指向收费版）。实测零余额账户下该快照可用且不扣费。
- *    ② GEMINI_API_KEY（Google，国内机房基本连不上，仅作保留）
- *
- * ⚠️ 运行时是 nodejs：运行期读环境变量（Next 启动时加载 `.env.local`），
- *    换 key 只要重启服务，不用重新构建。
- */
 
 export const runtime = 'nodejs';
 
@@ -44,7 +27,6 @@ export async function POST(req: Request) {
     const { message } = await req.json();
     const { systemPrompt, maxTokens, temperature } = catParams();
 
-    // ── ① OpenAI 兼容（智谱 / 通义 / DeepSeek / Kimi…）──
     if (AI_API_KEY) {
       console.log(`📡 [chat] OpenAI 兼容: ${AI_BASE_URL}  模型 ${AI_MODEL}`);
       const upstream = await fetch(`${AI_BASE_URL}/chat/completions`, {
@@ -81,7 +63,6 @@ export async function POST(req: Request) {
       return Response.json({ reply });
     }
 
-    // ── ② Google Gemini（国内机房基本连不上，仅作保留）──
     if (GEMINI_API_KEY) {
       console.log('📡 [chat] 走 Gemini（注意：国内机房通常连不上 Google）');
       const modelId = siteConfig.geminiConfig?.modelId || 'gemini-2.5-flash-lite';
@@ -115,7 +96,6 @@ export async function POST(req: Request) {
   }
 }
 
-/** 只读状态查询，零敏感信息（只报"配没配"，不报任何 key 内容）。 */
 export async function GET() {
   return Response.json({
     status: 'Ready',

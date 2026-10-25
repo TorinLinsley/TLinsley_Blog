@@ -218,9 +218,8 @@ export default function AboutClient({
 
                 <div className="flex gap-2">
 
-                  {/* 🌟 核心修复区 1：左侧星期轴采用绝对矩阵对齐法 */}
                   <div className="flex flex-col shrink-0">
-                    <div className="h-4 mb-1"></div> {/* 给上面的月份让出空间 */}
+                    <div className="h-4 mb-1"></div> {}
                     <div className="flex flex-col gap-[4px] text-[10px] text-slate-400">
                       <div className="h-[11px] md:h-[13px]"></div>
                       <div className="h-[11px] md:h-[13px] leading-none flex items-center">Mon</div>
@@ -235,7 +234,6 @@ export default function AboutClient({
                   <div ref={heatmapScrollRef} className="flex-1 overflow-x-auto pb-4 custom-scrollbar scroll-smooth relative">
                     <div className="min-w-[700px]">
 
-                      {/* 🌟 核心修复区 2：顶部月份采用绝对宽度的 Flex 格子对齐法 */}
                       <div className="flex gap-[4px] text-[10px] text-slate-400 mb-1 h-4">
                         {weeks.map((week, idx) => {
                           const firstDay = week[0];
@@ -252,7 +250,6 @@ export default function AboutClient({
                         })}
                       </div>
 
-                      {/* 这是热力图本体（尺寸没有变，但上面的月份和左边的星期已经完全和它同宽同高了） */}
                       <div className="flex gap-[4px]">
                         {weeks.map((week, i) => (
                           <div key={i} className="flex flex-col gap-[4px]">

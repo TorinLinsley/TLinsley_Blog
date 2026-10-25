@@ -12,7 +12,6 @@ import { useToast } from '../../components/ToastProvider';
 import { useOperations } from '../../context/OperationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// 🌟 核心修改 1：把原本暴露的主函数改名为 EditorContent（不带 export default）
 function EditorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -171,8 +170,6 @@ function EditorContent() {
     finally { setIsSaving(false); }
   };
 
-  // 📱 小屏（<1024px）：外层不再锁 100vh，整页可以纵向滚动（下面两栏各自有确定高度、内部滚动）；
-  //    ≥1024px 保持原来的 h-screen + w-screen + overflow-hidden，大屏一个像素都不变
   return (
     <div className="h-screen w-screen overflow-hidden relative max-lg:h-auto max-lg:min-h-screen max-lg:w-full">
 
@@ -212,13 +209,12 @@ function EditorContent() {
       </div>
 
       <PageTransition>
-        {/* 📱 只动布局：小屏两栏改竖排、放开固定高度；原来写在 style 里的
-            marginTop:144px / height:calc(100vh - 176px) / marginBottom:32px 原样搬到类名上，
-            lg（≥1024px）读到的还是这三个原值 */}
+        {
+}
         <main className="mx-auto w-[96%] max-w-[1750px] flex flex-row max-lg:flex-col gap-6 relative mt-[144px] max-lg:mt-28 mb-8 max-lg:mb-2 h-[calc(100vh-176px)] max-lg:h-auto">
 
-          {/* 📱 小屏把「返回」按钮做紧凑一点，让它正好卡在导航栏下沿、编辑卡片正上方 ——
-              这样卡片顶部（标题 + 工具栏）就能一路顶到导航栏底下，中间不留空档 */}
+          {
+}
           <button
             onClick={handleBackClick}
             className="absolute -top-14 left-2 px-5 py-2.5 max-lg:-top-11 max-lg:left-0 max-lg:px-3 max-lg:py-1.5 max-lg:text-[10px] bg-white/40 dark:bg-slate-800/60 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-2xl shadow-lg flex items-center gap-2 text-slate-700 dark:text-slate-200 font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all group z-50"
@@ -227,13 +223,8 @@ function EditorContent() {
             返回上一级
           </button>
 
-          {/* 📱 小屏：编辑器内核是 h-full + 内部 flex-1 滚动，父级高度必须确定。
-              这里给的高度是「可视区减去导航栏和上下留白」，也就是**正好铺满一屏**：
-                · 用 dvh 不用 vh —— 键盘弹出时 dvh 会跟着可视区缩，不会把工具栏顶出屏幕
-                  （配合 layout.tsx 里 viewport 的 interactiveWidget: 'resizes-content'）；
-                · 铺满一屏还有个好处：打字时光标滚动走的是**编辑区内部**那个滚动容器，
-                  整页不会被浏览器往上顶，工具栏就一直待在原位。
-              lg（≥1024px）仍旧是原来的 flex-1 撑满，行为不变 */}
+          {
+}
           <section className="flex-1 bg-white/30 dark:bg-slate-800/40 backdrop-blur-[60px] rounded-[50px] shadow-2xl border border-white/30 dark:border-white/10 flex flex-col overflow-hidden max-lg:flex-none max-lg:rounded-3xl max-lg:h-[calc(100dvh-7.5rem)]">
             <RichTextEditor
               ref={editorRef}
@@ -246,8 +237,8 @@ function EditorContent() {
             />
           </section>
 
-          {/* 📱 小屏：侧栏跟着正文竖排、占满宽度并给确定高度（MetaMatrix 同样是 h-full + 内部滚动）；
-              同样用 dvh 跟着键盘缩；lg（≥1024px）仍是原来的固定 360px 宽 */}
+          {
+}
           <aside className="w-[360px] shrink-0 bg-white/30 dark:bg-slate-800/40 backdrop-blur-[60px] rounded-[50px] shadow-2xl border border-white/30 dark:border-white/10 flex flex-col overflow-hidden max-lg:w-full max-lg:h-[70vh] max-lg:h-[70dvh]">
             <MetaMatrix
               type={docType as any} tags={tags} setTags={setTags} cover={cover} setCover={setCover} summary={summary} setSummary={setSummary} mood={mood} setMood={setMood}
@@ -266,7 +257,6 @@ function EditorContent() {
   );
 }
 
-// 🌟 核心修改 2：在底部暴露真正的 EditorPage，并用 Suspense 把里面的内容套起来
 export default function EditorPage() {
   return (
     <Suspense fallback={

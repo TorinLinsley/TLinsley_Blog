@@ -5,30 +5,10 @@ import { createPortal } from 'react-dom';
 import type { Editor } from '@tiptap/react';
 import { Image as ImageIcon, X } from 'lucide-react';
 
-/**
- * 🖼️ 「图片插入 / 编辑」按钮 + 编辑窗口（用户 2026-10-16 要求 ✓）
- *
- * 交互：
- *   · 点一下图片 = 选中它（ProseMirror 的 NodeSelection ✓）→ 再点这个按钮，窗口里
- *     **自动填上这张图的描述和链接** ✓ 改完点「确认」→ 原地更新 ✓
- *   · 没选中图片时点它 → 窗口空的 → 填链接点「确认」→ 插入新图 ✓
- *     （链接支持**站内路径** `/…` ✓ 也支持任何 http(s) 图床链接 ✓）
- *   · 描述留空 → **不写 alt** ✓（鼠标悬停没有提示 ✓）
- *
- * 窗口（2026-10-16 修过两处 ✗→✓）：
- *   · ⚠️ **必须用 createPortal 挂到 body** ✓
- *     原来直接渲染在工具栏 div 里 ✗ —— 工具栏有毛玻璃/transform，
- *     会让 `position:fixed` 变成"相对那个祖先定位" ✗ → 拖动坐标全错、窗口乱飞 ✗
- *   · 拖动：按住窗口里**任意非交互区域**都能拖 ✓（不只是标题文字 ✓）
- *     输入框/按钮上按下时**不拖**（那是正常点击 ✓），而且窗口里**不能框选文本** ✗
- *   · 手机（<768px）：固定在屏幕中央 ✓ 不拖 ✗ 按屏宽自适应 ✓
- *   · 右上角 **×** 关闭 ✓（取消不改任何东西 ✓）
- */
 export default function ImageEditButton({ editor }: { editor: Editor | null }) {
   const [open, setOpen] = useState(false);
   const [alt, setAlt] = useState("");
   const [src, setSrc] = useState("");
-  /** 窗口左上角坐标（null = 还没拖过 → 居中） */
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const dragRef = useRef<{ offX: number; offY: number } | null>(null);
@@ -41,7 +21,6 @@ export default function ImageEditButton({ editor }: { editor: Editor | null }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 拖动：鼠标在窗口里按下（非输入框）→ 跟着走 ✓
   useEffect(() => {
     if (!open) return;
     const onMove = (e: MouseEvent) => {
@@ -69,35 +48,34 @@ export default function ImageEditButton({ editor }: { editor: Editor | null }) {
     const attrs = active ? (editor!.getAttributes("image") as { src?: string; alt?: string }) : {};
     setSrc(attrs.src || "");
     setAlt(attrs.alt || "");
-    setPos(null);                       // 每次打开都回到居中 ✓
+    setPos(null);
     setOpen(true);
   };
 
   const confirm = () => {
     const url = src.trim();
-    if (!url || !editor) return;        // 链接空 → 什么都不做 ✓
+    if (!url || !editor) return;
     const attrs: { src: string; alt?: string } = { src: url };
     const a = alt.trim();
-    if (a) attrs.alt = a;               // 描述为空 → 不写 alt ✓（悬停无提示 ✓）
+    if (a) attrs.alt = a;
 
     if (editor.isActive("image")) {
-      editor.chain().focus().updateAttributes("image", attrs).run();   // 改这一张 ✓
+      editor.chain().focus().updateAttributes("image", attrs).run();
     } else {
-      editor.chain().focus().setImage(attrs).run();                    // 插一张新的 ✓
+      editor.chain().focus().setImage(attrs).run();
     }
     setOpen(false);
   };
 
-  /** 在窗口里按下 → 开始拖动（输入框/按钮上按下不算 ✓） */
   const startDrag = (e: React.MouseEvent) => {
     if (isMobile) return;
     const target = e.target as HTMLElement;
-    if (target.closest("input, textarea, button, a, select, label")) return;   // 交互元素上不拖 ✓
+    if (target.closest("input, textarea, button, a, select, label")) return;
     const rect = boxRef.current?.getBoundingClientRect();
     if (!rect) return;
     dragRef.current = { offX: e.clientX - rect.left, offY: e.clientY - rect.top };
     setPos({ left: rect.left, top: rect.top });
-    e.preventDefault();                 // 顺手阻止框选 ✓
+    e.preventDefault();
   };
 
   const dialog = (
@@ -111,7 +89,6 @@ export default function ImageEditButton({ editor }: { editor: Editor | null }) {
           : { left: "50%", top: "50%", transform: "translate(-50%, -50%)" }
       }
     >
-      {/* 标题栏（不再单独承担拖动 ✗ 整个窗口都能拖 ✓，这里只是视觉上的把手） */}
       <div className="flex items-center justify-between mb-4">
         <span className="font-bold text-slate-700 dark:text-slate-200">图片插入 / 编辑</span>
         <button
@@ -170,7 +147,6 @@ export default function ImageEditButton({ editor }: { editor: Editor | null }) {
         <ImageIcon size={16} className="text-indigo-500" />
       </button>
 
-      {/* ⚠️ 必须 portal 到 body ✗ 别渲染在工具栏里（毛玻璃祖先会毁掉 fixed 定位 ✓） */}
       {open && typeof document !== "undefined" ? createPortal(dialog, document.body) : null}
     </>
   );

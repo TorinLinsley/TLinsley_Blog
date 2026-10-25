@@ -4,15 +4,14 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import BackButton from '../../components/BackButton';
 import { friendsData, type Friend } from '../../data/friends';
-import Comments from '../../components/Comments'; // 🌟 引入你的 Gitalk 组件
-import { siteConfig } from '../../siteConfig'; // 🌟 引入刚刚更新的全局配置文件
+import Comments from '../../components/Comments';
+import { siteConfig } from '../../siteConfig';
 
-// Framer Motion 动画变体：交错子元素
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.15 } // 每张卡片延迟 0.15 秒出现
+    transition: { staggerChildren: 0.15 }
   }
 };
 
@@ -21,15 +20,11 @@ const itemVariants = {
   show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
 
-// 🤝 friends 由 server 端的 page.tsx 按请求从 data/friends.ts 读出来传进来（见 lib/readFriends.ts）。
-// 没传（比如别处复用这个组件）才回落到编译进 bundle 的那份快照。
 export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
   const list = friends ?? friendsData;
 
-  // 🌟 控制复制按钮的状态
   const [isCopied, setIsCopied] = useState(false);
 
-  // 🌟 直接从 siteConfig 读取申请格式
   const applyFormat = siteConfig.friendLinkApplyFormat;
 
   const handleCopy = () => {
@@ -41,7 +36,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
   return (
     <div className="w-full max-w-5xl mx-auto px-3 sm:px-10 py-6 md:py-10 relative z-10 scroll-smooth mt-20 md:mt-10">
 
-      {/* 顶部导航与标题 */}
       <div className="mb-8 md:mb-12 flex flex-col items-center md:items-start">
         <div className="w-full flex justify-start mb-4 md:mb-6">
           <BackButton />
@@ -70,7 +64,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
               rel="noopener noreferrer"
               className="block h-full rounded-2xl md:rounded-3xl bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-lg md:shadow-xl overflow-hidden transition-all duration-500 hover:-translate-y-1 md:hover:-translate-y-2 hover:scale-[1.02] group relative p-3 md:p-6"
             >
-              {/* 卡片底部的动态光晕 */}
               <div
                 className="absolute -bottom-10 -right-10 w-24 h-24 md:w-32 md:h-32 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                 style={{ backgroundColor: friend.themeColor }}
@@ -101,7 +94,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
         ))}
       </motion.div>
 
-      {/* 申请友链引导区 */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -116,7 +108,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
           欢迎各位大佬交换友链！请一键复制下方格式，并在底部的 Gitalk 留言板申请：
         </p>
 
-        {/* 代码展示框 & 一键复制按钮 */}
         <div className="relative bg-slate-100/60 dark:bg-slate-900/60 rounded-xl md:rounded-2xl p-4 md:p-5 text-left inline-block w-full max-w-md border border-slate-200/50 dark:border-slate-700/50 group overflow-hidden">
           <pre className="font-mono text-[10px] md:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-all pr-8 md:pr-10">
             {applyFormat}
@@ -149,7 +140,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
         </div>
       </motion.div>
 
-      {/* Gitalk 评论区 */}
       <motion.div
         id="gitalk-container"
         className="mt-12 md:mt-16 scroll-mt-24 px-2 md:px-0"
@@ -166,7 +156,6 @@ export default function FriendsBoard({ friends }: { friends?: Friend[] }) {
           <span className="w-8 md:w-12 h-[1px] bg-slate-300 dark:bg-slate-700"></span>
         </div>
 
-        {/* 渲染评论组件 */}
         <Comments />
       </motion.div>
 

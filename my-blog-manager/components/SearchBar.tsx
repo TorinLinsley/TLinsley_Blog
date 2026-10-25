@@ -13,19 +13,13 @@ interface Post {
   [key: string]: any;
 }
 
-/** 📁 资源分享：搜文件名 / 标题 / 路径 */
 export interface ResourceHit {
-  /** 展示用标题（frontmatter 的 title，取不到就用文件名） */
   title: string;
-  /** 仓库里的相对路径，如 `1资源分享/工具.md` */
   path: string;
-  /** 原始文件名，如 `工具.md` */
   fileName: string;
-  /** 所在文件夹，如 `1资源分享`（根目录为空串） */
   folder?: string;
 }
 
-/** 🚀 项目：搜名称 / 描述 / 标签 */
 export interface ProjectHit {
   id: string;
   name: string;
@@ -60,7 +54,6 @@ const Highlight = ({ text = '', query = '' }) => {
   );
 };
 
-/** 每类最多列这么多条，剩下的只用一行提示带过，免得下拉框拉得老长 */
 const GROUP_LIMIT = 6;
 
 export default function SearchBar({
@@ -69,9 +62,7 @@ export default function SearchBar({
   projects = [],
 }: {
   posts: Post[];
-  /** 📁 资源分享（可搜索文件名） */
   resources?: ResourceHit[];
-  /** 🚀 项目 */
   projects?: ProjectHit[];
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,12 +79,6 @@ export default function SearchBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /**
-   * 🔍 三个来源一起搜：
-   *   ① 文章    —— 标题 / 描述 / 标签
-   *   ② 资源分享 —— **文件名** / frontmatter 标题 / 所在路径
-   *   ③ 项目    —— 名称 / 描述 / 标签
-   */
   const results = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const empty = { posts: [] as Post[], resources: [] as ResourceHit[], projects: [] as ProjectHit[] };
@@ -117,7 +102,6 @@ export default function SearchBar({
 
   const totalHits = results.posts.length + results.resources.length + results.projects.length;
 
-  /** 资源分享的 url：每段单独编码（中文文件夹、空格都靠它） */
   const resourceHref = (path: string) => '/resources/' + path.split('/').map(encodeURIComponent).join('/');
 
   const groupTitle = 'px-6 pt-4 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-2';
@@ -126,7 +110,6 @@ export default function SearchBar({
     <div className="relative w-full max-w-2xl mx-auto mb-10 z-[100]" ref={containerRef}>
       <form className="relative group" onSubmit={(e) => e.preventDefault()}>
 
-        {/* 先渲染 Input */}
         <input
           type="text"
           className="w-full pl-14 pr-6 py-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-800 dark:text-slate-200 transition-all placeholder-slate-500 dark:placeholder-slate-400 font-medium text-lg relative z-0"
@@ -141,7 +124,6 @@ export default function SearchBar({
           spellCheck="false"
         />
 
-        {/* 🌟 核心修复：把放大镜放在 input 之后，并且加上 z-10 强制置顶！ */}
         <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none select-none z-10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +154,6 @@ export default function SearchBar({
             {totalHits > 0 ? (
               <div className="flex flex-col pb-3">
 
-                {/* ── 📄 文章 ── */}
                 {results.posts.length > 0 && (
                   <>
                     <div className={groupTitle}>
@@ -225,7 +206,6 @@ export default function SearchBar({
                   </>
                 )}
 
-                {/* ── 📁 资源分享 ── */}
                 {results.resources.length > 0 && (
                   <>
                     <div className={groupTitle}>
@@ -266,7 +246,6 @@ export default function SearchBar({
                   </>
                 )}
 
-                {/* ── 🚀 项目 ── */}
                 {results.projects.length > 0 && (
                   <>
                     <div className={groupTitle}>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-// 🌟 核心修复：移除了报错的 Github，换成了自带的 GitBranch 图标
 import { Save, Key, User, GitBranch, Shield, Bell } from 'lucide-react';
 import { getApiBase } from '../../lib/apiBase';
 
@@ -11,7 +10,6 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ formData, handleUpdate, pushToQueue }: CommentSectionProps) {
-  // 安全地获取 Gitalk 配置，防止一开始 undefined 报错
   const gitalk = formData.gitalkConfig || {
     clientID: '',
     clientSecret: '',
@@ -28,11 +26,6 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
     pushToQueue('Gitalk 评论系统', 'gitalkConfig', gitalk);
   };
 
-  /**
-   * 🐙 评论镜像 + 通知设置。
-   * 故意不走 siteConfig（那会被打进前端产物、Token 会泄露）——
-   * 直接存到博客项目的 data/comments-config.json，保存即生效，不用重建。
-   */
   const [mirror, setMirror] = useState({ githubToken: '', notifyWebhook: '', notifyServerChan: '', notifyBark: '', hasToken: false });
   const [mirrorSaving, setMirrorSaving] = useState(false);
   const [mirrorMsg, setMirrorMsg] = useState('');
@@ -45,7 +38,7 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
         const data = await res.json();
         if (data?.success) {
           setMirror({
-            githubToken: '',   // 后端不会把 Token 发回来（安全），只告诉我们填过没有
+            githubToken: '',
             notifyWebhook: data.notifyWebhook || '',
             notifyServerChan: data.notifyServerChan || '',
             notifyBark: data.notifyBark || '',
@@ -53,7 +46,6 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
           });
         }
       } catch {
-        /* 后端没起来就静默，不影响其它设置 */
       }
     })();
   }, []);
@@ -68,7 +60,6 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
         notifyServerChan: mirror.notifyServerChan.trim(),
         notifyBark: mirror.notifyBark.trim(),
       };
-      // Token 框留空 = 保持原来那个不动（想删就点下面的清除）
       if (mirror.githubToken.trim()) body.githubToken = mirror.githubToken.trim();
       const res = await fetch(`${base}/api/config/comments_mirror`, {
         method: 'POST',
@@ -138,7 +129,6 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              {/* 🌟 核心修复：这里换成了 GitBranch */}
               <label className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><GitBranch size={14} className="text-slate-600 dark:text-slate-300" /> GitHub 仓库名 (Repo)</label>
               <input
                 type="text"
@@ -176,12 +166,8 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
           </div>
         </div>
 
-        {/* ─────────────────────────────────────────────
-            🐙 新评论镜像到 GitHub + 手机通知（可选，留空就不启用）
-            这些不写进 siteConfig（那会被打进前端产物，Token 就泄露了），
-            而是存到博客项目的 data/comments-config.json（只有服务器读得到）。
-            填完点保存立刻生效，不用重新构建。
-        ───────────────────────────────────────────── */}
+        {
+}
         <div className="mt-8 pt-6 border-t border-slate-300/40 dark:border-slate-700/50">
           <h3 className="text-sm font-black text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-1">
             🐙 新评论镜像 & 手机通知

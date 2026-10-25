@@ -6,23 +6,11 @@ import 'gitalk/dist/gitalk.css';
 import Gitalk from 'gitalk';
 import { siteConfig } from '../siteConfig';
 
-/**
- * 🅖 「GitHub 登录发表」发布框。
- *
- * ⚠️ 这里**只保留发布框，Gitalk 自带的评论列表整个藏掉** ✓
- *    为什么：列表必须只有一份、两种发布方式长得一样（外层 `Comments.tsx` 渲染的那份 ✓）——
- *    如果留着 Gitalk 自己的列表，就成了"GitHub 方式一套样式、游客方式另一套" ✗
- *
- * · 登录换 token 走我们自己的同源代理 `/api/github`（绕开跨域/第三方拦截）✓
- * · issue 标识沿用页面 pathname 截断到 49 字符（和以前一样，老评论不会丢）✓
- * · 发完之后回调外层刷新列表（Gitalk 是自己发请求的，我们拿不到它的结果 ✗ 只能等几秒再看 ✓）
- */
 export default function GitalkBox({
   page,
   onPosted,
 }: {
   page?: string;
-  /** GitHub 那边发成功后 → 外层重新拉一次列表 ✓ */
   onPosted?: () => void;
 } = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,17 +39,6 @@ export default function GitalkBox({
 
     gitalk.render(el);
 
-    /*
-     * 🔄 点「提交」之后 Gitalk 自己跟 GitHub 通信，成功与否它不告诉我们 ✗
-     *    所以这里盯着那个按钮：点过就在几秒后重新拉一次列表（多试几次，早晚刷出来 ✓）
-     *
-     * ⚠️ 按钮类名必须是 `.gt-btn-public` —— Gitalk 1.8 里那个「发表」按钮就是它
-     *    （node_modules/gitalk/src/gitalk.jsx: `className="gt-btn-public"` → handleCommentCreate）✓
-     *    这里以前写的是 `.gt-btn-issue`，而 Gitalk 里**根本没有这个类名**（整个 dist 里 0 次命中）
-     *    ⇒ 监听从来没命中过：用 GitHub 方式发完评论，列表死活不刷新，得手动 F5 才看得到 ✗
-     *    （游客那条是发完直接把新评论插进列表，不走这里，所以一直是好的 ✓）
-     *    `.gt-btn-issue` 留在后面只是防旧版本/改过类名的主题，命中不到也无害 ✓
-     */
     const timers: number[] = [];
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
@@ -72,7 +49,6 @@ export default function GitalkBox({
     };
     el.addEventListener('click', onClick);
 
-    // 擦掉地址栏里 OAuth 回调带的 code，避免二次登录失败
     const url = new URL(window.location.href);
     if (url.searchParams.has('code')) {
       url.searchParams.delete('code');
@@ -89,7 +65,6 @@ export default function GitalkBox({
     <div className="relative z-10 custom-gitalk-composer pt-2">
       <div ref={containerRef} />
 
-      {/* 🎨 Gitalk 的原生白底样式改成站点这套毛玻璃风格（和游客那个发布框观感一致） */}
       <style jsx global>{`
         /* 🚫 藏掉 Gitalk 自带的列表和条数（列表统一由外层渲染 ✓） */
         .custom-gitalk-composer .gt-container .gt-comments,

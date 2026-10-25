@@ -1,24 +1,8 @@
 #!/usr/bin/env node
-/**
- * 🧭 双端 siteConfig.ts 一致性检查（**只报告，不改文件**）
- *
- * 为什么需要：`my-blog-manager/siteConfig.ts`（控制台）和 `TLBlog/siteConfig.ts`（前台）
- * 是**两份独立的文件**。同一个配置项必须两边都有，否则会出现那种很迷惑的现象：
- * 「控制台里改了，前台怎么不生效」—— 其实是改到了另一份文件上。
- *
- * 这个脚本把两份文件的**顶层配置项**列出来对比，缺哪边就报哪边，缺了就退出码 1（可以接进 CI）。
- *
- * 用法（在项目根目录）：
- *   node scripts/checkConfig.mjs
- *
- * ⚠️ 它按「缩进 2 个空格 = 顶层配置项」来认（这两份文件都是这个风格）；
- *    如果你把 siteConfig.ts 重新格式化成别的缩进，改一下 INDENT 常量即可。
- */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// 以脚本自己所在的上一级（项目根目录）为基准定位：这样在哪个目录下跑都不会找不到文件 ✓
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const INDENT = '  ';
@@ -28,14 +12,12 @@ const TARGETS = [
   { name: '前台  ', file: 'TLBlog/siteConfig.ts' },
 ];
 
-/** 抠出 `export const siteConfig = { ... }` 里的顶层键 */
 function topLevelKeys(text) {
   const start = text.indexOf('export const siteConfig');
   if (start === -1) return null;
 
   const keys = new Set();
   const re = new RegExp(`^${INDENT}([A-Za-z_$][\\w$]*)\\s*:`, 'gm');
-  // 只扫到 siteConfig 那个对象的结尾（第一个顶格的 `};`）
   const end = text.indexOf('\n};', start);
   const body = text.slice(start, end === -1 ? text.length : end);
 
@@ -66,7 +48,6 @@ if (!bad) {
   console.log(`   ${a.name}  ${a.file}  → ${a.keys.size} 项`);
   console.log(`   ${b.name}  ${b.file}  → ${b.keys.size} 项\n`);
 
-  // 这些是**有意只在控制台**里的（图床配置前台用不上），不算不一致 ✓
   const MANAGER_ONLY = new Set(['picBedName', 'picBedUrl', 'picBedToken']);
 
   const onlyA = [...a.keys].filter((k) => !b.keys.has(k) && !MANAGER_ONLY.has(k));

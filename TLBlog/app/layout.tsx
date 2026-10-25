@@ -1,6 +1,6 @@
 import 'katex/dist/katex.min.css';
 import type { Metadata } from "next";
-import "./noto-serif-sc.css";   // ⬅️ 自托管的思源宋体（Noto Serif SC），见下方说明
+import "./noto-serif-sc.css";
 import "./globals.css";
 import { ThemeProvider } from "../components/ThemeProvider";
 import BackgroundEffects from "../components/BackgroundEffects";
@@ -18,7 +18,6 @@ import TableScroll from '../components/TableScroll';
 import ImageZoom from '../components/ImageZoom';
 import InSiteLinks from '../components/InSiteLinks';
 import PageKeys from '../components/pageScrollKeys';
-// 🖱️ 触摸点击后立刻取消"悬停态"（手机上点完跳转、返回时不再卡着悬停样式）
 import ClickUnhover from '../components/ClickUnhover';
 
 import ContentLiveRefresh from '../components/ContentLiveRefresh';
@@ -26,49 +25,20 @@ import Navbar from '../components/Navbar';
 import NavSwitchDim from '../components/NavSwitchDim';
 import BackToTop from '../components/BackToTop';
 
-/**
- * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
- *
- * 为什么：next/font/google 在**每次 build** 时都会去 fonts.gstatic.com 拉
- * Noto Serif SC 的 101 个 unicode-range 分片 —— 服务器网络抖一下，构建就报
- * "next/font/google queries have exactly one entry" 然后整包构建失败 ✗（反复踩）
- *
- * 现在：分片已经下到 `public/fonts/noto-serif-sc/`，@font-face 写在
- * `app/noto-serif-sc.css`（脚本 `scripts/fetch_noto_serif.mjs` 生成，想更新字体重跑即可）。
- * build 完全不联网 ✓ unicode-range 原样保留 → 浏览器还是只下用到的分片，加载速度不变 ✓
- * （Geist / Geist Mono 本来就没被任何样式引用，一并没有了 ✓）
- */
 
-/** ⚠️ 站点正式域名：以后换域名就改这一处（siteConfig.ts 不参与打包，所以写在这儿 ✓） */
 const SITE_URL = 'https://blog.torinlinsley.top';
 
-/**
- * 🔤 站名别名 —— 决定"搜这些词也能认出这个站"。
- *   搜索引擎（必应尤其）认的是 schema.org 的 `WebSite.name` / `alternateName` ✓，
- *   **不是** `<meta name="keywords">`（必应早就不用了 ✗）。
- *   想加别名，改下面这一行就够了 ✓
- */
 const SITE_ALIASES = [
   'TLinsley', 'tlinsley', 'TL博客', 'tl博客', 'tlinsley博客', 'TLinsley博客',
   'Torin Linsley', 'torinlinsley', '宝藏之地',
 ];
 
-/**
- * ✍️ 站点级「搜索结果 / 分享卡片」的描述 —— **和首页那张个人卡片的简介分开** ✓
- *
- * 为什么要分开（用户 2026-10-14 要求）：
- *   · 首页「个人概述」卡片、文章页/杂谈页作者卡那句，取的是 `siteConfig.bio`
- *     （控制台 → 设置 → 简介 ✓ 想显示技术栈那句就填那句 ✓）
- *   · **搜索结果**里那段文字用下面这句 ✓ 两边互不影响 ✓
- *   · 想改搜索结果的描述 → 改这一行 ✓（不会动到卡片 ✓）
- */
 const SITE_DESCRIPTION = 'Torin Linsley 的个人博客。记录开发、学习笔记，另有资源分享与在线工具。';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: siteConfig.title,
   description: SITE_DESCRIPTION,
-  // ⚠️ keywords 只是顺手写上（必应基本不用它 ✗）：真正管用的是下面 JSON-LD 里的 name/alternateName + 正文内容 ✓
   keywords: [...SITE_ALIASES, '资源分享', '工具站'],
   alternates: { canonical: '/' },
   openGraph: {
@@ -80,8 +50,6 @@ export const metadata: Metadata = {
     locale: 'zh_CN',
   },
   icons: {
-    // 先给控制台里配的那个（你自己的图），再给两个**必应一定能认**的本地图标 ✓
-    // 换图标：替换 public/favicon.ico（32×32）和 public/apple-touch-icon.png（180×180）就行 ✓
     icon: [
       { url: siteConfig.faviconUrl },
       { url: '/favicon.ico', sizes: '32x32' },
@@ -95,27 +63,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {/* 🖼️ 全站图片请求**不发 Referer**：CSDN 那类图床有防盗链，
-            带站点 Referer 直接 403 ✗（实测：不带 → 200 ✓ 带你的博客 → 403 ✗）
-            加了这一行，前台正文里的外链图片也能正常显示 ✓
-            （代价：从本站出去的外链也不带 Referer ✗ —— 站内没有统计依赖它 ✓ 无影响 ✓）*/}
+        {
+}
         <meta name="referrer" content="no-referrer" />
 
-        {/*
-          🧱 没有「毛玻璃」的浏览器兜底（目前只点名 OPPO 自带浏览器）
+        {
 
-          为什么不用纯 CSS 的 @supports：实测过 ✗ 那个浏览器**嘴上说支持** backdrop-filter
-          （CSS.supports 返回 true ✗）渲染时又整个跳过 ✗ —— 它撒谎，@supports 判不出来 ✗
-          （证据：CSS 确实已经上线 ✓ 缓存也清了 ✓ 依然一点变化都没有 ✓）
 
-          所以这里直接点名：UA 命中就先给 <html> 挂 .no-glass ✓
-          · 这段脚本在 <head> 里、**body 绘制之前**执行 ✓ 不会出现"先正常一下再变实"的闪动 ✓
-          · 具体样式在 app/globals.css 的 .no-glass 那两条 ✓
-          · ⚠️ 它只能做到"没有毛玻璃时别难看"（卡片变实、字不糊）✓ **造不出模糊** ✗
-            模糊是它内核的能力问题，任何前端代码都变不出来 ✗
 
-          以后要是又发现别的浏览器同样"撒谎"，把它的 UA 特征加进下面的正则就行 ✓
-        */}
+}
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
@@ -131,17 +87,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
 
-        {/* 启动画面已移除：刷新/进站不再有过场遮罩，页面直接显示 */}
-        {/* 🚀 首屏那张背景图提前预加载：CSS 里的 background 图浏览器发现得晚，
-            预加载能让它从 HTML 一起开始下，首屏更快（换图不用改这里，自动跟着 bgImages[0] 走） */}
+        {
+}
         {!siteConfig.useGradient && siteConfig.bgImages?.[0] && (
           <link rel="preload" as="image" href={siteConfig.bgImages[0]} />
         )}
 
-        {/* 🔎 站名 / 别名（搜索结果里标题上面那行"站名"就是它）：
-            必应读 schema.org 的 `WebSite.name` + `alternateName` —— 这也是"搜 tlinsley / TL博客
-            也能认出这个站"最直接的一招 ✓
-            ⚠️ 别指望 <meta name="keywords">：必应早就不看它了 ✗（下面 keywords 只是顺手写着） */}
+        {
+}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -165,7 +118,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="w-screen overflow-x-hidden min-h-full flex flex-col relative transition-colors duration-1000 bg-slate-50 dark:bg-slate-950 font-serif">
         <ThemeProvider>
 
-          {/* 🔄 内容一变（控制台改完自动同步过来）就软刷新当前页面，不用手动 F5 */}
           <ContentLiveRefresh />
 
           <MusicProvider>
@@ -179,51 +131,30 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   style={{
                     background: `linear-gradient(-45deg, ${siteConfig.themeColors.join(', ')})`,
                     backgroundSize: '400% 400%',
-                    backgroundPosition: '50% 50%', // 不流动时就停在渐变正中间（约等于原来流动时的平均观感）
-                    // ⚠️ 纯图片背景（useGradient === false）时这一层不能再流动：
-                    //    它是 mix-blend-color 压在壁纸上的"色膜"，background-position 一动
-                    //    颜色就顺着斜对角扫过去，看着就像背景图整体偏移了（15 秒一循环）。
+                    backgroundPosition: '50% 50%',
                     animation: siteConfig.useGradient ? 'gradientMove 15s ease infinite' : 'none'
                   }}
                 ></div>
 
-                {/* 👇 🌟 优化：手机端去掉了 mix-blend-overlay，但保留了 blur 模糊光晕，确保视觉不打折 */}
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/40 dark:bg-indigo-900/20 blur-[100px] rounded-full z-[-7] md:mix-blend-overlay"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/30 dark:bg-purple-900/30 blur-[100px] rounded-full z-[-7] md:mix-blend-overlay"></div>
 
-                {/* 隐藏手机端高负载粒子特效 */}
                 <div className="hidden md:block absolute inset-0 w-full h-full">
                   <BackgroundEffects />
                 </div>
               </div>
 
-              {/* 隐藏手机端弹幕 */}
               <div className="hidden md:block">
                 <DanmakuBackground />
               </div>
 
               <div className="relative z-10 flex-1 flex flex-col">
-                {/*
-                  🧭 导航栏挪到**根布局**里了（原来 14 个页面各自 import 一份）。
+                {
 
-                  为什么必须这样：页面各引一份 = 切页时整条导航栏被销毁重建 ✗
-                  表现就是"点选项卡 → 色块刚揭开 → 页面像刷新一样断了"✗
-                  放到这里之后它**全程常驻**（React 不会重建它）：切页只换下面 children 那块 ✓
-                    · 色块能把揭开动画（.32s 弹簧）完整播完 ✓ 不会被切页打断 ✓
-                    · 选中的那一条平滑接手：点过的那条 → 新页面的 active ✓ 中间不闪 ✗
-                    · 手机上开着的抽屉、鼠标悬停状态也都跨页保留了 ✓
-                  ⚠️ 高度/留白：导航栏自己是 `fixed`（不占布局空间），
-                     所以各页面原来的 mt-24 / pt-20 那些留白**一个像素都不用改** ✓
-                  ⚠️ 控制台那边（my-blog-manager/app/layout.tsx）是同一套写法，改一处记得看另一处 ✓
-                */}
+}
                 <Navbar />
-                {/* ⚡ 内容区包这一层，是为了"条和界面**真正同时**开始动"：
-                    ① 真正的解法在 Navbar 里 —— 鼠标悬停到选项卡上就 router.prefetch，
-                       等你真按下去时数据已经在浏览器里 → 内容**当帧就换** ✓
-                    ② 这一层只是兜底：万一没预取到（没悬停就点 / 服务器慢），
-                       等超过 110ms 才把内容区变暗告诉用户"在切了" ✓
-                       预取命中的正常情况**一次都不会闪** ✓
-                    详见 components/NavSwitchDim.tsx */}
+                {
+}
                 <NavSwitchDim>{children}</NavSwitchDim>
               </div>
 
@@ -235,11 +166,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <GlobalToolbox />
               </div>
 
-              {/* 📱 手机端右下角「返回顶部」按钮（大屏不显示，靠组件自己的 lg:hidden）。
-                  往下滑过一段才出现，点一下瞬间回顶；和控制台那份是同一个组件 ✓ */}
+              {
+}
               <BackToTop />
 
-              {/* 隐藏手机端点击粒子 */}
               <div className="hidden md:block">
                 <ClickEffect />
               </div>
@@ -259,16 +189,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
 
           <CodeCopy />
-          {/* 🔗 GitHub / Gitee 的仓库或主页链接 → 卡片（和控制台那份是同一套写法） */}
           <RepoCard />
         <TableScroll />
-        {/* 🔍 点击图片放大查看（和资源页/控制台预览是同一个组件、同一份代码） */}
         <ImageZoom />
-        {/* 🔗 正文里的站内链接改走客户端路由：点一下瞬间切页，不再整篇文档重载
-            （和控制台 my-blog-manager 那份是同一套写法） */}
+        {
+}
         <InSiteLinks />
-        {/* 🖱️ 触摸点击链接后立刻取消"悬停态"：手机上点完跳转、返回时不会再卡着悬停样式
-            （:hover 没有 API 可清，所以是给 <html> 挂 .force-unhover，由 CSS 强制按普通态画） */}
+        {
+}
         <ClickUnhover />
         <PageKeys />
 

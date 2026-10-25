@@ -5,7 +5,6 @@ import { siteConfig } from '../siteConfig';
 import { useToast } from './ToastProvider';
 import Tooltip from './Tooltip';
 
-/** 社交按钮的悬停提示文案（key 就是下面 <SocialBtn type="..." /> 里的 type） */
 const SOCIAL_LABELS: Record<string, string> = {
   github: 'GitHub',
   gitee: 'Gitee',
@@ -35,10 +34,8 @@ export default function ProfileCard({ postCount, chatterCount, photoCount }: { p
             <img src={siteConfig.avatarUrl || undefined} alt="avatar" className="w-full h-full rounded-lg md:rounded-xl object-cover bg-white" />
           </div>
           <div className="flex-1 min-w-0">
-            {/* 🌟 核心修复点：
-                1. 增加了 pb-1 (padding-bottom) 给字母降部留空间
-                2. 增加了 leading-snug 确保行高不至于太扁
-            */}
+            {
+}
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2 pb-1 leading-snug tracking-wider transition-colors duration-700 truncate">
               {siteConfig.authorName}
             </h1>
@@ -99,8 +96,6 @@ function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick
     <div
       onClick={onClick}
       className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/50 dark:bg-slate-700/50 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all duration-300 border border-white/40 dark:border-white/10 shadow-sm"
-      /* ⚠️ 这里以前是 title={type}（浏览器自带提示，延迟长、样式跟系统走）。
-         现在用页面自己的悬停气泡；aria-label 留给读屏软件。 */
       aria-label={label}
     >
       {getIcon()}

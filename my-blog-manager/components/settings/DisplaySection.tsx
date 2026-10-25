@@ -39,7 +39,6 @@ export default function DisplaySection({ showToast }: any) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
 
-        {/* 左侧：预设选项 */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 uppercase">📺 快速预设</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-3">
@@ -56,12 +55,10 @@ export default function DisplaySection({ showToast }: any) {
           </div>
         </div>
 
-        {/* 右侧：自定义与警告信息 */}
         <div className="space-y-6">
           <div className="bg-indigo-50 dark:bg-slate-800/80 rounded-3xl p-6 border border-indigo-100 dark:border-slate-700">
             <p className="text-[10px] font-black text-slate-400 uppercase mb-4">✍️ 自定义分辨率</p>
             <div className="flex items-center gap-2 mb-4">
-              {/* 【修复】：去掉了引起报错的 Tailwind 伪类写法 */}
               <input
                 type="number"
                 placeholder="宽 (W)"

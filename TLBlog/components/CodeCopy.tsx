@@ -1,22 +1,5 @@
-// components/CodeCopy.tsx
 "use client";
 
-/**
- * 给 markdown 渲染出来的代码块加「复制」按钮。
- *
- * 设计要点：
- * 1. 只做增强，不改渲染链路 —— 页面里那些 dangerouslySetInnerHTML 出来的
- *    `.prose pre` / `.resource-preview pre` 一律在客户端被包一层 .cc-wrap，
- *    右上角挂一个胶囊按钮：有语言就显示语言名（```powershell → PowerShell），
- *    没有语言就只显示图标。点一下复制整段代码。
- * 2. 手机必须能用：站点现在跑在 http 上，**非安全上下文里 navigator.clipboard
- *    是 undefined**，所以兜底用 textarea + execCommand('copy')，并且**在点击事件
- *    的同一个任务里同步执行**（iOS Safari 只认用户手势当次调用，await 之后再调
- *    会被拒）。textarea 字号给 16px，避免 iOS 聚焦时页面被放大。
- * 3. 不侵入：按钮是 pre 的兄弟节点（不是子节点），所以手动框选代码复制时
- *    不会把「PowerShell / 已复制」这些字带进去；编辑器区域（.editor-content-area）
- *    明确排除，免得干扰编辑。
- */
 
 import { useEffect } from 'react';
 
@@ -27,16 +10,11 @@ const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>`;
 
-/** 折叠箭头：只用这一个朝下的 chevron，展开状态由 CSS 转 180°（有过渡，比直接换图标灵动） */
 const CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>`;
 
-/** 超过这个行数的代码块默认折叠，只露前 FOLD_AFTER 行（编辑器的行号逻辑也要用它） */
 export const FOLD_AFTER = 10;
-/** 折叠时在第 10 行下面额外留出的空隙：只够放底部那颗「展开」按钮。
-    不能留大 —— 留多了渐变就全压在空白上，而空白本来就是底色，等于看不见渐变。 */
 const FOLD_GAP = 12;
 
-// 语言显示名：```js → JavaScript，```powershell → PowerShell
 const LANG_NAMES: Record<string, string> = {
   js: 'JavaScript',
   javascript: 'JavaScript',
@@ -133,12 +111,6 @@ export function prettyLang(raw: string): string {
   return raw;
 }
 
-/**
- * 语言名的来源（作者显式写了才显示）：
- * 1. data-cc-lang —— 由 lib/rehypeCodeLang.ts 在服务端标好，最准；
- * 2. data-cc-detected —— 作者没写语言，哪怕 highlight 猜了一个也不显示；
- * 3. 都没有（后端 python-markdown / 编辑器存下来的 HTML）→ 退回看 language-* class。
- */
 function explicitLang(code: Element): string {
   const el = code as HTMLElement;
   if (el.dataset.ccLang) return prettyLang(el.dataset.ccLang);
@@ -147,9 +119,6 @@ function explicitLang(code: Element): string {
   return matched ? prettyLang(matched[1]) : '';
 }
 
-/**
- * iPadOS 13+ 的 UA 是 Macintosh（"请求桌面网站"），所以还要看触摸点数
- */
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
@@ -157,16 +126,7 @@ function isIOS(): boolean {
   return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
 }
 
-/**
- * 临时节点统一处理：
- * - 必须**真的被渲染**才选得中：不能 display:none，也别用 opacity:0（Safari 会当成
- *   没渲染），所以用 1px + opacity .01 + z-index:-1，放视口正中，避免 iOS 聚焦时页面乱跳。
- * - 字号 ≥16px，否则 iOS 聚焦会缩放页面。
- * - 复制完别立刻 remove：部分 iOS 版本会把刚写进去的剪贴板一起清掉，延后一拍再删。
- * - 原来用户的选区要还回去。
- */
 function withTempNode<T extends HTMLElement>(node: T, extraStyle: string, select: (el: T) => void): boolean {
-  // 后台标签页里 setTimeout 会被节流，可能留下上次的临时节点，先扫掉
   document.querySelectorAll('[data-cc-temp]').forEach((stale) => stale.remove());
 
   node.setAttribute('aria-hidden', 'true');
@@ -219,7 +179,6 @@ function withTempNode<T extends HTMLElement>(node: T, extraStyle: string, select
   return ok;
 }
 
-/** 桌面端（Windows / macOS 各浏览器）最稳的一条路 */
 function copyViaTextarea(text: string): boolean {
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -231,10 +190,9 @@ function copyViaTextarea(text: string): boolean {
   });
 }
 
-/** iOS / iPadOS：必须在 contenteditable 元素里用 Range 选区才认 */
 function copyViaContentEditable(text: string): boolean {
   const div = document.createElement('div');
-  div.textContent = text; // 纯文本，没有子元素，所以复制出来不带任何 HTML 味道
+  div.textContent = text;
   div.setAttribute('contenteditable', 'true');
   return withTempNode(div, 'white-space:pre', (el) => {
     el.focus({ preventScroll: true });
@@ -248,15 +206,6 @@ function copyViaContentEditable(text: string): boolean {
   });
 }
 
-/**
- * 老办法复制：非 https 环境（你现在的 http）、老浏览器、Safari / iOS 都靠它。
- *
- * ⚠️ 关键坑：**在 textarea 上用 Range 选区**（`range.selectNodeContents(ta)`）会把选区
- * 变成"这个元素本身"，`execCommand('copy')` 照样返回 true，但复制出来是空的。
- * 所以两条路必须分开：iOS 用 contenteditable + Range，桌面端只用 textarea.select()。
- *
- * ⚠️ 必须在用户手势的同一拍里同步调用（macOS Safari / iOS 都不允许 await 之后再复制）。
- */
 function legacyCopy(text: string): boolean {
   try {
     if (isIOS()) {
@@ -268,19 +217,10 @@ function legacyCopy(text: string): boolean {
   }
 }
 
-/** pywebview 暴露的原生接口（控制台窗口里有，普通浏览器里没有） */
 type PywebviewBridge = {
   api?: { copy_to_clipboard?: (text: string) => Promise<boolean> | boolean };
 };
 
-/**
- * 控制台是 pywebview 窗口，这里优先走 Python 侧的原生 Win32 写剪贴板。
- *
- * 原因（项目里原本就有注释记录过）：Chromium 对「脚本写入」的剪贴板内容会附上
- * `ExcludeClipboardContentFromMonitorProcessing / CanIncludeInClipboardHistory=0`
- * 两个标记 —— 表现是**能粘贴，但 Win+V 剪贴板历史里看不到这条**。
- * 走原生 API 写出来的内容没这些标记，历史里就能看到。
- */
 function nativeCopy(text: string): Promise<boolean> | null {
   if (typeof window === 'undefined') return null;
   const api = (window as unknown as { pywebview?: PywebviewBridge }).pywebview?.api;
@@ -294,7 +234,6 @@ function nativeCopy(text: string): Promise<boolean> | null {
   }
 }
 
-/** 浏览器方案：安全上下文用 Clipboard API，其余立刻同步走兜底（保住用户手势） */
 function browserCopy(text: string): Promise<boolean> {
   const canUseApi =
     typeof navigator !== 'undefined' &&
@@ -309,33 +248,20 @@ function browserCopy(text: string): Promise<boolean> {
       .then(() => true)
       .catch(() => legacyCopy(text));
   }
-  // 非 https（比如服务器上的 http）没有 Clipboard API，同步兜底
   return Promise.resolve(legacyCopy(text));
 }
 
-/**
- * 复制入口：pywebview 原生 → Clipboard API → textarea/contenteditable 兜底。
- */
 export function copyToClipboard(text: string): Promise<boolean> {
   const native = nativeCopy(text);
   if (native) return native.then((ok) => (ok ? true : browserCopy(text)));
   return browserCopy(text);
 }
 
-/**
- * 造一个复制按钮（前台增强和编辑器里的 NodeView 共用同一份，保证长相/行为一致）。
- *
- * @param lang     要标在按钮上的语言名（空字符串 = 只显示图标）
- * @param getText  点下去时现取要复制的文本（编辑器里内容是会变的，所以传函数不传字符串）
- */
 export function createCopyBar(lang: string, getText: () => string): HTMLButtonElement {
   const bar = document.createElement('button');
   bar.type = 'button';
   bar.className = 'cc-bar';
-  // ⚠️ 故意**不设** title：按钮上已经有语言名（或复制图标），鼠标悬停再弹一条
-  //    「复制代码」是多余的，还挡代码。aria-label 留着（它不弹提示，只是给读屏用）。
   bar.setAttribute('aria-label', '复制代码');
-  // 编辑器里是 contenteditable，按钮不能被当成可编辑内容/可落光标的位置
   bar.setAttribute('contenteditable', 'false');
 
   if (lang) {
@@ -355,11 +281,8 @@ export function createCopyBar(lang: string, getText: () => string): HTMLButtonEl
   bar.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    // 连按两次别把上一轮的还原计时留着
     window.clearTimeout(resetTimer);
 
-    // 只取 textContent（高亮的 span 会被自动拍平），再统一换行，
-    // 这样进剪贴板的是纯文本 text/plain，不带任何 HTML 味道
     const text = (getText() || '').replace(/\r\n?/g, '\n').replace(/\n+$/, '');
     void copyToClipboard(text).then((ok) => {
       bar.dataset.state = ok ? 'ok' : 'err';
@@ -392,26 +315,11 @@ export function createCopyBar(lang: string, getText: () => string): HTMLButtonEl
   return bar;
 }
 
-/** 代码块实际有几行（尾部空行不算） */
 function countLines(code: Element): number {
   const text = (code.textContent || '').replace(/\n+$/, '');
   return text ? text.split('\n').length : 0;
 }
 
-/**
- * 把 computed 的 line-height 换算成**行盒高度（px）**。
- *
- * ⚠️ 两个坑，都实测踩过：
- *  1. line-height 写成不带单位的倍数时（globals 里就是 1.5）：
- *     · 元素**可见**时浏览器给的是用值 "26px"，parseFloat 直接能用 ✓
- *     · 元素在 display:none 的子树里（控制台资源页默认停在「预览态」，编辑器就是隐藏的）
- *       浏览器给的是**计算值 "1.5"** —— 当 px 用就只剩 1.5px 高，代码块折成一条缝。
- *     所以小于 4 的一律按「倍数 × 字号」换算。
- *  2. 代码块里真正的行盒高度由 **pre 自己的 strut** 决定，不是 code 的：
- *     code 是 inline 元素、字号 0.9em（14.4px → 行高 21.6px），但 pre 的字号是 16px，
- *     行盒取两者较大者 = 16 × 1.5 = **24px**。以前只读 code 的 21.6px，
- *     算出来的折叠高度比实际少一行多 —— 收起后第 10 行被切掉一半，看着就像只露了 9 行。
- */
 function usedLineHeight(cs: CSSStyleDeclaration): number {
   const fontSize = parseFloat(cs.fontSize) || 14;
   const raw = parseFloat(cs.lineHeight);
@@ -419,12 +327,6 @@ function usedLineHeight(cs: CSSStyleDeclaration): number {
   return raw < 4 ? fontSize * raw : raw;
 }
 
-/**
- * 折叠时该留多高：顶部那条按钮的留白 + 10 行文字 + 一点空隙。
- *
- * 空隙（FOLD_GAP）是专门留给底部渐变的 —— 紧贴着第 10 行收边的话，
- * 渐变就只能糊在字上，最后一行会看不清。
- */
 function collapsedHeight(pre: HTMLPreElement, code: Element): number {
   const ps = getComputedStyle(pre);
   const cs = getComputedStyle(code);
@@ -433,7 +335,6 @@ function collapsedHeight(pre: HTMLPreElement, code: Element): number {
   return Math.round(top + line * FOLD_AFTER + FOLD_GAP);
 }
 
-/** 造一个「展开 / 收起」按钮（右上角那个和底部那个共用长相） */
 function createFoldBar(): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -444,36 +345,21 @@ function createFoldBar(): HTMLButtonElement {
   label.className = 'cc-fold-text';
   const icon = document.createElement('span');
   icon.className = 'cc-ic';
-  // ⚠️ 箭头必须在这里就塞进去：方向改由 CSS 旋转控制之后，
-  //    apply() 里不再写 innerHTML —— 忘了这里，按钮就永远是"只有字没有箭头"。
   icon.innerHTML = CHEVRON_DOWN;
   btn.append(label, icon);
   return btn;
 }
 
-/**
- * 📏 代码块左边的行号栏（浏览状态用）。
- *
- * 编辑器里的代码块行号是 ProseMirror 的 widget decoration，前台和控制台预览没有编辑器，
- * 所以这里在代码块左边竖一列行号，行高跟 code 的 line-height 精确对齐。
- *
- * 为什么不往 <code> 里插东西：那会拆散 highlight.js 的 span 结构（跨行的染色直接废掉），
- * 而且复制、框选都会受影响。独立的列则完全不动代码本体。
- */
 function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
   const text = (code.textContent || '').replace(/\n+$/, '');
   if (!text) return;
   const lines = text.split('\n');
-  if (lines.length <= 1) return;   // 就一行代码，不值得占一列
+  if (lines.length <= 1) return;
 
   const gutter = document.createElement('div');
   gutter.className = 'cc-lines';
   gutter.setAttribute('aria-hidden', 'true');
 
-  // 把 code 里的文本节点收集起来，建立「整段字符偏移 → (文本节点, 节点内偏移)」的映射，
-  // 这样每一行都能用 Range 量到**它自己那一行**的真实位置。
-  // ⚠️ 不能像以前那样「首行位置 + 行高 × 行号」：行高只要差零点几像素，
-  //    几十行之后整体错位，末尾几行还会跑出行号栏（预览里行号对不上就是这么来的）。
   const pieces: { start: number; node: Text }[] = [];
   const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
   let acc = 0;
@@ -497,11 +383,9 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
 
   const ps = getComputedStyle(pre);
   const cs = getComputedStyle(code);
-  // 同 collapsedHeight：行盒高度要按 pre 的 strut 和 code 里较大的那个算
   const lineHeight = Math.max(usedLineHeight(ps), usedLineHeight(cs));
   const padTop = parseFloat(ps.paddingTop) || 0;
 
-  // 先把每一行的号建出来（只建一次 ✓）
   const items = lines.map((_line, i) => {
     const item = document.createElement('span');
     item.textContent = String(i + 1);
@@ -514,19 +398,11 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
   wrap.style.setProperty('--cc-line', `${lineHeight}px`);
   wrap.style.setProperty('--cc-top', `${padTop}px`);
 
-  /* 📐 摆一次行号：每一行都按它**第一个字符**的真实位置放 ✓
-   *   折行之后同一个行号只出现一次、贴在折行的第一行上 ✓
-   *
-   * ⚠️⚠️ 折行打开之后，这一步必须能**反复重跑** ✗→✓：
-   *    宽度一变（手机旋转、字体加载完、滚动条出现、窗口缩放…）折行位置就全变了 ✗，
-   *    而行号是按"相对 wrap 的坐标"量的 —— 不重量就会上下错开 ✗
-   *    （以前只量一次没问题，是因为"一行永远只占一个视觉行" ✓ 折行后这条不成立了 ✗）
-   */
   const place = () => {
-    if (!wrap.isConnected) return;           // 已经被卸载（切页了）就别量了 ✓
+    if (!wrap.isConnected) return;
     const wrapTop = wrap.getBoundingClientRect().top;
     let cursor = 0;
-    let nextTop = padTop;                    // 下一行的起点
+    let nextTop = padTop;
 
     lines.forEach((line, i) => {
       const item = items[i];
@@ -534,7 +410,6 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
 
       const at = locate(cursor);
 
-      // ① 这一行自己的位置：量「这一行第一个字符」✓（折行的行也准 ✓）
       if (line.length && at.node.length) {
         const end = Math.min(at.offset + 1, at.node.length);
         if (end > at.offset) {
@@ -547,9 +422,6 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
       }
       item.style.top = `${nextTop}px`;
 
-      // ② 下一行的起点 = **这一行全部内容**的底部 ✓
-      //    ⚠️⚠️ 绝不能写 `nextTop + lineHeight`：这一行只要折了行就占好几个行高 ✗
-      //        （空行量不到字符、只能靠上一条推 —— 这就是"空行的号跑到上一行折行半腰"的根因 ✗）
       if (line.length) {
         const s = locate(cursor);
         const e = locate(cursor + line.length);
@@ -564,7 +436,7 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
         }
         nextTop = bottom ? bottom - wrapTop : nextTop + lineHeight;
       } else {
-        nextTop += lineHeight;               // 空行自己就占一个行高 ✓
+        nextTop += lineHeight;
       }
 
       cursor += line.length + 1;
@@ -573,7 +445,6 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
 
   place();
 
-  // 尺寸/字体一变就重新摆一遍（用 rAF 合并，避免连续重排时疯狂量）
   let raf = 0;
   const schedule = () => {
     if (raf) return;
@@ -584,32 +455,14 @@ function attachGutter(wrap: HTMLElement, pre: HTMLPreElement, code: Element) {
   };
 
   if (typeof ResizeObserver !== 'undefined') {
-    // 观察 code：宽度变化引起折行时，它的高度会变 ✓
     new ResizeObserver(schedule).observe(code);
   }
   window.addEventListener('resize', schedule, { passive: true });
-  // 字体加载完，字体度量会变 → 折行位置也会变 ✓
   if (document.fonts?.ready) void document.fonts.ready.then(schedule).catch(() => {});
 }
 
-/** 折叠控件句柄 */
 export type CodeFold = { refresh: () => void; expand: () => void };
 
-/**
- * 给长代码块装「展开 / 收起」（前台浏览和控制台编辑器共用同一份，长得一样、行为也一样）。
- *
- * 规则：
- * - 只有超过 FOLD_AFTER 行的块才折叠，默认露前 10 行；
- * - 折叠时**底部中间**还有一个「展开 ⌄」，浮在渐变上 —— 长代码看到底时不用再滚回去找按钮；
- * - 展开后这个底部按钮落到代码块**下面的空白**里，变成「收起 ⌃」；
- * - 右上角按钮始终跟着状态走：折叠「展开 ⌄」、展开「收起 ⌃」；
- * - 渐变底色取 pre 自己的 computed background（浅色/深色都不跑偏），
- *   且只在最下面一截压暗 —— 第 10 行必须看得清。
- *
- * @param host 右上角按钮挂进的容器（前台是 .cc-actions，编辑器是 .cc-tools）
- * @param startOpen 一开始是展开还是折叠。浏览状态默认折叠（省版面）；
- *                  编辑器里传 true 默认展开 —— 正敲的代码块突然折起来，光标就跑进看不见的行了。
- */
 export function attachCodeFold(
   wrap: HTMLElement,
   pre: HTMLPreElement,
@@ -628,18 +481,11 @@ export function attachCodeFold(
     const text = open ? '收起' : '展开';
     for (const btn of [top, bottom]) {
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      // ⚠️ 故意**不设** title：按钮上就写着「展开 / 收起」还带箭头，一眼就懂，
-      //    鼠标悬停再弹一条「展开代码块」纯属多余（截图里挡着代码的就是它）。
       btn.setAttribute('aria-label', `${text}代码块`);
       const label = btn.querySelector<HTMLElement>('.cc-fold-text');
       if (label) label.textContent = text;
-      // 箭头不换图形：始终是那个朝下的 chevron，方向交给 CSS 旋转，
-      // 展开/收起时它是"翻过去"的，比突然换个图标顺眼。
     }
 
-    /* 底部按钮的两套配色交给 CSS 变量（见下面 STYLE 里的 :root / .dark）。
-       别用内联样式：内联虽然能盖住一切，但**切主题时不会自己更新** ——
-       深色模式下展开、再切到浅色，字还是白的，非刷新不可，那个坑就是这么来的。 */
   };
 
   const toggle = (event: Event) => {
@@ -650,30 +496,18 @@ export function attachCodeFold(
   };
 
   const measure = () => {
-    // 折叠高度直接取"第 11 行行号的位置"（行号是逐行真实定位的），这样正好露满 10 行。
-    // 用 paddingTop + 行高 × 10 那种算法只要差一点点，实际就只露 9 行、第 10 行被裁掉半个
-    // （行号还会因为溢出跑到代码块外面）。
-    // ⚠️ 只认前台那套行号（.cc-lines）。**绝不能**去量编辑器的 .code-line-no：
-    //    折叠之后那些 widget 的位置会被压扁，量出来是错的，会把代码块折成一条缝（实测踩过）。
     const marks = wrap.querySelectorAll('.cc-lines > span');
     const next = marks[FOLD_AFTER] as HTMLElement | undefined;
     const raw = next && next.style.top ? parseFloat(next.style.top) : NaN;
-    // ⚠️ 量到的值要「讲得通」才敢用：元素在 display:none 的子树里时，行号栏是量不到位置的，
-    //    拿到的是 0（或者干脆没有）。直接拿 0 去设 --cc-max，代码块就被折成一条缝、
-    //    什么都看不见 —— 这正是 1448 之后线上代码块"折成一条缝"的成因，实测踩过。
-    //    不合理就退回 collapsedHeight()（只依赖 computed 样式，隐藏状态下也算得对）。
     const nextTop = Number.isFinite(raw) && raw > FOLD_GAP ? raw : NaN;
     wrap.style.setProperty(
       '--cc-max',
       (Number.isFinite(nextTop) ? Math.round(nextTop + FOLD_GAP) : collapsedHeight(pre, code)) + 'px'
     );
-    // 渐变层是个贴在 pre 底部的矩形，会把代码块底部的圆角盖成直角 ——
-    // 所以把 pre 自己的圆角读出来，只补在下面两个角上（收起/展开都正常）。
     if (fade) {
       const ps = getComputedStyle(pre);
       fade.style.borderRadius = `0 0 ${ps.borderBottomRightRadius} ${ps.borderBottomLeftRadius}`;
     }
-    // 渐变底色 = 代码块自己的背景色；取不到（透明）时退回主题深色
     const bg = getComputedStyle(pre).backgroundColor;
     const opaque = !!bg && bg !== 'transparent' && !/rgba\([^)]*,\s*0(\.0+)?\)$/.test(bg);
     wrap.style.setProperty('--cc-bg', opaque ? bg : '#1e293b');
@@ -692,7 +526,6 @@ export function attachCodeFold(
 
     top.addEventListener('click', toggle);
     bottom.addEventListener('click', toggle);
-    // 右上角排在最前，后面才是语言下拉 / 复制
     host.insertBefore(top, host.firstChild);
     wrap.append(fade, bottom);
     open = startOpen;
@@ -713,12 +546,9 @@ export function attachCodeFold(
     open = false;
   };
 
-  // 上次量过的高度对应的行数：编辑器里每敲一个字都会调 refresh()，
-  // 这种热路径上不能反复 getComputedStyle（会触发强制同步布局）
   let measuredLines = -1;
 
   return {
-    /** 内容变了就调一次：超过阈值就装上，掉回阈值以下就卸掉 */
     refresh: () => {
       const total = countLines(code);
       const long = total > FOLD_AFTER;
@@ -729,12 +559,10 @@ export function attachCodeFold(
         unmount();
         measuredLines = -1;
       } else if (long && total !== measuredLines) {
-        // 行数真的变了才重新量（裁切高度、渐变底色跟着更新）
         measuredLines = total;
         measure();
       }
     },
-    /** 展开（编辑器里把光标移进代码块时调它：折叠状态下看不见正在编辑的行） */
     expand: () => {
       if (top && !open) {
         open = true;
@@ -749,7 +577,6 @@ function enhance(pre: HTMLPreElement) {
   if (!code) return;
   pre.dataset.ccReady = '1';
 
-  // 包一层做定位容器，按钮挂在 pre 外面，不污染代码文本
   const wrap = document.createElement('div');
   wrap.className = 'cc-wrap';
   pre.parentNode?.insertBefore(wrap, pre);
@@ -757,8 +584,6 @@ function enhance(pre: HTMLPreElement) {
 
   attachGutter(wrap, pre, code);
 
-  // 右上角排一行：「展开」（只有长块才有）+「复制」。
-  // 复制按钮仍然是那条最常见的胶囊，只是位置交给这行 flex 统一管。
   const actions = document.createElement('div');
   actions.className = 'cc-actions';
   wrap.appendChild(actions);
@@ -1096,7 +921,6 @@ export default function CodeCopy() {
 
     schedule();
 
-    // 客户端切页 / 编辑器预览切换都会换掉 DOM，这里跟着重新扫
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
 

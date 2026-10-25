@@ -2,38 +2,15 @@
 
 import { useEffect } from "react";
 
-/**
- * 🔍 统一的图片浏览器（用户 2026-10-23 要求）
- *
- * 全站所有"点开看大图"的地方都走这一个组件，交互完全一致：
- *   · 默认态 = 等比铺满屏幕（这就是最小态，不能再缩小）
- *   · 缩放：电脑滚轮 / 触控板捏合；手机双指捏合 → **只作用于图片**，不缩放网页
- *   · 放大后：拖动 = 移动画面看细节
- *   · 翻页（**仅默认态**）：
- *       · 拖动/滑动 → **跟手轮播**：拖到哪就显示到哪，左右两张图前后衔接（中间留 18px 间距），
- *         松手按位移 + 甩动速度决定翻页或回弹，带非线性缓动（不是瞬间切换 ✓）
- *       · 底部 ‹ [1/2] › 按钮、键盘 ← → → **瞬间切换**（这是刻意保留的快速通道）
- *   · 关闭：点图片/按钮以外的空白处、Esc、**手机系统返回键**（hash 历史，页面不动）
- *
- * 📱 返回键：安卓上纯 pushState 会被各家 WebView/Edge 吃掉，所以这里压的是 **URL hash**：
- *    后退 = 去掉 hash → 触发 popstate / hashchange → 我们只关预览 ✓ 文章页不动 ✓
- *
- * ⚠️ 编辑器正文（.editor-content-area / .ProseMirror）里的图不接管 —— 那里点图是编辑 ✗
- */
 
 const ZOOM_SELECTOR = '.prose, .resource-preview';
 const SKIP_INSIDE = '.editor-content-area, .ProseMirror, [data-no-zoom]';
 const MIN_RENDERED = 80;
 const CLICK_SLOP = 6;
-/** 松手时：位移超过屏幕宽度的这个比例就翻页 */
 const SWIPE_RATIO = 0.18;
-/** 或者甩动速度超过这个值（px/ms）也翻页 */
 const SWIPE_VELOCITY = 0.45;
-/** 两张图之间的间距 */
 const GAP = 18;
-/** 底部按钮带高度（图片可用高度要减掉它） */
 const BOTTOM_BAR = 72;
-/** 🏷️ 顶部描述带高度（用户要求：默认画面不能顶到顶部文字上，两行都是"虚空"区域） */
 const TOP_BAR = 72;
 const WHEEL_SENSITIVITY = 0.0015;
 const PINCH_SENSITIVITY = 0.02;
@@ -41,13 +18,11 @@ const OVERLAY_Z = 2147483000;
 const HASH = '#tl-image-viewer';
 const IMAGE_HREF = /\.(png|jpe?g|gif|webp|avif|svg|bmp)(\?|#|$)/i;
 
-/** 原来那套 chevron 图标（lucide 的 ChevronLeft / ChevronRight 同一条路径） */
 const CHEVRON_LEFT =
   '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
 const CHEVRON_RIGHT =
   '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
 
-/** 松手的缓动：先快后慢（非线性 ✓） */
 const EASE_SNAP = 'cubic-bezier(.22,.61,.36,1)';
 
 export type GalleryItem = { src: string; alt?: string };
@@ -92,29 +67,20 @@ export default function ImageZoom() {
     let tx = 0;
     let ty = 0;
 
-    /** 拖动中的位移（track 的 translateX） */
     let dragX = 0;
-    /** 是否正在动画（这时别再改 transform） */
     let animating = false;
 
-    /**
-     * 🔍 高清底图：图片元素**按原始像素**布局（宽高 = naturalWidth/Height），
-     * 屏幕上看到多大全靠 transform 的 scale —— 这样放大时浏览器拿的是原始分辨率，
-     * 而不是"先把大图缩到视口大小、再拿这张缩小的位图放大"（那样文字笔画必糊 ✗）
-     */
     const natSize = (img: HTMLImageElement | null) => ({
       w: img?.naturalWidth || 1,
       h: img?.naturalHeight || 1,
     });
 
-    /** 默认态（zoom=1）把整张图装进中间区域的系数：小图不放大（最多 100%） */
     const fitFor = (img: HTMLImageElement | null) => {
       const { w, h } = natSize(img);
       if (w <= 1 || h <= 1) return 1;
       return Math.min(1, viewW() / w, viewH() / h);
     };
 
-    /** 默认态在屏幕上占的尺寸（= 原始像素 × 适配系数），平移边界按这个算 */
     const baseSize = () => {
       const { w, h } = natSize(imgCur);
       const fit = fitFor(imgCur);
@@ -123,18 +89,12 @@ export default function ImageZoom() {
 
     const viewW = () => window.innerWidth;
     const slideSpan = () => viewW() + GAP;
-    /**
-     * 中间"纯图片"区域的上边界：**动态**取顶部那行文字实际占到的底边 + 10px
-     * （描述可能换行、iPhone 还有刘海安全区，写死一个数会盖到文字上 ✗）
-     */
     const bandTop = () => {
       const rect = captionEl?.getBoundingClientRect();
       const used = rect && rect.height > 0 ? rect.bottom + 10 : TOP_BAR;
       return Math.max(TOP_BAR, used);
     };
-    /** 中间区域高度：上下两条带都扣掉 ✓ */
     const viewH = () => Math.max(120, window.innerHeight - bandTop() - BOTTOM_BAR);
-    /** 中间区域的垂直中心（缩放锚点用） */
     const bandCenterY = () => bandTop() + viewH() / 2;
 
     const clampPan = () => {
@@ -157,7 +117,6 @@ export default function ImageZoom() {
       track.style.transform = `translate3d(${dragX}px, 0, 0)`;
     };
 
-    /** 缩放：anchor 是屏幕坐标，缩放时把锚点钉住 */
     const zoomTo = (next: number, anchorX?: number, anchorY?: number) => {
       const target = Math.min(6, Math.max(1, next));
       if (Math.abs(target - zoom) < 0.0005) return;
@@ -184,22 +143,18 @@ export default function ImageZoom() {
       bar.style.visibility = many ? 'visible' : 'hidden';
       counterEl.textContent = `${index + 1} / ${items.length}`;
 
-      /* 📝 图片描述（alt / 标题）放在**屏幕顶部**（用户 2026-10-23 要求）：
-         照片墙那边原来把描述放在底部，和按钮挤在一起；现在统一到顶部居中显示 ✓ 空就不显示 ✓ */
       if (topEl && captionEl) {
         const cap = (items[index]?.alt || '').trim();
         captionEl.textContent = cap;
         topEl.style.display = cap ? 'flex' : 'none';
       }
 
-      // 让三张幻灯片都从"顶部文字的下边界"开始，图片就不会顶到文字上 ✓
       const topPx = bandTop();
       [slotPrev, slotCur, slotNext].forEach((slot) => {
         if (slot) slot.style.paddingTop = `${topPx}px`;
       });
     };
 
-    /** 把 prev / cur / next 三张图摆好（默认态、无缩放） */
     const syncSlots = () => {
       if (!imgPrev || !imgCur || !imgNext) return;
       const at = (offset: number) => items[(index + offset + items.length) % items.length];
@@ -209,7 +164,6 @@ export default function ImageZoom() {
         if (img.getAttribute('src') !== it.src) img.src = it.src;
         img.alt = it.alt || '';
 
-        // 📐 图加载完 → 按**原始像素**摆好（高清底图），屏幕尺寸交给 scale ✓
         const applyNatural = () => {
           if (!img.naturalWidth || !img.naturalHeight) return;
           img.style.width = `${img.naturalWidth}px`;
@@ -225,7 +179,6 @@ export default function ImageZoom() {
       set(imgNext, items.length > 1 ? at(1) : undefined);
 
       zoom = 1; tx = 0; ty = 0; dragX = 0;
-      // 三张都按各自的原图比例缩到"装得下"的大小（当前这张还要带平移/缩放）✓
       [imgPrev, imgCur, imgNext].forEach((img) => {
         if (!img) return;
         const s = fitFor(img);
@@ -265,7 +218,6 @@ export default function ImageZoom() {
       }
     };
 
-    /** 系统返回键 / 浏览器后退 / 点 hash → 只关预览 */
     function onHistoryBack() {
       if (!overlay) return;
       closingByHistory = true;
@@ -278,7 +230,6 @@ export default function ImageZoom() {
       syncSlots();
     };
 
-    /** 拖到头：动画滑过去 → 切换 → 复位 */
     const finishSwipe = (dir: -1 | 1, fromX: number) => {
       if (!track) return;
       animating = true;
@@ -292,12 +243,10 @@ export default function ImageZoom() {
         syncSlots();
       };
       track.addEventListener('transitionend', done, { once: true });
-      // 兜底：某些浏览器没有 transitionend
       window.setTimeout(() => { if (animating) done(); }, 340);
       void fromX;
     };
 
-    /** 回弹到原位 */
     const springBack = () => {
       if (!track) return;
       animating = true;
@@ -319,7 +268,6 @@ export default function ImageZoom() {
       if (e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); goInstant(1); }
     };
 
-    /** 按钮：和页码同尺寸（高 34px 的胶囊），图标 18px */
     const makeBtn = (dir: -1 | 1): HTMLButtonElement => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -327,11 +275,9 @@ export default function ImageZoom() {
       btn.innerHTML = dir < 0 ? CHEVRON_LEFT : CHEVRON_RIGHT;
       btn.style.cssText = [
         'pointer-events:auto',
-        // 圆形，直径和页码胶囊的**高度**一致（都是 34px）—— 只是等高，不拉长 ✓
         'width:34px', 'height:34px', 'padding:0',
         'display:flex', 'align-items:center', 'justify-content:center',
         'border-radius:9999px',
-        // 🎨 深底 + 白图标 + 亮描边 + 投影：铺满深色/浅色画面时都看得见（用户反馈：原来透明底在深色图上找不到）
         'border:1px solid rgba(255,255,255,0.32)',
         'background:rgba(0,0,0,0.55)',
         'color:#fff',
@@ -358,7 +304,6 @@ export default function ImageZoom() {
       slot.style.cssText = [
         'position:absolute', 'inset:0',
         'display:flex', 'align-items:center', 'justify-content:center',
-        // 上下两条带都留空：默认等比例显示时，图片只会落在中间那块区域 ✓
         `padding-top:${TOP_BAR}px`, `padding-bottom:${BOTTOM_BAR}px`,
         'box-sizing:border-box',
         'will-change:transform',
@@ -366,11 +311,8 @@ export default function ImageZoom() {
       const im = document.createElement('img');
       im.draggable = false;
       im.style.cssText = [
-        // ⚠️ 绝对不要再写 max-width/max-height:100% —— 那是"先把大图缩到视口大小、
-        //    再用 scale 放大"，等于把一张已经缩小过的位图拉大，文字笔画必糊 ✗
-        //    这里按原始像素布局（onload 时写宽高），适配比例全部交给 transform 的 scale ✓
         'max-width:none', 'max-height:none', 'display:block',
-        'width:0', 'height:0',   // 图没加载完先不占位 ✓
+        'width:0', 'height:0',
         'pointer-events:auto',
         'user-select:none', '-webkit-user-select:none',
         '-webkit-user-drag:none', '-webkit-touch-callout:none',
@@ -416,7 +358,6 @@ export default function ImageZoom() {
       slotCur = b.slot; imgCur = b.im;
       slotNext = c.slot; imgNext = c.im;
 
-      // 左右两张摆在两侧（间距 GAP）
       slotPrev.style.transform = `translate3d(${-(viewW() + GAP)}px, 0, 0)`;
       slotNext.style.transform = `translate3d(${viewW() + GAP}px, 0, 0)`;
 
@@ -426,7 +367,6 @@ export default function ImageZoom() {
       stage.appendChild(track);
       overlay.appendChild(stage);
 
-      /* 底部：‹ [1/2] › 居中并排，三个都是 34px 高的胶囊，视觉一致 ✓ */
       bar = document.createElement('div');
       bar.style.cssText = [
         'position:fixed', 'left:0', 'right:0',
@@ -441,7 +381,6 @@ export default function ImageZoom() {
         'display:inline-flex', 'align-items:center', 'justify-content:center',
         'min-width:54px', 'height:34px', 'padding:0 14px',
         'border-radius:9999px',
-        // 和箭头同一套深色胶囊：任何底色上都清楚 ✓
         'background:rgba(0,0,0,0.55)', 'border:1px solid rgba(255,255,255,0.32)',
         'color:#ffffff', 'font-size:12px', 'font-weight:800',
         'letter-spacing:.12em',
@@ -453,7 +392,6 @@ export default function ImageZoom() {
       bar.appendChild(counterEl);
       bar.appendChild(makeBtn(1));
 
-      /* 📝 顶部：图片描述（照片墙的标题就显示在这） */
       topEl = document.createElement('div');
       topEl.style.cssText = [
         'position:fixed', 'left:0', 'right:0',
@@ -479,16 +417,14 @@ export default function ImageZoom() {
       document.body.appendChild(topEl);
       document.body.appendChild(bar);
 
-      /* 📱 压 hash 历史：安卓 Edge/各家 WebView 上纯 pushState 会被吃掉，hash 这条最稳 ✓ */
       try {
         if (location.hash !== HASH) {
           history.pushState({ __tlImageViewer: true }, '', `${location.pathname}${location.search}${HASH}`);
         }
-      } catch { /* 忽略 */ }
+      } catch {  }
       window.addEventListener('popstate', onHistoryBack);
       window.addEventListener('hashchange', onHistoryBack);
 
-      /* ── 手势 ── */
       type Press = { x: number; y: number; moved: number; lastX: number; lastT: number; vx: number; startTx: number; startTy: number };
       const presses = new Map<number, Press>();
       let pinchStartDist = 0;
@@ -498,7 +434,7 @@ export default function ImageZoom() {
 
       const onPointerDown = (e: PointerEvent) => {
         if (!overlay) return;
-        if (e.pointerType === 'mouse') { try { overlay.setPointerCapture(e.pointerId); } catch { /* 忽略 */ } }
+        if (e.pointerType === 'mouse') { try { overlay.setPointerCapture(e.pointerId); } catch {  } }
         presses.set(e.pointerId, {
           x: e.clientX, y: e.clientY, moved: 0,
           lastX: e.clientX, lastT: performance.now(), vx: 0,
@@ -531,7 +467,6 @@ export default function ImageZoom() {
           return;
         }
 
-        // 放大后：拖动画布
         if (zoom > 1.02) {
           tx = me.startTx + (e.clientX - me.x);
           ty = me.startTy + (e.clientY - me.y);
@@ -539,7 +474,6 @@ export default function ImageZoom() {
           return;
         }
 
-        // 默认态：跟手轮播（两头加阻尼）
         if (items.length < 2 || animating) return;
         const now = performance.now();
         const dt = Math.max(1, now - me.lastT);
@@ -550,14 +484,13 @@ export default function ImageZoom() {
         let dx = e.clientX - startX;
         const atStart = index === 0;
         const atEnd = index === items.length - 1;
-        if ((dx > 0 && atStart) || (dx < 0 && atEnd)) dx *= 0.32;   // 阻尼，拖不出去
+        if ((dx > 0 && atStart) || (dx < 0 && atEnd)) dx *= 0.32;
         dragX = dx;
         paintTrack();
       };
 
       const onPointerUp = (e: PointerEvent) => {
         if (!overlay) return;
-        // 指针被系统打断（滚动接管 / 手势被取消）不算点击 ✓
         if (e.type === 'pointercancel') { presses.delete(e.pointerId); return; }
         const me = presses.get(e.pointerId);
         presses.delete(e.pointerId);
@@ -567,7 +500,6 @@ export default function ImageZoom() {
         const justPinched = performance.now() - lastPinchAt < 300;
         if (justPinched) return;
 
-        // ① 默认态拖动结束 → 翻页 or 回弹（不是瞬间切换 ✓）
         if (me && zoom <= 1.02 && items.length > 1 && Math.abs(dragX) > 0) {
           const dx = dragX;
           const far = Math.abs(dx) > viewW() * SWIPE_RATIO;
@@ -585,11 +517,7 @@ export default function ImageZoom() {
           return;
         }
 
-        // ② 轻点关闭 —— **点图片本身也关**，不用去找空白处 ✓（用户 2026-10-25 要求）
-        //    ⚠️ 只认「没拖动」的轻点：moved < CLICK_SLOP 才算点击，拖画面/滑翻页不算 ✓
         if (moved < CLICK_SLOP) {
-          // ⚠️ 鼠标也要吞一下：关掉之后紧跟着的那个 click 会落在**下面那张正文图片**上，
-          //    不挡的话页面会立刻又打开一次（看着像"点了没反应"）✗
           swallowClickUntil = performance.now() + 500;
           close();
         }
@@ -646,7 +574,6 @@ export default function ImageZoom() {
         if (!slotPrev || !slotNext) return;
         slotPrev.style.transform = `translate3d(${-(viewW() + GAP)}px, 0, 0)`;
         slotNext.style.transform = `translate3d(${viewW() + GAP}px, 0, 0)`;
-        // 视口变了 → 适配系数也变了，左右两张要重新缩一下 ✓
         [imgPrev, imgNext].forEach((img) => {
           if (img && img.naturalWidth) img.style.transform = `scale(${fitFor(img)})`;
         });

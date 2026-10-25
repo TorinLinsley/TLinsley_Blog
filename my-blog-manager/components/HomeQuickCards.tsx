@@ -2,22 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 
-/**
- * 首页新增的两个卡片：资源分享 / 工具。
- *
- * 都放在这一个文件里，是因为它们长得一样（左上角大字标题 + 下面一排子卡片），
- * 只是数据来源不同：资源卡片是写死的三个入口，工具卡片读 tools/tools.json。
- *
- * 样式跟「个人概述」卡片同一套：rounded-3xl + 半透明毛玻璃 + 浅边框 + shadow-xl。
- *
- * 交互约定（用户定的）：
- *   · 点到卡片里**不是**子卡片的地方 → 打开该栏目的总界面；
- *   · 子卡片各自跳自己的地方。
- *   实现上：整卡铺一层绝对定位的 <Link> 当默认跳转，三个子卡片用 z-10 浮在它上面，
- *   这样既不用嵌套 <a>（非法），也不用 JS。
- *   ⚠️ 压在整卡链接上面的**非交互**元素（标题、空状态容器）必须加 pointer-events-none，
- *      否则它会把点击吃掉，那一块就成了点不动的死区；子卡片自己加 pointer-events-auto 穿透回来。
- */
 
 const SHELL =
   'relative h-full rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md ' +
@@ -31,7 +15,6 @@ const SUB =
   'hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20 hover:border-indigo-400/60 ' +
   'transition-colors duration-300';
 
-/* ───────────────────────── 子卡片里的小图标（内联 SVG，不引依赖） ───────────────────────── */
 const ICONS: Record<string, React.ReactNode> = {
   资源分享: (
     <>
@@ -78,7 +61,6 @@ function SubIcon({ name }: { name: string }) {
   );
 }
 
-/** 工具的图标：iconify:xxx:yyy 走站内代理，本地 .svg 用 mask 上色，位图直接 img（和工具页同一套逻辑） */
 function ToolIcon({ icon }: { icon?: string }) {
   const raw = String(icon || '').trim();
   if (!raw) return <span className="w-6 h-6 sm:w-7 sm:h-7" />;
@@ -109,17 +91,15 @@ function ToolIcon({ icon }: { icon?: string }) {
   );
 }
 
-/* ───────────────────────────────── 资源分享卡片 ───────────────────────────────── */
 const RES_ITEMS = [
-  { name: '资源分享', href: '/resources/1资源分享/工具.md' },   // 打开「工具.md」那份笔记
-  { name: '疑难解答', href: '/resources/2疑难解答/关于MC服务器.md' }, // 打开「关于MC服务器.md」
-  { name: '笔记分享', href: '/resources/3笔记分享（多篇型）/笔记分享-列表.md' }, // 打开「笔记分享-列表.md」
+  { name: '资源分享', href: '/resources/1资源分享/工具.md' },
+  { name: '疑难解答', href: '/resources/2疑难解答/关于MC服务器.md' },
+  { name: '笔记分享', href: '/resources/3笔记分享（多篇型）/笔记分享-列表.md' },
 ];
 
 export function HomeResourcesCard() {
   return (
     <div className={SHELL}>
-      {/* 整卡默认跳转：铺满卡片的透明链接；子卡片用 z-10 盖在它上面 */}
       <Link href="/resources" aria-label="打开资源分享" className="absolute inset-0 z-0" />
 
       <h3 className={`${TITLE} relative z-10 pointer-events-none`}>资源分享</h3>
@@ -138,14 +118,11 @@ export function HomeResourcesCard() {
   );
 }
 
-/* ───────────────────────────────── 工具卡片 ───────────────────────────────── */
 type ToolItem = { name?: string; dir?: string; entry?: string; icon?: string; tags?: string[] };
 
-/** 首页工具卡片：最多放 3 个打了「+」标签的工具，**第 4 格固定是「更多」**（去工具总界面） */
 export const HOME_TOOL_TAG = '+';
 export const HOME_TOOL_MAX = 3;
 
-/** 读 tools.json 并挑出带「+」标签的工具（读不到就返回空数组，不炸首页） */
 export function readHomeTools(): ToolItem[] {
   try {
     const data = JSON.parse(fs.readFileSync(toolsJsonPath(), 'utf8'));
@@ -158,24 +135,16 @@ export function readHomeTools(): ToolItem[] {
   }
 }
 
-/**
- * ⚠️ 控制台专用：控制台的 process.cwd() 是**控制台自己**（/srv/www/console），
- *    那儿没有 tools/ —— 工具文件和清单只有一份，在博客项目里。
- *    所以和 /tools/[...file] 那条路由一样，从 data/deploy_config.json 取 blogPath。
- *    （前台那份直接用 process.cwd() 就行，前台自己就是博客项目。）
- */
 function toolsJsonPath(): string {
   try {
     const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'deploy_config.json'), 'utf8'));
     const p = String(cfg?.blogPath || '').trim();
     if (p) return path.join(p, 'tools', 'tools.json');
   } catch {
-    /* 读不到配置就退回本地，至少不炸 */
   }
   return path.join(process.cwd(), 'tools', 'tools.json');
 }
 
-/** 子卡片跳哪儿：**必须带上入口文件**（工具目录里没有 index.html，只写目录会 404） */
 function toolHref(t: ToolItem): string {
   const dir = encodeURIComponent(String(t.dir || ''));
   const entry = String(t.entry || '')
@@ -212,7 +181,6 @@ export function HomeToolsCard({ tools }: { tools: ToolItem[] }) {
             </Link>
           ))}
 
-          {/* 第 4 格固定是「更多」：和点卡片空白处一样，都是去工具总界面 */}
           <Link href="/tools" className={SUB}>
             <SubIcon name="更多" />
             <span className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 text-center leading-tight">

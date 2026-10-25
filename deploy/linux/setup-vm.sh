@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
-#
-# 在 Ubuntu 22.04「桌面版」虚拟机上，一键把控制台 + 博客前台的开发环境装好。
-#
-#   bash setup-vm.sh                 # 默认项目根目录 ~/TLinsleyBlog
-#   bash setup-vm.sh /path/to/root   # 项目在别处时传进来
-#
-# 装完：桌面会有「TLinsleyBlog 控制台」图标，双击就在浏览器里打开控制台（网页模式）；
-#       博客前台用控制台里的「预览」/或者在 TLBlog 目录 npm run dev 起来看。
-#
-# 幂等：重复跑只会补缺。
 
 set -euo pipefail
 
-ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"   # 默认就用这个脚本所在仓库的根目录
+ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CONSOLE="$ROOT/my-blog-manager"
@@ -28,7 +18,6 @@ log() { printf '\n==> %s\n' "$*"; }
 log "1/6 系统依赖"
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update -y
-# xclip 给控制台的「复制」按钮用（控制台是网页模式，不再需要 WebKitGTK 那套窗口依赖）
 sudo apt-get install -y \
   curl git rsync ca-certificates \
   python3-pip \
@@ -99,10 +88,8 @@ cat <<EOF
 ============================================================
 装好了。日常这样用：
 
-  # 起控制台（浏览器会自动打开 http://127.0.0.1:3010）
   bash $HERE/start-console.sh
 
-  # 只想起博客前台开发服务器（一般用不着，控制台里的预览就够）
   cd $BLOG && npm run dev
 
 改完内容/代码、确认没问题之后，传到正式服务器：

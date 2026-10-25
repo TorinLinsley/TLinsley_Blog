@@ -4,21 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, X, FolderOpen, FileText, Upload, Check, ChevronLeft, Loader2, Download } from 'lucide-react';
 
-/**
- * 🧰 控制台的「工具」管理界面。
- *
- * 数据只有一份：<博客>/tools/tools.json（后端 cms_core/api/tools.py 读写），
- * 前台 /tools 是 force-dynamic 读同一份，所以这边一改、前台刷新就生效，不用重建。
- *
- * 弹窗结构（都在这个文件里，省得来回跳）：
- *   · ToolForm    —— 新增/编辑：名称、项目目录名（带"使用已有名称/清空"和非法字符即时提示）、
- *                    项目路径（可选浏览）、主网页文件名（可选浏览）、描述、标签、图标
- *   · BrowseDialog—— 浏览目录 / 文件（支持关键字 + 通配符 * ? 搜索）
- *   · IconDialog  —— 选图标：本地（public/uploads/ico，可上传）/ 网络（待接入）
- *   · 删除确认
- */
 
-/** 工具页导航栏主题的 6 个预设：明暗(auto/dark/light) × 透明度(trans/solid)，外加 auto 与 hidden */
 type NavTheme = 'auto' | 'dark-trans' | 'dark-solid' | 'light-trans' | 'light-solid' | 'hidden';
 
 type Tool = {
@@ -36,7 +22,6 @@ type DirItem = { name: string; path: string };
 type FileItem = { name: string; path: string; ext: string };
 type IconItem = { name: string; file: string; url: string };
 
-/** 和各系统/浏览器不对付的字符（后端也照这个挡） */
 const ILLEGAL_CHARS = "\\/:*?\"<>|#%&{}$!+'`=@~^[];,";
 const RESERVED = [
   'CON', 'PRN', 'AUX', 'NUL',
@@ -45,7 +30,6 @@ const RESERVED = [
 ];
 const DIR_OK = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
-/** 目录名体检：给出"哪些字符不能用"的一句话提示（输入框下面那行红字） */
 function checkDirName(name: string) {
   const raw = (name || '').trim();
   if (!raw) return { ok: false, illegal: [] as string[], msg: '' };
@@ -85,7 +69,6 @@ const emptyForm = () => ({
   navTheme: 'auto' as NavTheme,
 });
 
-/** 导航栏主题的 6 个预设（存进 tools.json 的 navTheme） */
 const NAV_THEMES: { value: NavTheme; label: string; hint: string }[] = [
   { value: 'auto', label: '自动', hint: '跟着工具页面自己的明暗走（页面自带主题切换时，导航栏也会跟着变）；浅色、深色**都半透明**，想要实底请选下面那两个「不透明」' },
   { value: 'dark-trans', label: '深色·半透明', hint: '深色 + 半透明毛玻璃，适合深色背景的工具' },
@@ -95,7 +78,6 @@ const NAV_THEMES: { value: NavTheme; label: string; hint: string }[] = [
   { value: 'hidden', label: '不要导航栏', hint: '这个工具不注入顶部导航栏' },
 ];
 
-/** 老数据兼容：以前只有 dark / light 两种，映射到现在的预设 */
 const normalizeNavTheme = (v?: string): NavTheme => {
   if (v === 'dark') return 'dark-trans';
   if (v === 'light') return 'light-solid';
@@ -117,13 +99,11 @@ export default function ToolsAdmin() {
   const [del, setDel] = useState<Tool | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
-  /** 「主网页文件名」的实时体检结果：这个目录里到底有没有这个名字的文件 */
   const [entryInfo, setEntryInfo] = useState<{ state: 'idle' | 'checking' | 'ok' | 'missing' | 'nodir'; files: string[] }>({
     state: 'idle',
     files: [],
   });
 
-  // ---------------------------------------------------------------- 基址 & 数据
   useEffect(() => {
     (async () => {
       try {
@@ -159,15 +139,6 @@ export default function ToolsAdmin() {
 
   useEffect(() => { void load(); }, [load]);
 
-  /**
-   * 🔎 主网页文件名的实时体检。
-   *
-   * 目录/文件名改动后停 350ms 去问一次后端「tools/<目录> 里有哪些文件」，再拿填的名字对一下：
-   *   ok      —— 名字对得上 ✓
-   *   missing —— 目录在、但里面没这个文件 ✗（最常见：名字写错 / 还没上传 → 点开就是 404）
-   *   nodir   —— 目录还不存在（新工具还没保存过；保存时会自动创建）
-   * 顺带把目录里现有的 .html 列出来，点一下就能改成那个名字。
-   */
   useEffect(() => {
     const dir = (form?.dir || '').trim();
     const entry = (form?.entry || '').trim();
@@ -219,7 +190,6 @@ export default function ToolsAdmin() {
     return res.json();
   }, [apiBase]);
 
-  // ---------------------------------------------------------------- 搜索 / 标签
   const allTags = useMemo(() => {
     const s = new Set<string>();
     tools.forEach((t) => t.tags?.forEach((x) => s.add(x)));
@@ -240,7 +210,6 @@ export default function ToolsAdmin() {
     });
   }, [tools, search, activeTag]);
 
-  // ---------------------------------------------------------------- 操作
   const openAdd = () => { setNote(''); setEntryInfo({ state: 'idle', files: [] }); setForm(emptyForm()); };
   const openEdit = (t: Tool) => {
     setNote('');
@@ -302,7 +271,6 @@ export default function ToolsAdmin() {
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-10 py-6 md:py-10 pt-24 md:pt-28 relative z-10">
 
-      {/* 标题 */}
       <div className="mb-8 md:mb-14 text-center">
         <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-2 md:mb-4 tracking-tighter">
           工具
@@ -312,7 +280,6 @@ export default function ToolsAdmin() {
         </p>
       </div>
 
-      {/* 搜索 + 标签 */}
       <div className="mb-8 md:mb-12 flex flex-col items-center gap-5 md:gap-8">
         <div className="relative w-full max-w-lg group px-2 md:px-0">
           <input
@@ -348,12 +315,10 @@ export default function ToolsAdmin() {
         <p className="mb-6 text-center text-xs text-rose-500 dark:text-rose-400 font-bold">{err}</p>
       )}
 
-      {/* 卡片墙 */}
       {loading ? (
         <p className="text-center text-xs text-slate-400 py-16"><Loader2 className="inline w-4 h-4 animate-spin mr-2" />读取中…</p>
       ) : (
         <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {/* ⚠️ 首页那个「工具」卡片只放带 + 标签的工具，且最多 3 个（第 4 格留给「更多工具」） —— 超了在这里提醒 */}
           {filtered.filter((t) => (t.tags || []).map((x) => String(x).trim()).includes('+')).length > 3 && (
             <div className="mb-5 rounded-2xl border border-amber-400/60 bg-amber-500/10 px-4 py-3 text-[12px] font-bold text-amber-600 dark:text-amber-400 leading-relaxed">
               ⚠️ 首页「工具」卡片最多显示 3 个带 <b>+</b> 标签的工具，现在有{' '}
@@ -362,7 +327,6 @@ export default function ToolsAdmin() {
             </div>
           )}
 
-          {/* 👇 新增工具：和项目矩阵那张虚线卡一样的 + 号动画（悬停转 90°） */}
           <motion.div
             layout
             onClick={openAdd}
@@ -384,7 +348,6 @@ export default function ToolsAdmin() {
                 key={t.dir}
                 className="relative group"
               >
-                {/* 悬浮管理按钮（手机常显） */}
                 <div className="absolute top-5 right-5 z-30 flex gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all">
                   <button onClick={() => openEdit(t)} title="编辑" className="w-9 h-9 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Pencil size={16} /></button>
                   <button onClick={() => setDel(t)} title="删除" className="w-9 h-9 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Trash2 size={16} /></button>
@@ -431,7 +394,6 @@ export default function ToolsAdmin() {
         </motion.div>
       )}
 
-      {/* ============================ 新增 / 编辑弹窗 ============================ */}
       <AnimatePresence>
         {form && (
           <Overlay onClose={() => setForm(null)}>
@@ -448,7 +410,6 @@ export default function ToolsAdmin() {
                 <button onClick={() => setForm(null)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors"><X size={16} /></button>
               </div>
 
-              {/* 名称 */}
               <Field label="名称（显示在卡片上的名字）">
                 <input
                   value={form.name}
@@ -458,7 +419,6 @@ export default function ToolsAdmin() {
                 />
               </Field>
 
-              {/* 项目路径（可选，只是帮你把目录名带出来） */}
               <Field label="项目路径（可选，选完会把最后一级填到下面）">
                 <div className="flex gap-2">
                   <input value={form.path} onChange={(e) => setForm({ ...form, path: e.target.value })} placeholder="tools/random_generator" className={INPUT} />
@@ -466,7 +426,6 @@ export default function ToolsAdmin() {
                 </div>
               </Field>
 
-              {/* 目录名 = 地址栏那一段 */}
               <Field label="项目目录名（地址栏 /tools/ 后面那一段，决定文件夹名）">
                 <div className="flex gap-2 items-start">
                   <div className="flex-1">
@@ -505,14 +464,12 @@ export default function ToolsAdmin() {
                 </div>
               </Field>
 
-              {/* 主网页文件名 */}
               <Field label="运行网页的文件名（点卡片时打开的就是它）">
                 <div className="flex gap-2">
                   <input value={form.entry} onChange={(e) => setForm({ ...form, entry: e.target.value })} placeholder="RandomGenerator.html" className={INPUT} />
                   <button type="button" onClick={() => setPicker('file')} className={BTN_GHOST}><FileText size={15} /> 浏览</button>
                 </div>
 
-                {/* 实时体检：这个名字在服务器上那个目录里到底有没有 */}
                 {entryInfo.state === 'missing' && (
                   <div className="mt-1.5">
                     <p className="text-[10px] md:text-[11px] font-bold text-rose-500 leading-snug">
@@ -547,7 +504,6 @@ export default function ToolsAdmin() {
                 )}
               </Field>
 
-              {/* 描述 */}
               <Field label="描述（这个工具是干嘛的）">
                 <textarea
                   value={form.description}
@@ -558,12 +514,10 @@ export default function ToolsAdmin() {
                 />
               </Field>
 
-              {/* 标签 */}
               <Field label="标签（用逗号隔开，前台可以按标签筛选）">
                 <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="时间, 计算" className={INPUT} />
               </Field>
 
-              {/* 导航栏主题 */}
               <Field label="工具页里的导航栏主题（顶部那条）">
                 <div className="flex flex-wrap gap-1.5">
                   {NAV_THEMES.map((opt) => (
@@ -587,7 +541,6 @@ export default function ToolsAdmin() {
                 </p>
               </Field>
 
-              {/* 图标 */}
               <Field label="图标">
                 <div className="flex items-center gap-3">
                   <button
@@ -628,7 +581,6 @@ export default function ToolsAdmin() {
         )}
       </AnimatePresence>
 
-      {/* ============================ 浏览目录 / 文件 ============================ */}
       <AnimatePresence>
         {picker && form && (
           <BrowseDialog
@@ -639,7 +591,6 @@ export default function ToolsAdmin() {
             onPickDir={(p) => {
               setForm((f) => {
                 if (!f) return f;
-                // 选目录：路径填上；目录名还没写就顺手带上最后一级
                 const seg = lastSeg(p);
                 return { ...f, path: p, dir: f.dir ? f.dir : seg };
               });
@@ -658,7 +609,6 @@ export default function ToolsAdmin() {
         )}
       </AnimatePresence>
 
-      {/* ============================ 选图标 ============================ */}
       <AnimatePresence>
         {iconOpen && form && (
           <IconDialog
@@ -670,7 +620,6 @@ export default function ToolsAdmin() {
         )}
       </AnimatePresence>
 
-      {/* ============================ 删除确认 ============================ */}
       <AnimatePresence>
         {del && (
           <Overlay onClose={() => setDel(null)}>
@@ -696,21 +645,10 @@ export default function ToolsAdmin() {
   );
 }
 
-/* ======================================================================== */
-/* 下面都是弹窗里用的小零件                                                    */
-/* ======================================================================== */
 
 const INPUT = 'w-full bg-slate-100 dark:bg-slate-800/70 border border-transparent focus:border-indigo-500 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm text-slate-800 dark:text-white outline-none transition-colors font-medium';
 const BTN_GHOST = 'shrink-0 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] md:text-xs font-black flex items-center gap-1.5 hover:bg-indigo-500 hover:text-white transition-colors';
 
-/**
- * 🎭 工具图标画法。
- *
- * · 网络图标（`iconify:库:名字`）和 .svg 文件 → 用 **CSS mask** 画：
- *   只取它的形状，颜色交给 `currentColor` —— 所以**深色模式自动变白、浅色自动变深** ✓
- *   （以前用 <img>，颜色是 SVG 文件里写死的，深色下就是一团黑 ✗）
- * · png / jpg / ico 这类位图 → 仍用 <img>，保留它自己的颜色 ✓
- */
 function ToolIcon({ icon, className = 'w-full h-full' }: { icon?: string; className?: string }) {
   const raw = String(icon || '').trim();
   if (!raw) return null;
@@ -756,25 +694,18 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
   );
 }
 
-/** 浏览目录 / 文件：支持关键字搜索（* ? 通配符） */
-/** 主网页文件一般就是 .html / .htm */
 const isHtmlExt = (ext: string) => ext === '.html' || ext === '.htm';
 
 function BrowseDialog({
   apiBase, mode, startPath, onClose, onPickDir, onPickFile,
 }: {
   apiBase: string;
-  /** 'dir' = 选目录、'file' = 选文件。容错：传 'path' 之类也当"选目录" */
   mode: string;
   startPath: string;
   onClose: () => void;
   onPickDir: (p: string) => void;
   onPickFile: (p: string) => void;
 }) {
-  // ⚠️ 调用「项目路径」那个浏览时历史上传进来的是 'path'，而这里判断的是 'dir'，
-  //    于是点它走的是"选文件"分支：标题错写成「选择主网页文件」、后端只回文件夹（因为 mode≠file）、
-  //    底部变成灰着的「就用它」，而「选它 / 就选当前目录」永远不出现。
-  //    统一在这里归一化，两边怎么传都不会再错。
   const dirMode = mode !== 'file';
   const [cur, setCur] = useState(startPath || 'tools');
   const [dirs, setDirs] = useState<DirItem[]>([]);
@@ -782,7 +713,6 @@ function BrowseDialog({
   const [parent, setParent] = useState('');
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
-  // 选文件改成「先选中 → 再确认」：以前点一下立刻就用，既没有确认按钮，也看不出选没选上
   const [picked, setPicked] = useState<FileItem | null>(null);
   const [exists, setExists] = useState(true);
 
@@ -798,7 +728,6 @@ function BrowseDialog({
         setParent(data.parent || '');
         setCur(data.path || '');
         setExists(data.exists !== false);
-        // 进目录后自动预选 index.html（没有就选第一个网页文件），多数情况直接按确认就行
         setPicked(dirMode
           ? null
           : (list.find((f) => f.name.toLowerCase() === 'index.html')
@@ -812,7 +741,6 @@ function BrowseDialog({
 
   useEffect(() => { void load(startPath || 'tools'); }, [load, startPath]);
 
-  /** 关键字 → 正则：* 任意、? 单字符；没通配符就当"包含" */
   const match = (name: string) => {
     const s = q.trim();
     if (!s) return true;
@@ -938,7 +866,6 @@ function BrowseDialog({
   );
 }
 
-/** 选图标：本地（public/uploads/ico，可上传） + 网络（Iconify 聚合库，选中自动存成本地图标） */
 function IconDialog({
   apiBase, current, onClose, onPick,
 }: {
@@ -954,17 +881,14 @@ function IconDialog({
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState('');
 
-  // —— 网络图标库那半边 ——
   const [sets, setSets] = useState<{ prefix: string; label: string }[]>([]);
   const [set, setSet] = useState('');
-  /** 搜索范围：关 = 在所有来源里搜；开 = 只在上面的来源里搜（没选来源时这项不可用） */
   const [onlyCurrent, setOnlyCurrent] = useState(true);
   const [netIcons, setNetIcons] = useState<{ name: string; svg: string }[]>([]);
   const [netLoading, setNetLoading] = useState(false);
   const [netMsg, setNetMsg] = useState('');
   const [netPicked, setNetPicked] = useState('');
 
-  // —— iconfont（阿里矢量图标库）项目导入 ——
   const [fontUrl, setFontUrl] = useState('');
   const [fontBusy, setFontBusy] = useState(false);
 
@@ -982,7 +906,6 @@ function IconDialog({
 
   useEffect(() => { void load(); }, [load]);
 
-  // 打开「网络」标签时拉一次来源列表（图标库清单）
   useEffect(() => {
     if (tab !== 'net' || sets.length > 0 || !apiBase) return;
     (async () => {
@@ -991,12 +914,10 @@ function IconDialog({
         const data = await res.json();
         if (data.success) setSets(data.sets || []);
       } catch {
-        /* 拉不到就只显示"全部图标库"，搜索照样能用 */
       }
     })();
   }, [tab, sets.length, apiBase]);
 
-  // 关键字 / 来源变化 → 停 400ms 去搜（**服务器代取**，浏览器不碰外网）
   useEffect(() => {
     if (tab !== 'net' || !apiBase) return;
     const kw = q.trim();
@@ -1009,7 +930,6 @@ function IconDialog({
     const timer = setTimeout(async () => {
       setNetLoading(true);
       setNetMsg('');
-      // 范围：勾了"只搜当前来源"且确实选了来源 → 限定 prefix；否则在所有来源里搜
       const scope = onlyCurrent ? set : '';
       try {
         const res = await fetch(
@@ -1033,7 +953,6 @@ function IconDialog({
     };
   }, [tab, q, set, onlyCurrent, apiBase]);
 
-  /** 点一个网络图标 → 后端下载成本地图标（public/uploads/ico），然后直接选中它 */
   const importNet = async (name: string) => {
     setNetPicked(name);
     setNetMsg('');
@@ -1045,7 +964,7 @@ function IconDialog({
       });
       const data = await res.json();
       if (data.success) {
-        await load();          // 本地那份也刷新，回头能在「本地」标签里看到它
+        await load();
         onPick(data.url);
       } else {
         setNetMsg(data.message || '下载失败');
@@ -1057,7 +976,6 @@ function IconDialog({
     }
   };
 
-  /** 🅰️ 从 iconfont 项目导入：把项目里所有图标存成本地图标，然后切到「本地」标签让用户挑 */
   const importFont = async () => {
     const url = fontUrl.trim();
     if (!url) return;
@@ -1095,7 +1013,7 @@ function IconDialog({
       const data = await res.json();
       if (data.success) {
         await load();
-        onPick(data.url);   // 传完直接选中，省一步
+        onPick(data.url);
       } else {
         setMsg(data.message || '上传失败');
       }
@@ -1145,7 +1063,6 @@ function IconDialog({
             <>
               {loading && <p className="text-center text-[11px] text-slate-400 py-6">读取中…</p>}
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                {/* 上传本地图标：和新建卡片同款 + 号动画 */}
                 <label className="group aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:border-indigo-500 transition-colors">
                   <input
                     type="file"
@@ -1182,7 +1099,6 @@ function IconDialog({
             </>
           ) : (
             <div className="py-1">
-              {/* 来源下拉（第一个是「全部图标库」，后面才是各个来源）+ 搜索范围开关 */}
               <div className="flex items-center gap-2 mb-2.5">
                 <select
                   value={set}
@@ -1232,7 +1148,6 @@ function IconDialog({
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                   {netIcons.map((ic) => (
                     <div key={ic.name} className="relative">
-                      {/* 点一下 = 直接用它（存的是 iconify:库:名字 的引用，走同源代理加载，不落地） */}
                       <button
                         type="button"
                         title={`${ic.name}（点一下直接用它）`}
@@ -1242,7 +1157,6 @@ function IconDialog({
                         }`}
                         dangerouslySetInnerHTML={{ __html: ic.svg }}
                       />
-                      {/* 想留一份在本地（不依赖外网）就点这个角标 */}
                       <button
                         type="button"
                         title="存到本地（public/uploads/ico），选中后不再依赖外网"
@@ -1265,8 +1179,8 @@ function IconDialog({
                 想留一份在本地就点右下角那个 ⤓ 角标（存进 public/uploads/ico，之后完全不依赖外网）。
               </p>
 
-              {/* 🅰️ 阿里巴巴矢量图标库（iconfont.cn）：官方没有免登录的全站搜索接口，
-                  所以这里接的是**你自己的项目** —— 把项目的 Symbol JS 链接粘进来即可 */}
+              {
+}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
                 <p className="text-[10px] md:text-[11px] font-black text-slate-500 dark:text-slate-400 mb-1.5">
                   🅰️ 从 iconfont 项目导入（阿里矢量图标库）

@@ -6,11 +6,9 @@ from .data_ts import read_ts_array
 
 router = APIRouter()
 
-# 🌟 核心修复：去掉了多余的 "src"，精准定位到你的真实目录
-CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))  # cms_core/api/
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))  # 回退两级到根目录
+CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
-# 👇 就是这里！直接指向 data/projects.ts
 TARGET_FILE = os.path.join(PROJECT_ROOT, "data", "projects.ts")
 
 
@@ -29,10 +27,8 @@ async def sync_projects(request: Request):
 
         print(f"🚀 尝试物理写入项目矩阵: {TARGET_FILE}")
 
-        # 序列化
         json_str = json.dumps(projects_list, ensure_ascii=False, indent=2)
 
-        # 构造格式
         ts_content = (
             "// 🛡️ 本文件由控制台自动生成，请勿手动修改\n\n"
             "export type Project = {\n"
@@ -46,7 +42,6 @@ async def sync_projects(request: Request):
             f"export const projectsData: Project[] = {json_str};"
         )
 
-        # 执行覆盖写入
         os.makedirs(os.path.dirname(TARGET_FILE), exist_ok=True)
         with open(TARGET_FILE, "w", encoding="utf-8") as f:
             f.write(ts_content)

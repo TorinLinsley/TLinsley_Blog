@@ -15,63 +15,23 @@ import { navLinks } from '../lib/navLinks';
 import { EASE_OUT } from '../lib/motion';
 import { signalNavStart } from './NavSwitchDim';
 
-/** 小屏导航栏高度：3.25rem = 52px（大屏仍是 h-16 = 64px）。
-    和博客前台 Navbar / MobileToc 用的是同一个值，两边观感才一致。 */
 const NAV_HEIGHT = '3.25rem';
 
-/**
- * 悬停色块「像进度条一样从左往右揭开」的过渡 ✓
- *
- * 📌 这条是**用户拿 8 条曲线现场对比之后挑的**（对比页：Downloads/nav-curve-compare.html 里的 D）
- *    · 0.32s + cubic-bezier(.23,1,.32,1)，和博客前台 Navbar **同一组数值** ✓
- *    · 手感：**起步就冲出去，剩下大半时间一路减速** → "伸出来是快" + "丝滑" ✓
- *    · 数值直接复用站里的 **EASE_OUT** 令牌（和进场/按下反馈同一条）✓
- *
- * ⚠️ 试过、但**被否掉**的写法，别再改回去 ✗：
- *    ① 弹簧 {type:'spring', duration:.32, bounce:0} —— 手感接近，但被打断时会带着速度走 ✓
- *    ② 「慢 → 快 → 慢」的 S 形（EASE_WIPE）：数学上两头确实慢、中间确实快，
- *       但时长压到 0.2~0.3s 时**两头各只有 2 帧**，人眼分辨不出来 ✗
- *       （用户原话："感觉不出快与慢的变化…像线性的"）✗
- *    ③ 想微调只动 duration（0.28 更脆 / 0.36 更从容），曲线一个字都不用动 ✓
- */
 const HOVER_REVEAL = { duration: 0.32, ease: EASE_OUT };
 
-/**
- * 选项卡下面那个色块**比文字底边再往下压多少** ✓
- *   0 = 贴齐文字底边（原来的值） · -0.1em ≈ 再往下 1.6px（"稍微往下偏移一点"）
- *   ⚠️ 和博客前台 Navbar 是同一个值，两边观感才一致 ✓ 用 em 不用 px（手机端根字号会缩）✓
- */
 const BLOCK_BOTTOM = '-0.1em';
 
-/**
- * 选项卡文字颜色 ✓（"未选中的弱化一点 —— 深色别那么白、浅色别那么黑"）
- *   · 未选中 → slate-500 / slate-400（工具网页那条导航栏一直用的弱化色 ✓ 四处统一）
- *   · 选中   → 正文强度 slate-900 / slate-100 → 一强一弱，当前栏目一眼看出来 ✓
- *   ⚠️ 悬停**不参与**变色 ✗ 悬停只负责揭开色块 ✓
- */
 const TAB_DIM = 'text-slate-500 dark:text-slate-400';
 const TAB_STRONG = 'text-slate-900 dark:text-slate-100';
 
 export default function Navbar() {
   const [isOpBoxOpen, setIsOpBoxOpen] = useState(false);
-  // 📱 手机端（<1024px）：导航链接平时收进抽屉，靠右上角那个按钮展开
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  /** 当前鼠标悬停的选项卡 href（null = 没有悬停）—— 桌面端色块用 ✓ 触摸设备不会触发 ✓ */
   const [hovered, setHovered] = useState<string | null>(null);
-  /**
-   * 已经点过、正在等新页面加载的那个选项卡 ✓
-   *   ⚠️ 用户反馈："点了别的选项卡后鼠标迅速移开，色块先缩回了 ✗
-   *      等新页面加载出来又伸出来 ✗ —— 点击后应该**固定住已伸出的状态**" ✓
-   *   → 点过之后把这个 href 记下来，它的色块**不再受鼠标移开影响** ✓
-   *   → 新页面挂载后组件重建，这个状态自然清空 ✓ 不会残留 ✓
-   */
   const [clicked, setClicked] = useState<string | null>(null);
-  /** 抽屉本体 / 汉堡按钮：交给 layerStack 判断"这一下该不该收"，顺带挡住"点空白穿透到正文链接" */
   const menuDrawerRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // 菜单开着时把它登记成"最上面那一层"：
-  // 空白处点一下只会收它，而且**不看退场动画有没有播完**，所以可以立刻点第二下收下面那层。
   useEffect(() => {
     if (!isMenuOpen) return;
     return registerLayer({
@@ -85,22 +45,10 @@ export default function Navbar() {
   const [targetBlogPath, setTargetBlogPath] = useState("");
 
   const pathname = usePathname();
-  /**
-   * ⚡ 用来**预取页面**（见下面选项卡的 onMouseEnter），和博客前台完全同一套做法。
-   * 这些页面的内容要等服务器/后端返回，点下去才开始要 → 必然有等待 ✗
-   * 悬停就预取 → 真按下去时数据已经在浏览器里 → 内容**当帧就换** ✓
-   * 这才是"条在动"和"界面在换"**真正同时**的关键（光调动画曲线做不到 ✗）
-   */
   const router = useRouter();
 
-  // 切到别的页面后自动收起手机端抽屉（不然点完链接它还盖在页面上）
-  // ⚠️ 导航栏现在挂在 app/layout.tsx 上，切页**不再重新挂载**了 ——
-  //    clicked 也得自己跟着路由清，不然用浏览器后退回到别的栏目时，
-  //    之前点过的那条色块会一直锁在伸出状态 ✗
-  //    （不会闪：路由一变 active 已经是新的那条了，这个 effect 在 DOM 更新之后才跑 ✓）
   useEffect(() => { setIsMenuOpen(false); setClicked(null); }, [pathname]);
 
-  // 抽屉打开时锁住背景滚动（和博客前台一致）
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -130,11 +78,9 @@ export default function Navbar() {
     fetchPath();
   }, []);
 
-  // 导航栏固定顶部，不再监听滚动（和博客前台一致）
 
   const { isDark, toggleTheme } = useTheme();
 
-  /** 主题切换：圆形日月图标 + 文字（和博客前台逐字一致） */
   const ThemeButton = ({ withLabel = true }: { withLabel?: boolean }) => (
     <button
       type="button"
@@ -176,13 +122,7 @@ export default function Navbar() {
     </button>
   );
 
-  // 🌟 这里新增了 /tree 路由
-  // 顺序说明：和博客前台保持一致 —— 资源分享是高频入口，放在首页右边第一位
-  // 🧰 「工具」紧跟在资源分享后面；归档和项目按用户要求换了位置（归档在前、项目在后）
-  // ⚠️ 列表本体在 lib/navLinks.ts —— 控制台里预览工具网页时注入的那条导航栏也用同一份。
 
-  // ⚠️ 文章编辑页 /posts/xxx 在导航里没有同名项（导航里那一项是「归档」= /timeline）✗
-  //    不映射的话，进编辑页**所有标签全灰** ✓（和前台同一个病 ✓）
   const ROUTE_PARENT: Record<string, string> = {
     '/posts': '/timeline',
   };
@@ -194,7 +134,6 @@ export default function Navbar() {
   })();
   const isActivePath = (href: string) =>
     href === '/' ? groupPath === '/' : groupPath === href || groupPath.startsWith(`${href}/`) || groupPath === `${href}/`;
-  /** 手机端导航栏右上角显示的那两个字：当前在哪个栏目 */
   const currentTab = navLinks.find((l) => isActivePath(l.href))?.name || '菜单';
 
   const handleMinimize = () => {
@@ -213,7 +152,6 @@ export default function Navbar() {
     }
   };
 
-  // 🌟 监控增强版更新逻辑
   const handleUpdateLocal = async () => {
       if (operations.length === 0) {
         showToast("队列中没有待处理的操作", "warning");
@@ -322,7 +260,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ═══════════ 💻 桌面端导航栏（≥1024px）：尺寸和博客前台同一套 ═══════════ */}
       <header className="hidden lg:block w-full fixed top-0 left-0 right-0 z-50 border-b bg-white/40 dark:bg-slate-900/50 backdrop-blur-xl border-white/20 dark:border-white/5 shadow-sm pywebview-drag-region">
         <div className="w-[96%] max-w-[1600px] mx-auto h-16 flex items-center justify-between gap-4 px-4 sm:px-[30px] box-border">
 
@@ -335,45 +272,32 @@ export default function Navbar() {
               {siteConfig.navAfter}
             </Link>
 
-            {/* 和博客前台保持一致的逻辑：首页里本来就有主题切换卡片，所以只在非首页显示 */}
             {pathname !== '/' && <ThemeButton />}
           </div>
 
           <div className="flex items-center gap-3 min-w-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            {/* ⚠️ 选项卡：字体族/字重跟 logo 一致，字号基准 16px、当前栏目 16.3px。
-                三处导航栏（前台 / 控制台 / 工具页注入）用同一组数字。只作用于大屏这条。 */}
+            {
+}
             <nav className="flex items-center gap-3 xl:gap-5 2xl:gap-6 text-[16px] font-black whitespace-nowrap overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              {/*
-                ⚠️ 悬停/选中样式（和博客前台 Navbar 同一套 ✓）
-                  · **字号一个字不动** ✓（基准 16px ✓ 选中 16.3px ✓）
-                  · **文字颜色完全不动** ✗ → 去掉 text-* / hover:text-* ✓
-                  · 悬停：高 = 文字 1/3 的色块垫在**文字下层** ✓
-                    从左往右**像进度条**揭开（clip-path ✓ 不是拉伸 ✗）移开反着缩回 ✓
-                  · 选中常驻：站点原有的紫 indigo-500 ✓ / 悬停淡紫 indigo-400 ✓
-                  · initial **不能用 false** ✗（每页各自引 Navbar → 切页重新挂载 ✗
-                    用 false 色块一进来就展开好了 ✗ 看不出揭开过程 ✓）
-              */}
+              {
+}
               {navLinks.map((link) => {
                 const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    /* 未选中弱化 / 选中保持正文强度 ✓（和博客前台 Navbar 同一套值）300ms 颜色过渡 ✓ */
                     className={`relative py-1 whitespace-nowrap transition-colors duration-300 ${
                       active ? `text-[16.3px] ${TAB_STRONG}` : TAB_DIM
                     }`}
-                    /* ⚡ 悬停即预取：鼠标移到选项卡上一定早于点击 → 点下去内容当帧就换 ✓ */
                     onMouseEnter={() => { setHovered(link.href); router.prefetch(link.href); }}
                     onMouseLeave={() => setHovered((h) => (h === link.href ? null : h))}
-                    /* 点一下就把这一条的色块**锁在伸出状态** ✓ 不随鼠标移开而缩回 ✓ */
                     onClick={() => { setClicked(link.href); signalNavStart(); }}
                   >
                     <span className="relative inline-block">
                       <motion.span
                         aria-hidden
                         className={`absolute left-0 right-0 ${
-                          /* ⚠️ 深色模式把两个紫色**对调** ✓（浅紫在深色导航栏上更明显 ✓） */
                           active
                             ? 'bg-indigo-500 dark:bg-indigo-400'
                             : 'bg-indigo-400 dark:bg-indigo-500'
@@ -382,13 +306,6 @@ export default function Navbar() {
                         initial={{ clipPath: 'inset(0 100% 0 0)' }}
                         animate={{
                           clipPath:
-                            /* ⚠️⚠️ 这个条件决定了"旧的缩回"什么时候开始（和博客前台同一处修正）：
-                               写成 `|| active` 时：点下去之后 active 还是旧的（路由要等新页面
-                               **加载完**才变）→ 旧的色块定住不动、等界面完全切过去才缩回 ✗
-                               现在改成 `active && clicked === null`：
-                               点下去那一刻 clicked 就有值了 → 旧的**立刻**不再算伸出 → 马上缩回 ✓
-                               和新那条的揭开**同时进行**，不被页面切换影响 ✓
-                               三个条件：悬停 / 刚点的那条（锁住） / 没有待跳转时的当前栏目 */
                             hovered === link.href ||
                             clicked === link.href ||
                             (active && clicked === null)
@@ -454,7 +371,6 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* pywebview 的三个窗口按钮（只有桌面端 + 窗口模式才有意义） */}
             <div className="flex items-center gap-2 ml-2 pl-6 border-l border-slate-300/50 dark:border-slate-600/50 shrink-0">
               <button onClick={handleMinimize} className="w-3.5 h-3.5 rounded-full bg-yellow-400 hover:bg-yellow-500 flex items-center justify-center group transition-colors shadow-sm cursor-pointer z-[101]">
                 <span className="opacity-0 group-hover:opacity-100 text-[8px] text-yellow-900 font-black">-</span>
@@ -471,16 +387,14 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* ═══════════ 📱 手机端导航栏（<1024px）：和博客前台同一套尺寸 ═══════════
-          52px 高；左边 logo + 主题按钮 +（控制台多出来的）待处理操作盒，
-          右边当前栏目 + 抽屉按钮。13 个链接都在抽屉里。桌面端不渲染这一块。 */}
+      {
+}
       <header
         className="lg:hidden w-full fixed top-0 left-0 right-0 z-[60] border-b bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-white/20 dark:border-white/5 shadow-sm pywebview-drag-region"
         style={{ height: NAV_HEIGHT }}
       >
         <div className="h-full flex items-center justify-between gap-2 px-3 sm:px-4">
 
-          {/* 左：标题 + 主题按钮 +（控制台专属）待处理操作盒 */}
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
             <Link
               href="/"
@@ -493,7 +407,6 @@ export default function Navbar() {
 
             <ThemeButton />
 
-            {/* 控制台多出来的东西：待处理操作盒，就挂在主题按钮右边 */}
             <div className="relative shrink-0">
               <button onClick={() => setIsOpBoxOpen(!isOpBoxOpen)} className="relative w-8 h-8 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 shadow-sm flex items-center justify-center text-[15px] cursor-pointer">
                 📥
@@ -508,8 +421,6 @@ export default function Navbar() {
 
               <AnimatePresence>
                 {isOpBoxOpen && (
-                  /* 📱 锚定到**屏幕右侧**（不是按钮），宽度也按视口算 —— 这样不管按钮被挤到哪儿都不会跑出屏幕。
-                     卡片位置本来就靠右，所以 fixed 相对的还是这层导航栏，尺寸写死也不会错位。 */
                   <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="fixed right-3 top-[3.5rem] w-[calc(100vw-1.5rem)] max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 z-[97] cursor-default">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">待处理操作</h3>
@@ -542,13 +453,11 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* 右：当前栏目 + 抽屉按钮（和博客前台一致） */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             <span className="shrink-0 max-w-[52px] sm:max-w-[92px] truncate text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500">
               {currentTab}
             </span>
 
-            {/* 抽屉开关：menu.svg ⇄ close.svg（和博客前台同一套图标） */}
             <button
               type="button"
               ref={menuButtonRef}
@@ -557,22 +466,16 @@ export default function Navbar() {
               aria-expanded={isMenuOpen}
               className="relative w-8 h-8 shrink-0 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-slate-700/70 transition-colors duration-300 cursor-pointer"
             >
-              {/*
-                三行（圆点＋长条）⇄ 叉：**真实线条的形变**（和前台 TLBlog 同一套）。
-                原来这里是「menu.svg / close.svg 两张遮罩切换」，遮罩的内部线条
-                浏览器不允许动画，所以做不出"横线转 45° 交叉"的过程。
-                现在按 menu.svg 的同一套几何把线画成真实元素再动 —— 收起态外观和原来一致。
-                详见 components/MorphIcons.tsx
-              */}
+              {
+}
               <MenuLines open={isMenuOpen} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* ═══════════ 📱 手机端导航抽屉（<1024px）═══════════
-          和博客前台同一套观感：遮罩从导航栏底部开始，点空白处收起；
-          抽屉从右侧滑入。桌面端（lg 以上）完全不受影响。 */}
+      {
+}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -598,13 +501,8 @@ export default function Navbar() {
               style={{ top: NAV_HEIGHT }}
             >
               <nav className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
-                {/*
-                  ⚠️ 手机端选项卡列表（和博客前台同一套 ✓）
-                    · 去掉原来的**实色紫背景 + 白字** ✗（那会改文字颜色 ✗）
-                    · 换成：文字下层高 = 文字 1/3 的色块 ✓ 选中常驻 ✓ 切换反着缩回 ✓
-                    · **字号一个字不动** ✓（13px / sm 15px ✓）
-                    · 触摸屏没有悬停 ✓ 这里只有"选中"一个状态 ✓
-                */}
+                {
+}
                 {navLinks.map((link) => {
                   const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                   return (
@@ -612,7 +510,6 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => { setIsMenuOpen(false); signalNavStart(); }}
-                      /* 手机端和大屏同一条规矩：未选中弱化 ✓ 选中保持正文强度 ✓（触摸屏没有悬停） */
                       className={`px-3 py-2.5 rounded-xl text-[13px] sm:text-[15px] font-bold truncate transition-colors duration-300 ${
                         active ? TAB_STRONG : TAB_DIM
                       }`}

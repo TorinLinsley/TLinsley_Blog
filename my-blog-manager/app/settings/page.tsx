@@ -17,14 +17,11 @@ import DisplaySection from '../../components/settings/DisplaySection';
 import CommentSection from '../../components/settings/CommentSection';
 import DanmakuSection from '../../components/settings/DanmakuSection';
 import FooterSection from '../../components/settings/FooterSection';
-// 👇 🌟 引入刚写的 AI 配置组件
 import AICatSection from '../../components/settings/AICatSection';
 
-/** 小屏导航栏高度 / 按钮行高度：和 Navbar、MobileToc 用同一套值 */
 const NAV_H = '3.25rem';
 const TOOL_ROW_H = '2.75rem';
 
-/** 两张图标常驻、只切换显隐（和博客「大纲」那个小按钮同款：切换是瞬间的，不会先闪一下空白） */
 function MenuIcon({ open }: { open: boolean }) {
   const mask = (src: string) => ({
     WebkitMaskImage: `url(${src})`,
@@ -47,19 +44,15 @@ function MenuIcon({ open }: { open: boolean }) {
 function SettingsContent() {
   const { operations, addOperation } = useOperations();
   const [activeTab, setActiveTab] = useState('profile');
-  // 📱 手机端专用：设置菜单是否展开（桌面端用不到它，侧栏一直挂着）
   const [menuOpen, setMenuOpen] = useState(false);
-  /** 抽屉本体 / 展开按钮：交给 layerStack 判断"这一下该不该收"，顺带挡住"点空白穿透到正文" ✓ */
   const menuDrawerRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // 抽屉打开时锁住背景滚动（和大纲那边一样）
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
-  // 抽屉开着就登记成一层：点空白只收最上面那层（和资源页/导航栏那套完全一致 ✓）
   useEffect(() => {
     if (!menuOpen) return;
     return registerLayer({
@@ -89,7 +82,6 @@ function SettingsContent() {
     buildDate: siteConfig.buildDate || "2026-03-23T00:00:00",
     icpConfig: siteConfig.icpConfig || { name: "", link: "" },
     footerBadges: [...(siteConfig.footerBadges || [])],
-    // 👇 🌟 初始化小猫 AI 配置数据
     geminiConfig: siteConfig.geminiConfig || {
       modelId: 'gemini-2.5-flash-lite',
       systemPrompt: '',
@@ -122,7 +114,6 @@ function SettingsContent() {
             buildDate: data.data.buildDate || prev.buildDate,
             icpConfig: data.data.icpConfig || prev.icpConfig,
             footerBadges: data.data.footerBadges ? [...data.data.footerBadges] : prev.footerBadges,
-            // 👇 🌟 合并后端发来的小猫配置
             geminiConfig: { ...(prev.geminiConfig || {}), ...(data.data.geminiConfig || {}) }
           }));
         } else {
@@ -229,7 +220,6 @@ function SettingsContent() {
     showToast(`🎉 【${label}】已加入右上角操作队列！`, "success");
   };
 
-  // 👇 🌟 在菜单里增加 AI 猫咪入口
   const menuItems = [
     { id: 'profile', name: '个人名片设置', icon: '👤' },
     { id: 'display', name: '视窗画面设置', icon: '🪟' },
@@ -239,7 +229,7 @@ function SettingsContent() {
     { id: 'footer', name: '首页底部设置', icon: '🧩' },
     { id: 'danmaku', name: '全站弹幕设置', icon: '⚡' },
     { id: 'comment', name: '评论系统配置', icon: '💬' },
-    { id: 'aicat', name: 'AI 煤球配置', icon: '🐾' }, // 👈 新增的小猫设置
+    { id: 'aicat', name: 'AI 煤球配置', icon: '🐾' },
     { id: 'repo', name: '项目仓库设置', icon: '🚀' },
   ];
 
@@ -249,9 +239,8 @@ function SettingsContent() {
       <PageTransition>
         <main className="w-[95%] max-w-7xl mx-auto mt-[7rem] lg:mt-24 flex flex-col lg:flex-row gap-4 lg:gap-8 items-start relative z-10">
 
-          {/* ═══════════ 📱 手机端菜单（<768px）：和「大纲」那套一模一样 ═══════════
-              导航栏正下方一行放一个方形小按钮（靠左）；点它从**左侧**滑出抽屉，
-              点遮罩收回。桌面端不渲染这一块，桌面走下面那栏常驻侧栏。 */}
+          {
+}
           <div
             className="lg:hidden fixed left-0 right-0 z-40 flex items-center justify-start px-3"
             style={{ top: NAV_H, height: TOOL_ROW_H }}
@@ -310,7 +299,6 @@ function SettingsContent() {
             )}
           </AnimatePresence>
 
-          {/* ═══════════ 💻 桌面端侧栏（≥768px）：原来那一套，原样保留 ═══════════ */}
           <div className="hidden lg:flex lg:w-72 shrink-0 flex-col gap-4">
             <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/50 dark:border-slate-800/50 rounded-3xl p-4 shadow-xl">
               <p className="text-[10px] font-black text-slate-400 uppercase mb-4 ml-2 tracking-widest">系统管理维度</p>
@@ -334,7 +322,6 @@ function SettingsContent() {
               {activeTab === 'footer' && <FooterSection key="footer" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'danmaku' && <DanmakuSection key="danmaku" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'comment' && <CommentSection key="comment" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
-              {/* 👇 🌟 挂载 AI 猫咪面板 */}
               {activeTab === 'aicat' && <AICatSection key="aicat" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
 
               {activeTab === 'repo' && <RepoSection key="repo" />}

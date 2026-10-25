@@ -70,7 +70,6 @@ export default function DanmakuSection({ formData, handleUpdate, pushToQueue }: 
         </div>
 
         <div className="space-y-8">
-          {/* 输入框区域 */}
           <div className="relative flex items-center gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -93,7 +92,6 @@ export default function DanmakuSection({ formData, handleUpdate, pushToQueue }: 
             </button>
           </div>
 
-          {/* 弹幕流展示区域 */}
           <div className="bg-slate-100/50 dark:bg-slate-950/30 rounded-3xl p-6 border border-slate-200/50 dark:border-slate-800/50 min-h-[300px]">
             {danmakuList.length === 0 ? (
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 opacity-60 pt-10">

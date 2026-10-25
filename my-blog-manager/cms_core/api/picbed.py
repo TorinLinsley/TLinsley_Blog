@@ -8,19 +8,13 @@ from datetime import datetime
 
 router = APIRouter()
 
-# ---------------------------------------------------------
-# 🖥️ 本地图库：把图片直接存进博客项目的 public/uploads 目录
-# ---------------------------------------------------------
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 DEPLOY_CONFIG = os.path.join(PROJECT_ROOT, "data", "deploy_config.json")
 
-# 只允许真正的图片格式，防止上传可执行文件
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif", ".bmp", ".ico"}
-# 兜底上限：防止误传巨大文件把磁盘塞满。设成 0 表示完全不限制。
 MAX_SIZE = 200 * 1024 * 1024
 
-# 图片体积探测结果的缓存（url -> 字节数）。体积不会变，缓存住省得每次都去 HEAD。
 _SIZE_CACHE: dict = {}
 
 
@@ -84,7 +78,6 @@ async def upload_local_image(file: UploadFile = File(...)):
     name = build_safe_name(file.filename, ext)
     dest = os.path.join(upload_dir, name)
 
-    # 流式写盘：大文件不会整个读进内存
     size = 0
     too_big = False
     try:
@@ -147,7 +140,7 @@ async def list_local_images():
                 continue
             files.append({
                 "name": name,
-                "url": f"/uploads/{name}",      # 相对路径：控制台预览和博客前台都通用
+                "url": f"/uploads/{name}",
                 "size": st.st_size,
                 "mtime": int(st.st_mtime),
             })
@@ -181,7 +174,7 @@ async def image_sizes(payload: dict = Body(...)):
                 result[u] = _SIZE_CACHE[u]
                 continue
 
-            size = _local_size(u)          # 本地 /uploads/... 直接 stat
+            size = _local_size(u)
             if size is None and u.lower().startswith("http"):
                 try:
                     r = await client.head(u)
@@ -189,8 +182,6 @@ async def image_sizes(payload: dict = Body(...)):
                     if cl and cl.isdigit() and int(cl) > 0:
                         size = int(cl)
                     else:
-                        # 有些图床不给 HEAD 的 content-length → 用 Range 只要 1 个字节，
-                        # 从 Content-Range: bytes 0-0/1234567 里读出总大小
                         r2 = await client.get(u, headers={"Range": "bytes=0-0"})
                         cr = r2.headers.get("content-range", "")
                         if "/" in cr and cr.split("/")[-1].isdigit():
@@ -235,7 +226,6 @@ async def test_picbed_connection(payload: dict = Body(...)):
         return {"success": False, "message": f"网络异常: {str(e)}"}
 
 
-# 👇 【全新追加】：真实的图床图片上传接口
 @router.post("/upload")
 async def upload_image(
         file: UploadFile = File(...),
@@ -256,10 +246,8 @@ async def upload_image(
 
     try:
         content = await file.read()
-        # 封装为 httpx 支持的文件上传格式
         files = {'file': (file.filename, content, file.content_type)}
 
-        # 上传图片可能较慢，将超时设置为 30 秒
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(upload_endpoint, headers=headers, files=files)
 
@@ -267,7 +255,6 @@ async def upload_image(
                 return {"success": False, "message": f"上传失败，图床返回了 {response.status_code} 错误"}
 
             data = response.json()
-            # 兼容 Lsky Pro 的返回格式
             if data.get("status") is True:
                 img_url = data.get("data", {}).get("links", {}).get("url")
                 return {"success": True, "message": "上传成功", "url": img_url}

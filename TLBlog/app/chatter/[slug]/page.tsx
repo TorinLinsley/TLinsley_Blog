@@ -3,10 +3,9 @@ import path from 'path';
 import matter from 'gray-matter';
 import Link from 'next/link';
 
-// 🌟 核心升级：引入 Next.js 现代统一解析流
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm'; // 🌟 挂载 GFM 支持删除线
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkHardBreaks from '../../../lib/remarkHardBreaks';
 import remarkRehype from 'remark-rehype';
@@ -14,13 +13,11 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../../lib/hljsLanguages';
 import rehypeCodeLang from '../../../lib/rehypeCodeLang';
 import rehypeCallout from '../../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import rehypeRepoCard from '../../../lib/rehypeRepoCard';
 import rehypeKatex from 'rehype-katex';
 
-// 🌟 引入神仙代码高亮主题（Atom One Dark）
 import 'highlight.js/styles/atom-one-dark.css';
 
 import PageTransition from '../../../components/PageTransition';
@@ -33,22 +30,8 @@ import ClientTOC from '../../../components/ClientTOC';
 import MobileToc from '../../../components/MobileToc';
 import { extractToc } from '../../../lib/extractToc';
 
-// 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
-// ⚡ 改成 ISR（静态化 + 定时刷新）：
-//   以前是 force-dynamic → 每次点击都要等服务端现渲染（首字节约 1 秒 ✗）而且**无法被预取** ✗
-//   现在页面是静态的 → <Link> 的预取生效 ✓ 悬停就取好 ✓ 点下去几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（文章/相册这类"偶尔变一次"的数据完全够 ✓）
 export const revalidate = 30;
 
-/**
- * 🏷️ 标签页标题：详情页 = 「杂谈标题 | 站点名」。
- *
- * 以前这里没有 generateMetadata —— 从「杂谈」点进一篇，标签页开头就什么都不剩了
- * （只剩站点名），和栏目页面对不上。规则和栏目页、资源页、工具页完全一致：内容名在最前。
- *
- * 📝 同文章页：描述用**这篇自己的摘要**（front matter 的 description ✓），
- *    没写摘要就退回站级简介（和以前一致 ✓）
- */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
@@ -82,39 +65,28 @@ async function getChatterData(slug: string) {
 
   let { data, content } = matter(fileContents);
 
-  // ==========================================
-  // 🌟 前台渲染清洗区：终极防吞换行 + 安全保护补丁！（从 Post 完美移植）
-  // ==========================================
 
-  // 1. 基础物理清洗：统一换行符，干掉幽灵占位符和纯空格废行
   content = content.replace(/\r\n/g, '\n');
   content = content.replace(/[\u200B-\u200D\uFEFF]/g, '');
   content = content.replace(/^[ \t]+$/gm, '');
 
-  // 2. 强行修复数字列表缺少空格导致无法渲染为列表的 Bug (1.百度 -> 1. 百度)
   content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
 
-  // 3. 🌟 空间隔离防吞换行阵法（绝对不伤代码块！）
   const blocks = content.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g);
   content = blocks.map((block, index) => {
-    // 奇数索引是代码块
     if (index % 2 === 1) {
-      // 🌟 安全注入：如果代码块没写明语言，只在开头安全补上 cpp，绝不破坏结尾！
       if (/^```[ \t]*(\n|$)/.test(block)) {
          return block.replace(/^```[ \t]*/, '```cpp');
       }
       return block;
     }
 
-    // 偶数索引是正文。把 3 个以上的连续 \n 替换为真实的 <br> 标签。
-    // （3 个 \n 相当于中间空了 1 行真正的空白）
     return block.replace(/\n{3,}/g, (match) => {
       const brCount = match.length - 2;
       return '\n\n' + '<br>'.repeat(brCount) + '\n\n';
     });
   }).join('');
 
-  // ==========================================
 
   const processedContent = await unified()
     .use(remarkParse)
@@ -126,7 +98,7 @@ async function getChatterData(slug: string) {
     .use(rehypeCallout)
     // @ts-ignore
     .use(rehypeHighlight, {
-      detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
+      detect: false,
       ignoreMissing: true,
       languages: hljsLanguages
     })
@@ -138,7 +110,6 @@ async function getChatterData(slug: string) {
   return {
     slug,
     contentHtml: processedContent.toString(),
-    // 📑 大纲数据：提取规则和归档文章页共用 lib/extractToc.ts（会自动跳过代码块）
     toc: extractToc(content),
     title: data.title || '碎片记录',
     date: data.date,
@@ -191,10 +162,8 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
     <div className="min-h-screen relative pb-20">
 
       <PageTransition>
-        {/* ⚠️ 这个 max-w 只管大屏幕：小屏走 w-[95%]/w-[90%]，根本到不了这个上限，行为不变。
-            以前卡在 max-w-6xl(1152px)，中间正文板只有 ~800px；现在放宽到 1900px，
-            和归档文章页 app/posts/[slug]/page.tsx 完全对齐，1080p 屏上正文板 ≈1376px。
-            右侧 aside 固定 320px 不变，两栏继续由 mx-auto 整体水平居中。 */}
+        {
+}
         <main className="w-[95%] md:w-[90%] max-w-[1900px] mx-auto mt-24 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
 
           <article className="flex-1 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
@@ -212,7 +181,6 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   {chatterData.title}
                 </h1>
 
-                {/* ✅ 前端展示版：特权修改按钮已彻底移除！ */}
 
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   <div className="flex items-center gap-1.5 md:gap-2 text-indigo-700 dark:text-indigo-400 font-bold bg-indigo-500/5 dark:bg-indigo-400/10 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl text-xs md:text-sm border border-indigo-500/10">
@@ -324,8 +292,8 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   }
                 `}</style>
 
-                {/* ⚠️ 这个 id 是大纲的锚点：ClientTOC / MobileToc 里的 ResourceToc
-                    都是靠 document.getElementById('article-content') 找正文标题的，别删 */}
+                {
+}
                 <div
                   id="article-content"
                   className="prose prose-slate dark:prose-invert prose-base md:prose-lg max-w-none text-slate-800 dark:text-slate-200 font-serif transition-colors duration-700 leading-relaxed scroll-smooth"
@@ -385,12 +353,8 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
               </div>
             </div>
 
-            {/* 大屏：右侧常驻大纲卡片（sticky：滚到导航栏下面就顶住不动）；
-                手机端由下面的 MobileToc 提供右上角按钮 + 抽屉 —— 隐藏手机端的活由
-                ClientTOC 自己（max-lg:hidden）干 ✓
-                ⚠️ 千万不要在这里再套一层 div 来隐藏手机端：那层 div 会变成 sticky 的
-                   「包含块」，而它的高度正好等于大纲卡片本身 → sticky 顶不动，就变成
-                   跟着页面一起滚了 ✗（这个坑在归档文章页踩过一次） */}
+            {
+}
             {chatterData.toc.length > 0 && (
               <ClientTOC toc={chatterData.toc} />
             )}
@@ -398,7 +362,6 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
         </main>
       </PageTransition>
 
-      {/* 手机端：右上角固定的大纲按钮 + 抽屉（复用资源分享页那套大纲） */}
       {chatterData.toc.length > 0 && <MobileToc contentKey={resolvedParams.slug} />}
     </div>
   );

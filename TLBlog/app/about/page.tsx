@@ -1,10 +1,9 @@
-// src/app/about/page.tsx
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm'; // 🌟 引入 GFM 以支持 ~~删除线~~
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkHardBreaks from '../../lib/remarkHardBreaks';
 import remarkRehype from 'remark-rehype';
@@ -12,13 +11,11 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../lib/hljsLanguages';
 import rehypeCodeLang from '../../lib/rehypeCodeLang';
 import rehypeCallout from '../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../lib/repairMarkdown';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import rehypeRepoCard from '../../lib/rehypeRepoCard';
 
-// 引入高亮主题
 import 'highlight.js/styles/atom-one-dark.css';
 import 'katex/dist/katex.min.css';
 
@@ -27,14 +24,8 @@ import AboutClient from '../../components/AboutClient';
 import { Suspense } from 'react';
 import { siteConfig } from '../../siteConfig';
 
-// 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
-// ⚡ 改成 ISR（静态化 + 定时刷新）：
-//   以前是 force-dynamic → 每次点击都要等服务端现渲染（首字节约 1 秒 ✗）而且**无法被预取** ✗
-//   现在页面是静态的 → <Link> 的预取生效 ✓ 悬停就取好 ✓ 点下去几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（文章/相册这类"偶尔变一次"的数据完全够 ✓）
 export const revalidate = 30;
 
-// 🏷️ 标签页标题：栏目页 = 「栏目名 | 站点名」（和导航栏、其它栏目页同一套规则）
 export const metadata = {
   title: "关于 | " + siteConfig.title,
 };
@@ -65,42 +56,33 @@ export default async function AboutPage() {
 
   try {
     const fileContents = fs.readFileSync(fullPath, 'utf8');
-    // 🌟 改为 let，以便进行文本预清洗
     let { data, content } = matter(fileContents);
     if (data.cover) coverImage = data.cover;
 
-    // ==========================================
-    // 🌟 解析前物理清洗区
-    // ==========================================
-    // 1. 强行给没有语言标记的代码块加上 cpp 标签，防止侦测失败
     content = content.replace(/^```\s*$/gm, '```cpp');
-    // 2. 强行修复数字列表缺少空格导致无法渲染为列表的 Bug (1.百度 -> 1. 百度)
     content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
 
-    // 3. 🌟 拯救被 Markdown 引擎吞噬的“连续空行” (同步前台展示页的阵法)
     content = content.replace(/\r\n/g, '\n').replace(/^[ \t]+$/gm, '');
     const blocks = content.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g);
     content = blocks.map((block, index) => {
-      if (index % 2 === 1) return block; // 代码块绝对不碰
+      if (index % 2 === 1) return block;
       return block.replace(/\n{3,}/g, (match) => {
         const brCount = match.length - 2;
         return '\n\n' + '<br>'.repeat(brCount) + '\n\n';
       });
     }).join('');
-    // ==========================================
 
     const processedContent = await unified()
       .use(remarkParse)
       .use(remarkHardBreaks)
-      .use(remarkGfm) // 🌟 挂载 GFM 解析
+      .use(remarkGfm)
       .use(remarkMath)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeCodeLang)
       .use(rehypeCallout)
-      // 语言由作者显式指定（编辑器里每个代码块右上角的下拉）：没写就保持纯文本
       // @ts-ignore
       .use(rehypeHighlight, {
-        detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
+        detect: false,
         ignoreMissing: true,
         languages: hljsLanguages
       })
@@ -127,7 +109,6 @@ export default async function AboutPage() {
       <PageTransition>
         <main className="w-[95%] md:w-[90%] max-w-4xl mx-auto mt-24 md:mt-28 relative z-10">
 
-          {/* 🌟 注入 About 页面专用的高颜值 Prose 全局样式 */}
           <style dangerouslySetInnerHTML={{ __html: `
             .prose h1 { font-size: 1.8rem !important; font-weight: 900 !important; margin-bottom: 1.2rem !important; margin-top: 2rem !important; line-height: 1.3 !important; color: inherit !important; }
             .prose h2 { font-size: 1.5rem !important; font-weight: 800 !important; margin-bottom: 1rem !important; margin-top: 1.5rem !important; color: inherit !important; }
@@ -240,7 +221,6 @@ export default async function AboutPage() {
           `}} />
 
           <Suspense fallback={<div className="h-96 flex items-center justify-center text-slate-500 font-bold animate-pulse">正在载入档案...</div>}>
-            {/* 🌟 组件原封不动，安全可靠 */}
             <AboutClient
               contentHtml={contentHtml}
               coverImage={coverImage}

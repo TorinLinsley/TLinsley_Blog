@@ -13,7 +13,6 @@ interface Props {
 export default function TimelineNode({ post, index, onDelete }: Props) {
   const isLeft = index % 2 === 0;
 
-  // 📱 小屏竖排：圆点在上、卡片占满宽度；md 以上保持原来的左右交错
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -22,16 +21,12 @@ export default function TimelineNode({ post, index, onDelete }: Props) {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={`flex justify-between items-center w-full max-md:flex-col ${isLeft ? 'md:flex-row-reverse' : 'flex-row'}`}
     >
-      {/* 对面占位 */}
       <div className="order-1 w-5/12 hidden md:block"></div>
 
-      {/* 节点球 */}
       <div className="z-20 flex items-center justify-center order-1 bg-white dark:bg-slate-900 shadow-xl w-6 h-6 rounded-full border-4 border-indigo-400 ring-4 ring-indigo-200/50 dark:ring-indigo-900/30 transition-all duration-1000"></div>
 
-      {/* 卡片容器 */}
       <div className="order-1 w-full md:w-5/12 group relative">
 
-        {/* 👇 悬浮管理工具栏：📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
         <div className={`absolute top-4 ${isLeft ? 'right-4' : 'left-4'} z-30 flex gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all duration-300 -translate-y-2 group-hover:translate-y-0 max-lg:translate-y-0!`}>
           <Link
             href={`/editor?id=${post.slug}&type=post`}
@@ -55,7 +50,6 @@ export default function TimelineNode({ post, index, onDelete }: Props) {
         <Link href={`/posts/${post.slug}`} className="block">
           <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl rounded-[32px] shadow-xl border border-white/60 dark:border-white/10 transition-all duration-500 hover:scale-[1.02] hover:bg-white/80 dark:hover:bg-slate-800/70 overflow-hidden flex flex-col">
 
-            {/* 封面图 */}
             <div className="w-full h-40 overflow-hidden relative">
               <img src={post.cover || undefined} alt={post.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-80" />
@@ -66,7 +60,6 @@ export default function TimelineNode({ post, index, onDelete }: Props) {
               </div>
             </div>
 
-            {/* 文本内容 */}
             <div className="p-7">
               <h3 className="font-bold text-xl text-slate-800 dark:text-white mb-3 group-hover:text-indigo-500 transition-colors line-clamp-1 leading-tight">
                 {post.title}

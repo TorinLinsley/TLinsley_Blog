@@ -26,7 +26,6 @@ export default function LyricBar() {
 
   if (!currentSong) return null;
 
-  // 这里的波浪数据，方便循环渲染，减少代码冗余
   const waves = [
     { color: 'bg-indigo-400', delay: '0ms' },
     { color: 'bg-purple-400', delay: '200ms' },
@@ -64,7 +63,6 @@ export default function LyricBar() {
 
       <div className="w-full rounded-3xl bg-slate-900/80 dark:bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-between transition-all duration-700 hover:shadow-indigo-500/20 group p-3 h-14 lg:p-5 lg:h-20">
 
-        {/* 1. 音频波形动态部分：改用统一渲染逻辑实现过渡 */}
         <div className="flex items-end justify-center gap-[3px] lg:gap-[4px] h-6 w-10 lg:h-8 lg:w-16 shrink-0">
           {waves.map((wave, index) => (
             <div
@@ -76,14 +74,12 @@ export default function LyricBar() {
               }`}
               style={{
                 animationDelay: wave.delay,
-                // 当暂停时，强制回到 4px 高度
                 height: isPlaying ? undefined : '4px'
               }}
             ></div>
           ))}
         </div>
 
-        {/* 2. 歌词显示区：小屏字号也缩小，长歌词才显示得下 */}
         <div className="flex-1 min-w-0 px-2 lg:px-8 flex justify-center items-center overflow-hidden">
           <p className="text-white text-sm lg:text-lg font-bold tracking-wide lg:tracking-widest truncate drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]">
             {displayedLyric}
@@ -91,7 +87,6 @@ export default function LyricBar() {
           </p>
         </div>
 
-        {/* 3. 右侧音乐图标 */}
         <div className="w-10 lg:w-16 flex justify-end shrink-0">
           <svg className={`w-4 h-4 lg:w-6 lg:h-6 text-indigo-400/50 transition-all duration-500 ${isPlaying ? 'animate-bounce' : 'opacity-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />

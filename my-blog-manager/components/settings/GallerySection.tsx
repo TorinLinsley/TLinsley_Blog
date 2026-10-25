@@ -8,7 +8,6 @@ export default function GallerySection({ formData, handleUpdate, pushToQueue }: 
   const [testResult, setTestResult] = useState<{ success: boolean, msg: string } | null>(null);
 
   const handleTestConnection = async () => {
-    // 👈 彻底去掉写死逻辑，完全读取用户在界面输入的 URL 和 Token
     const url = formData.picBedUrl;
     const token = formData.picBedToken;
 
@@ -52,7 +51,6 @@ export default function GallerySection({ formData, handleUpdate, pushToQueue }: 
       showToast("API 地址和 TOKEN 不能为空，无法暂存！", "error");
       return;
     }
-    // 👈 三个参数全部推送到操作队列
     pushToQueue('更新图床名称', 'picBedName', formData.picBedName);
     pushToQueue('更新图床 API', 'picBedUrl', formData.picBedUrl);
     pushToQueue('更新图床 Token', 'picBedToken', formData.picBedToken);
@@ -73,7 +71,6 @@ export default function GallerySection({ formData, handleUpdate, pushToQueue }: 
           />
         </div>
 
-        {/* 👈 新增：彻底解耦的 API 地址输入框 */}
         <div>
           <label className="text-[10px] font-black text-slate-400 uppercase ml-1">API 接口地址 (URL)</label>
           <input

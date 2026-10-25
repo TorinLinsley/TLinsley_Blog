@@ -20,9 +20,6 @@ function seededRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-// ==========================================
-// 🌟 0. 终末地/罗德岛 干员信物徽章组件 (OperatorToken)
-// ==========================================
 const OperatorToken = ({ badge, locked = false }: any) => {
   const tierStyles: Record<number, string> = {
     1: 'bg-[#f4f4f5] border-[#a1a1aa] text-[#52525b] shadow-[0_0_8px_#f4f4f544]',
@@ -61,18 +58,12 @@ const OperatorToken = ({ badge, locked = false }: any) => {
   );
 };
 
-// ==========================================
-// 🌟 1. 日期格式清洗器
-// ==========================================
 const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
   if (dateStr.includes('T')) return dateStr.replace('T', ' ').substring(0, 19);
   return dateStr;
 };
 
-// ==========================================
-// 🌟 2. 特效组件
-// ==========================================
 const BlinkingPoints = ({ geometry, color, size, opacity }: any) => {
   const materialRef = useRef<any>();
   useMemo(() => {
@@ -108,9 +99,6 @@ const BlinkingPoints = ({ geometry, color, size, opacity }: any) => {
   );
 };
 
-// ==========================================
-// 🌟 3. 统一向左弹出的层叠数据卡片
-// ==========================================
 const StackedTacticalHUD = ({ records, color, categoryName, isImageStyle, router }: any) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const stackRotations = useMemo(() => [-6, 4, -2], []);
@@ -207,9 +195,6 @@ const StackedTacticalHUD = ({ records, color, categoryName, isImageStyle, router
   );
 };
 
-// ==========================================
-// 🌟 4. 巨型雷达荧光信标
-// ==========================================
 const TacticalPoint = ({ position, color, isActive, records, categoryName, isImageStyle, router }: any) => {
   return (
     <group position={position}>
@@ -232,16 +217,12 @@ const TacticalPoint = ({ position, color, isActive, records, categoryName, isIma
   );
 };
 
-// ==========================================
-// 🌟 5. 解析二进制点云并注入发光粒子特效
-// ==========================================
 const DijiangParticleModel = () => {
   const [pointGeometry, setPointGeometry] = useState<THREE.BufferGeometry | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    // 如果你改了 bin 文件的名字，请在这里修改请求路径，例如： fetch('/12345.bin')
     fetch('/spaceship.bin')
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch spaceship.bin");
@@ -290,7 +271,6 @@ const DijiangParticleModel = () => {
 
   return (
     <group>
-      {/* 🌟 颜色已经改回了黄色：#eab308 */}
       <BlinkingPoints geometry={pointGeometry} color="#eab308" size={0.035} opacity={0.7} />
     </group>
   );
@@ -299,10 +279,8 @@ const DijiangParticleModel = () => {
 const HologramShip = ({ activeCategory, currentRecords, router }: any) => {
   return (
     <Float speed={2} rotationIntensity={0.05} floatIntensity={0.5}>
-      {/* 👇 调整这里的 scale 和 position 来控制整体大小和位置 👇 */}
       <group scale={1} position={[1.2, 0.8, 1]}>
 
-        {/* 👇 调整这里的 rotation 控制模型的旋转角度 (X, Y, Z轴，弧度制) 👇 */}
         <group rotation={[Math.PI / 0.9, -0.2, 3.0]}>
 
           <DijiangParticleModel />
@@ -321,9 +299,6 @@ const HologramShip = ({ activeCategory, currentRecords, router }: any) => {
   );
 };
 
-// ==========================================
-// 🌟 6. 核心页面渲染
-// ==========================================
 export default function DijiangModel({ posts = [], chatters = [], moments = [] }: any) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -334,7 +309,6 @@ export default function DijiangModel({ posts = [], chatters = [], moments = [] }
 
   const [realWishes, setRealWishes] = useState<any[]>([]);
 
-  // RPG 数据结算
   const rpgStats = useMemo(() => {
     if (siteConfig?.enableLevelSystem !== true) return null;
 
@@ -561,9 +535,6 @@ export default function DijiangModel({ posts = [], chatters = [], moments = [] }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(234, 179, 8, 0.8); }
       `}} />
 
-      {/* ========================================== */}
-      {/* 🌟 罗德岛人事中心：干员档案板 (Operator Profile) */}
-      {/* ========================================== */}
       {rpgStats && (
         <div className="w-full max-w-6xl mb-8 px-4 z-30 flex flex-col gap-4 relative mt-2">
 
@@ -655,9 +626,6 @@ export default function DijiangModel({ posts = [], chatters = [], moments = [] }
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* 🌟 全图鉴 Modal 面板 (破除层级遮挡，移至根节点最上方) */}
-      {/* ========================================== */}
       <AnimatePresence>
         {showCatalog && rpgStats && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -748,7 +716,6 @@ export default function DijiangModel({ posts = [], chatters = [], moments = [] }
         )}
       </AnimatePresence>
 
-      {/* 🌟 中心舰船区域 (调整为 h-[75vh] 提升纵向空间) */}
       <div className="w-full h-[75vh] min-h-[750px] relative pointer-events-none mt-4 z-40">
 
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#eab308]/10 blur-[120px] rounded-full" />
@@ -864,7 +831,6 @@ export default function DijiangModel({ posts = [], chatters = [], moments = [] }
         </div>
       </div>
 
-      {/* 🌟 底座：留言板 */}
       <div className="w-full max-w-4xl mx-auto mt-10 mb-16 px-4 relative z-0">
          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 font-serif text-center uppercase tracking-[0.2em] border-b border-slate-300 dark:border-[#333] pb-4 flex flex-col items-center gap-2">
             <span className="text-[10px] text-slate-500 font-mono">ENDFIELD RECEPTION CENTER</span>

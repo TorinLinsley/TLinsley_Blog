@@ -10,17 +10,12 @@ export type TrashItem = {
   name: string;
   fileName?: string;
   type: 'folder' | 'article';
-  /** 删除前在文章总目录里的完整相对路径 ← 还原就回到这里 */
   origin: string;
   parent: string;
   deletedAt: string;
   exists?: boolean;
 };
 
-/**
- * 🗑️ 回收站面板
- * 删除的东西都躺在这里，可以「还原」回原来的位置，也可以「彻底删除」。
- */
 export default function TrashPanel({
   items,
   loading,
@@ -32,11 +27,9 @@ export default function TrashPanel({
   loading: boolean;
   onClose: () => void;
   onRestore: (ids: string[]) => void;
-  /** ids 为 null 表示清空回收站 */
   onPurge: (ids: string[] | null) => void;
 }) {
   const [mounted, setMounted] = useState(false);
-  // 「清空回收站」是真删，所以要点两次确认（不弹浏览器原生对话框）
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -71,7 +64,6 @@ export default function TrashPanel({
         onMouseDown={(e) => e.stopPropagation()}
         className="relative w-full max-w-[580px] max-h-[72vh] flex flex-col rounded-3xl bg-white/85 dark:bg-slate-800/85 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden"
       >
-        {/* 标题栏 */}
         <div className="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-slate-300/40 dark:border-white/10">
           <Trash2 size={16} className="shrink-0 text-slate-500 dark:text-slate-300" />
           <h3 className="text-base font-black text-slate-700 dark:text-slate-100">回收站</h3>
@@ -116,7 +108,6 @@ export default function TrashPanel({
           </div>
         </div>
 
-        {/* 列表 */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3">
           {loading && !items.length ? (
             <div className="py-10 text-center text-[15px] text-slate-400">正在读取回收站…</div>
@@ -144,7 +135,6 @@ export default function TrashPanel({
                       {it.deletedAt}
                     </p>
                   </div>
-                  {/* 📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
                   <div className="shrink-0 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity duration-200">
                     <button
                       type="button"

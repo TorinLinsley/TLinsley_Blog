@@ -1,4 +1,3 @@
-// 🛡️ 本文件由 TLinsley 控制台自动生成，请勿手动修改
 
 export type Project = {
   id: string;

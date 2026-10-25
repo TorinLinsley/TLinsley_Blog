@@ -24,7 +24,6 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
   const [isImgToolOpen, setIsImgToolOpen] = useState(false);
   const editorRef = useRef<RichTextEditorHandle>(null);
 
-  // 【核心修复】：如果是 About 模式，初始化时强制锁定标题
   useEffect(() => {
     if (docType === 'about') {
       setTitle('关于我');
@@ -44,7 +43,6 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
           });
           const data = await res.json();
           if (data.success) {
-            // 如果是 about，依然强制覆盖标题
             setTitle(docType === 'about' ? '关于我' : (data.draft.title || ''));
             setTags(data.draft.tags || []);
             setCover(data.draft.cover || '');
@@ -73,7 +71,6 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
       published: isPublish
     };
 
-    // 此处对接后端 API ...
     console.log("执行物理落盘:", payload);
 
     setTimeout(() => {
@@ -91,7 +88,6 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
           setTitle={setTitle}
           initialContent={content}
           onOpenImageTool={() => setIsImgToolOpen(true)}
-          // 【核心修复】：将锁定状态传给编辑器
           isTitleLocked={docType === 'about'}
         />
       </section>

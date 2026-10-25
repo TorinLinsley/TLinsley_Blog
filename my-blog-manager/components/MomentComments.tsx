@@ -6,7 +6,7 @@ import Gitalk from 'gitalk';
 import { siteConfig } from '../siteConfig';
 
 interface MomentCommentsProps {
-  id: string; // 必须传入说说的专属 ID
+  id: string;
 }
 
 export default function MomentComments({ id }: MomentCommentsProps) {
@@ -15,7 +15,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 清空重载，防止 React 严格模式下重复渲染
     containerRef.current.innerHTML = '';
 
     const gitalk = new Gitalk({
@@ -24,7 +23,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
       repo: siteConfig.gitalkConfig.repo,
       owner: siteConfig.gitalkConfig.owner,
       admin: siteConfig.gitalkConfig.admin,
-      // 截取前49个字符作为 GitHub Issue 的 Label（Gitalk 的要求）
       id: id.substring(0, 49),
       distractionFreeMode: false,
     });
@@ -36,7 +34,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
     <div className="w-full relative">
       <div ref={containerRef} className="moment-gitalk" />
 
-      {/* 🌟 朋友圈级专属魔改 CSS：极简、紧凑、无边框 */}
       <style jsx global>{`
         /* 隐藏掉一些在说说里显得太多余的 Gitalk 原生元素 */
         .moment-gitalk .gt-header-controls-tip,

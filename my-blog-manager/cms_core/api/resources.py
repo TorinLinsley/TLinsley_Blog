@@ -10,8 +10,6 @@ import markdown
 from datetime import datetime
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-# ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
-#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
 from markdownify import markdownify as _md_raw
 import re as _re
 
@@ -45,24 +43,17 @@ from .markdown_utils import (
 
 router = APIRouter()
 
-# 🌟 物理锁死到 Manager 根目录下的 resources/
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
-# 📦 原总目录：现在只当「容器」用，里面放下面三样东西
 RESOURCES_ROOT = os.path.join(PROJECT_ROOT, "resources")
-# 📚 文章总目录：列表里能看到的一切都在这里（总目录已经换成这个）
 RESOURCES_DIR = os.path.join(RESOURCES_ROOT, "ResShare")
-# 🗑️ 回收站：删除 = 移动到这里。和文章总目录同级，所以列表永远扫不到它
 TRASH_DIR = os.path.join(RESOURCES_ROOT, ".trash")
-# 📝 删除记录：记下每一项被删前的位置，撤回（还原）时就靠它送回原地
 TRASH_LOG = os.path.join(RESOURCES_ROOT, ".trash_log.json")
 
-# Windows / Linux 都不允许的文件名字符
 ILLEGAL_CHARS = r'[\\/:*?"<>|]'
 
 
-# ────────────────────────── 路径工具 ──────────────────────────
 
 def sanitize_name(name: str) -> str:
     """清掉非法字符，防止路径注入"""
@@ -109,7 +100,6 @@ def fs_error(action: str, e: Exception, path: str = "") -> str:
        删不掉、改不了名、建不了子目录都是它 ✗
     """
     if isinstance(e, PermissionError) or getattr(e, "errno", None) == 13:
-        # ⚠️ 这条会显示在控制台的红色提示条里，**不要写换行**（toast 会把换行吞掉、读起来黏成一团）
         return (
             f"{action}失败：没有权限（{path or '目标路径'}）。"
             "原因：这些文件的属主不是控制台跑的那个用户（blog）—— 多半是你手工用 root 传上去、"
@@ -178,7 +168,6 @@ def unique_name(folder_abs: str, name: str, is_file: bool) -> str:
     return f"{stem} ({i}){ext}"
 
 
-# ────────────────────────── 删除记录（回收站账本） ──────────────────────────
 
 def load_trash_log() -> dict:
     if not os.path.isfile(TRASH_LOG):
@@ -225,7 +214,6 @@ def trash_one(rel: str, log: dict) -> dict:
     store_abs = os.path.join(TRASH_DIR, tid)
     os.makedirs(store_abs, exist_ok=True)
 
-    # 整个搬过去：文件夹里的文章自然跟着一起走
     shutil.move(src, os.path.join(store_abs, base))
 
     item = {
@@ -233,8 +221,8 @@ def trash_one(rel: str, log: dict) -> dict:
         "name": os.path.splitext(base)[0] if not is_dir else base,
         "fileName": base,
         "type": "folder" if is_dir else "article",
-        "origin": rel,                 # 删除前的完整相对路径 ← 还原的关键
-        "parent": parent_of_rel(rel),  # 原来在哪个文件夹下
+        "origin": rel,
+        "parent": parent_of_rel(rel),
         "store": tid,
         "deletedAt": stamp.strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -242,7 +230,6 @@ def trash_one(rel: str, log: dict) -> dict:
     return item
 
 
-# ────────────────────────── 文章读写 ──────────────────────────
 
 def split_front_matter(raw: str):
     """拆出 front matter 和正文，返回 (meta字典, 正文)"""
@@ -301,7 +288,6 @@ def build_tree() -> list:
     return scan(RESOURCES_DIR, "")
 
 
-# ────────────────────────── 接口 ──────────────────────────
 
 def trash_items_payload() -> list:
     """回收站列表（给前端用），带 exists 标记方便前端判断东西还在不在"""
@@ -314,9 +300,6 @@ def trash_items_payload() -> list:
     return items
 
 
-# ────────────────────────── 实时监测（SSE） ──────────────────────────
-# 文章总目录 / 回收站有点风吹草动（自己操作的、外部程序改的、你直接在系统里
-# 删文件或往里面丢文件）都算「变了」，这里用指纹判断，变了就推给前端。
 
 def _dir_fingerprint(root: str) -> str:
     if not os.path.isdir(root):
@@ -414,28 +397,17 @@ async def get_resource(request: Request):
     with open(target, "r", encoding="utf-8") as f:
         meta, body = split_front_matter(f.read())
 
-    # 🧩 先把「一个引用块里连着写了好几个 callout」拆开（Obsidian 允许这么写，
-    #    标准 Markdown 不允许 —— 不拆的话只有第一个能渲染成 callout，其余全是原文）
     body = split_callout_blockquotes(body)
-    # 🧩 再把「空行分隔的相邻引用块」之间插一行 HTML 注释 —— python-markdown 会把它们
-    #    并成一个引用块 ✗（CommonMark/Obsidian/前端 remark 都是分开的两个 ✓）
-    #    不隔开的话：你分开写的引用块在控制台里糊成一坨、紧跟着的 [!info] 也不再是
-    #    "引用块第一段" → callout 失效、退化成 `[!info]` 原文 ✗
     body = separate_blockquotes(body)
 
-    # 🧮 MathExtension：不然预览里的 $…$ / $$…$$ 会被 markdown 吃掉反斜杠（$\{a\}$ → ${a}$、
-    #    TeX 的 \\ 换行被吃成一个 \），还会被 nl2br 往公式中间插 <br> —— 前端怎么都渲染不出来
     html = markdown.markdown(
         body,
         extensions=["fenced_code", "codehilite", "tables", "nl2br", MathExtension()],
         extension_configs={
-            # 🎨 同 drafts.py：预览要真的着色就得带 codehilite，并用内联颜色（不依赖 CSS 类名）
             "codehilite": {"noclasses": True, "pygments_style": "monokai", "guess_lang": False},
         },
     )
-    # 🖼️ 图片紧贴上一行时，nl2br 会顶出一个 <br> → 编辑器里变成图片上面的一行空白，先拆掉
     html = unbreak_image_lines(html)
-    # 🗂️ 再套 callout 外壳（以前这一步漏了，所以资源预览里 callout 一直是原始引用块）
     html = render_callouts(html)
     fallback = os.path.splitext(os.path.basename(rel))[0]
 
@@ -454,34 +426,21 @@ def html_to_markdown(raw_html: str) -> str:
     这里是全流程唯一的转换入口，抽出来是为了能单独测：
     空行保护 → 抠出带样式的内联标签 → markdownify → 放回标签。
     """
-    # ⚠️ 空段落（编辑器里连按两下回车 = 一个空行）必须换成「段内硬换行 + 零宽连接符」，
-    #    不能换成段与段之间的空行：段级空行落在引用块/callout 里会变成 ">   " 这种行，
-    #    而不同 markdown 解析器对它处理不一致 —— 实测「存 → 读 → 再存」会把空行**丢掉** ✗
-    #    （用户遇到的就是：手动加的空行，刷新一下就回到原样了）
-    #    <br>&zwj; 这种"段内空行"是稳定的：来回存读一字不差 ✓
     raw_html = re.sub(
         r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
         "<br>\u200d",
         raw_html,
     )
     protected, stash = protect_inline_tags(raw_html)
-    # 表格单独处理：markdownify 转出来的表格每行后面都会多一条分隔线，直接用不了
     protected, tables = stash_tables(protected)
-    # 🧩 callout 外壳也先抠出来：不然 markdownify 会把里面的 <span>/<svg> 当裸 HTML
-    #    吐进 .md ✗（表现：「保存一次，callout 样式全没了、满屏 span 标签」）
     protected, callouts = stash_callouts(protected)
     out = md(protected, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback)
     out = re.sub(r"<br\s*/?>", "\n\n", out)
     out = restore_tables(out, tables)
     out = restore_callouts(out, callouts)
     out = collapse_blank_lines(out)
-    # 🖼️ 图片上面那个凭空多出来的空行去掉（图片紧贴上一段正文）
     out = glue_image_blocks(out)
-    # 🧩 落盘前把连成一片的 callout 拆成独立引用块（不然下次读出来只有第一个是 callout）
     out = split_callout_blockquotes(out)
-    # ⚠️ 这里**不**再往 .md 里插 `<!-- -->` 分隔符：
-    #    分引用块的活儿放在**读取时**做（separate_blockquotes，只影响渲染、不写文件 ✓）——
-    #    你的 .md 保持你原来的写法（`> a` 空行 `> b`），一个字都不多 ✓
     return restore_inline_tags(out, stash)
 
 
@@ -507,7 +466,6 @@ async def save_resource(request: Request):
 
     raw_html = payload.get("content", "") or ""
 
-    # 编辑器 HTML → Markdown（会保留颜色/字号/高亮这类 Markdown 表达不了的样式）
     md_content = html_to_markdown(raw_html)
 
     title = sanitize_name(payload.get("title", "")) or os.path.splitext(os.path.basename(rel))[0]
@@ -599,7 +557,6 @@ async def delete_resource(request: Request):
     if not rels:
         return {"success": False, "message": "不能删除根目录"}
 
-    # ─────── 🔥 永久删除：直接物理删除，不写账本 ───────
     if permanent:
         purged, failed = [], []
         for rel in rels:
@@ -638,7 +595,6 @@ async def delete_resource(request: Request):
             "failed": failed,
         }
 
-    # ─────── 🗑️ 普通删除：移进回收站 ───────
     log = load_trash_log()
     deleted, failed = [], []
     for rel in rels:
@@ -719,14 +675,13 @@ async def restore_resource(request: Request):
         dst = abs_path(rel)
         parent_abs = os.path.dirname(dst)
         try:
-            os.makedirs(parent_abs, exist_ok=True)  # 原来的文件夹没了就重建
+            os.makedirs(parent_abs, exist_ok=True)
         except Exception as e:
             failed.append({"id": tid, "name": item.get("name"), "message": f"无法重建原目录: {e}"})
             continue
 
         final_rel = rel
         if os.path.exists(dst):
-            # 原位被占了：改名放回同一个文件夹里
             new_base = unique_name(parent_abs, os.path.basename(dst), not is_dir)
             dst = os.path.join(parent_abs, new_base)
             final_rel = rel_of(dst)
@@ -737,7 +692,6 @@ async def restore_resource(request: Request):
             failed.append({"id": tid, "name": item.get("name"), "message": f"还原失败: {e}"})
             continue
 
-        # 清掉这一条在 .trash 里的空壳目录 + 账本记录
         shutil.rmtree(trash_item_dir(item), ignore_errors=True)
         log["items"] = [x for x in log["items"] if x.get("id") != tid]
         restored.append({"id": tid, "name": item.get("name"), "path": final_rel, "type": item.get("type")})
@@ -890,10 +844,8 @@ async def rename_resource(request: Request):
     try:
         os.rename(src, dst)
     except Exception as e:
-        # ⚠️ 这里最常见的就是 Errno 13（父目录属主不是 blog）—— 交给 fs_error 讲清楚怎么修 ✓
         return {"success": False, "message": fs_error("重命名", e, src)}
 
-    # 文章：同步更新 front matter 的 title，否则列表上显示的还是旧名字
     if is_file:
         try:
             with open(dst, "r", encoding="utf-8") as f:

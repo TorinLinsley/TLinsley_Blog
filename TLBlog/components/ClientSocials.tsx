@@ -1,12 +1,10 @@
-// src/components/ClientSocials.tsx
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { siteConfig } from '../siteConfig'; // 确保路径正确
+import { siteConfig } from '../siteConfig';
 import { D_POPOVER, EASE_OUT } from '../lib/motion';
 
-// 这里我们整合了 SocialBtn 和 ClientSocials
 function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick?: () => void }) {
   const getIcon = () => {
     switch (type) {
@@ -33,18 +31,6 @@ function SocialBtn({ type, url, onClick }: { type: string, url?: string, onClick
 }
 
 export default function ClientSocials() {
-  /**
-   * 复制成功后的提示：**自带一个小气泡，不再用 `alert()`**
-   *
-   * ⚠️ 为什么不用现成的 `useToast()`：`ToastProvider` 目前只挂在
-   *    `app/page.tsx` 和 `app/timeline/page.tsx` 两处（不是全局），
-   *    而 `useToast()` 在 Provider 外面是**直接 throw** 的 ——
-   *    这个组件别处也在用，换成 useToast 会让那些页面直接崩掉 ✗
-   *    想全站统一成 toast，正确做法是把 Provider 提到 `app/layout.tsx`，
-   *    那是另一件事，不在本次范围内 ✓
-   *
-   * 动效上：提示文字**只淡不位移**（提示类只配 opacity，别叠位移）✓
-   */
   const [copied, setCopied] = useState('');
   const timerRef = useRef<number>(0);
 
@@ -64,7 +50,6 @@ export default function ClientSocials() {
     );
   };
 
-  // 组件卸载时清掉计时器，避免在已卸载的组件上 setState
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
   return (

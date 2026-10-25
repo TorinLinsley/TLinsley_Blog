@@ -7,16 +7,6 @@ import { D_ENTER, EASE_OUT, SPRING_MORPH } from '../lib/motion';
 import GitalkBox from './GitalkBox';
 import GuestComments from './GuestComments';
 
-/**
- * 💬 评论区外壳。
- *
- * ⚠️ 关键约定：**列表只有一份，和"用哪种方式发"无关** ✓
- *    · 列表 = 本站存的游客评论 + GitHub Issue 里的评论，混在一起、同一套卡片样式 ✓
- *    · 右上角下拉**只决定下面那个发布框**是 GitHub 登录发的，还是游客昵称发的 ✓
- *    · 所以两种方式下，看到的评论列表**长得一模一样**，切来切去不会有"两边不一样" ✗
- *
- * 数据来自 `/api/comments?page=…`（那边已经把两个来源合并好了 ✓）
- */
 
 type Mode = 'github' | 'guest';
 
@@ -25,12 +15,10 @@ type CommentItem = {
   name: string;
   content: string;
   createdAt: number;
-  /** GitHub 头像地址；空的就是游客（画彩色首字母块 ✓） */
   avatar?: string;
   source?: 'github' | 'guest';
 };
 
-/** 昵称 → 稳定的头像颜色（同一昵称永远同色） */
 const AVATAR_COLORS = [
   'from-indigo-400 to-indigo-600',
   'from-emerald-400 to-emerald-600',
@@ -48,10 +36,6 @@ function colorOf(name: string): string {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-/**
- * 时间显示：**精确到秒的完整时间**在前，相对时间（刚刚 / N 分钟前）在后。
- * 两种来源（GitHub / 游客）都用它 —— 显示必须一致 ✓
- */
 function timeText(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -77,17 +61,14 @@ export default function Comments({ page }: { page?: string } = {}) {
   const [newestFirst, setNewestFirst] = useState(true);
   const [adminKey, setAdminKey] = useState('');
   const [tip, setTip] = useState('');
-  /** 减少动效：入场只留很短的淡入，重排直接瞬移（更轻，而不是完全不动） */
   const reduceMotion = useReducedMotion();
 
-  // 记住上次选的发布方式（只影响发布框 ✓）+ 管理密钥（有就能删本站的评论 ✓）
   useEffect(() => {
     try {
       const saved = localStorage.getItem('commentMode');
       if (saved === 'guest' || saved === 'github') setMode(saved);
       setAdminKey(localStorage.getItem('commentsAdminKey') || '');
     } catch {
-      /* 隐私模式忽略 */
     }
   }, []);
 
@@ -97,7 +78,6 @@ export default function Comments({ page }: { page?: string } = {}) {
       const data = await res.json();
       setComments(data?.ok && Array.isArray(data.comments) ? data.comments : []);
     } catch {
-      /* 拿不到就当没有评论，不打扰访客 */
     } finally {
       setLoading(false);
     }
@@ -112,11 +92,9 @@ export default function Comments({ page }: { page?: string } = {}) {
     try {
       localStorage.setItem('commentMode', next);
     } catch {
-      /* ignore */
     }
   };
 
-  /** 游客评论发出去之后立刻插进列表（不用等下次刷新 ✓） */
   const onPosted = useCallback((c: CommentItem) => {
     setComments((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
   }, []);
@@ -126,7 +104,6 @@ export default function Comments({ page }: { page?: string } = {}) {
     [comments, newestFirst]
   );
 
-  /** 删除：只有本站存的那份能删（GitHub 那边的要去仓库里删 ✓） */
   const remove = async (c: CommentItem) => {
     if (!adminKey || c.id.startsWith('gh-')) return;
     try {
@@ -144,11 +121,9 @@ export default function Comments({ page }: { page?: string } = {}) {
 
   return (
     <section className="w-full mt-16 relative" id="comments" data-comments>
-      {/* 氛围光晕 */}
       <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full pointer-events-none z-0" />
 
       <div className="relative z-10 pt-6 border-t border-slate-200/50 dark:border-slate-700/50">
-        {/* 标题 + 右侧「发布方式」下拉（只切发布框，列表不变 ✓） */}
         <div className="flex items-center justify-between gap-4 mb-5">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">💬 评论</h3>
 
@@ -166,9 +141,8 @@ export default function Comments({ page }: { page?: string } = {}) {
           </div>
         </div>
 
-        {/*
-          ── 唯一的评论列表（两种发布方式共用这一份，样式完全一致 ✓）──
-        */}
+        {
+}
         {(comments.length > 1 || tip) && (
           <div className="flex items-center justify-end gap-3 mb-3">
             {tip && <span className="text-[11px] font-bold text-rose-500">{tip}</span>}
@@ -195,11 +169,6 @@ export default function Comments({ page }: { page?: string } = {}) {
             {shown.map((c) => (
               <motion.li
                 key={c.id}
-                /*
-                 * layout="position"：切换「最新在前 / 最早在前」时，让条目**滑到新位置**
-                 * （只做 position 而不是完整 layout —— 更省，也不会让长评论换行时抖）
-                 * 新发的评论则用 initial/animate 淡入 + 轻微上浮
-                 */
                 layout="position"
                 initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -211,7 +180,6 @@ export default function Comments({ page }: { page?: string } = {}) {
                 className="group relative flex gap-3 p-4 rounded-2xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/40 dark:border-white/10"
               >
                 {c.avatar ? (
-                  /* GitHub 用户：他本人的 GitHub 头像 ✓ */
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={c.avatar}
@@ -246,9 +214,8 @@ export default function Comments({ page }: { page?: string } = {}) {
           </LayoutGroup>
         )}
 
-        {/*
-          ── 发布框（下拉只切这里 ✓ 切完列表还是上面那一份 ✓）──
-        */}
+        {
+}
         {mode === 'github' ? (
           <GitalkBox page={currentPage} onPosted={() => void load()} />
         ) : (

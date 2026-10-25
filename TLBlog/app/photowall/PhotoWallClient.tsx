@@ -5,15 +5,8 @@ import PageTransition from '../../components/PageTransition';
 import { Album } from '../../data/albums';
 import FadeInImage from '../../components/FadeInImage';
 
-/**
- * ⚠️ 相册**不再从这里 import**：`import { albums }` 拿到的是构建时的快照，
- * 控制台【同步Blog】推过来的新相册得重新 build 才认。现在由服务端页面
- * （app/photowall/page.tsx）按请求读 data/albums.ts 之后当参数传进来。
- */
 export default function PhotoWallClient({ albums }: { albums: Album[] }) {
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
-  /** 🖼️ 点开大图：统一交给 components/ImageZoom.tsx（底部箭头、滑动翻页、Esc、系统返回键都归它管）
-   *  以前照片墙自己写了个浮层 ✗ 手机上按系统返回键会把整个页面退掉（浮层不在历史里）✗ */
   const openViewer = (photos: Array<{ url?: string; caption?: string }>, startIndex: number) => {
     const list = (photos || []).filter((p) => p && p.url);
     if (!list.length) return;
@@ -206,7 +199,6 @@ export default function PhotoWallClient({ albums }: { albums: Album[] }) {
         </div>
       </PageTransition>
 
-      {/* 🖼️ 灯箱统一交给 components/ImageZoom.tsx（Esc / 系统返回键 / 底部箭头 / 滑动翻页都在那边） */}
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

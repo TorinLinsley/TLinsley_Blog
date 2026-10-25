@@ -13,7 +13,6 @@ function DraftsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 👇 自定义弹窗状态管理
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; title: string | null }>({
     isOpen: false,
     id: null,
@@ -51,7 +50,6 @@ function DraftsContent() {
     fetchDrafts();
   }, []);
 
-  // 🗑️ 核心逻辑：执行真实的销毁操作
   const confirmDelete = async () => {
     if (!deleteModal.id) return;
     const id = deleteModal.id;
@@ -76,7 +74,6 @@ function DraftsContent() {
     } catch (error) {
       showToast("引擎连接失败", "error");
     } finally {
-      // 关闭弹窗并重置状态
       setDeleteModal({ isOpen: false, id: null, title: null });
     }
   };
@@ -96,9 +93,8 @@ function DraftsContent() {
   return (
     <div className="min-h-screen relative pb-20">
 
-      {/* ---------------------------------------------------------
-          💎 自定义绝美确认弹窗 (与杂谈页保持高度统一)
-      --------------------------------------------------------- */}
+      {
+}
       <AnimatePresence>
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -172,7 +168,6 @@ function DraftsContent() {
             </div>
           </header>
 
-          {/* 小屏竖排，lg 恢复横排 */}
           <div className="mb-8 flex flex-col lg:flex-row gap-4">
             <Link href="/editor?id=new&type=post" className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
               <Pencil size={16} /> 新建文章草稿

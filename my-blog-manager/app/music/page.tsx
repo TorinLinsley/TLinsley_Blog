@@ -22,21 +22,16 @@ export default function MusicPage() {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🌟 1. 核心修复：改用 State 存储解析后的歌词，确保异步更新能触发 UI 刷新
   const [parsedLyrics, setParsedLyrics] = useState<any[]>([]);
 
-  // 🌟 2. 核心修复：深度监控歌词数据流
   useEffect(() => {
-    // 切歌瞬间，先清空旧歌词，显示加载状态
     if (!currentSong) {
       setParsedLyrics([]);
       return;
     }
 
-    // 提取歌词文本（全兼容模式）
     const rawLrc = currentSong.lrc || currentSong.lyric || (typeof currentSong.lyrics === 'string' ? currentSong.lyrics : '');
 
-    // 如果已经有结构化数组了（部分 API 会直接给数组）
     if (Array.isArray(currentSong.lyrics) && currentSong.lyrics.length > 0) {
       setParsedLyrics(currentSong.lyrics);
       return;
@@ -47,7 +42,6 @@ export default function MusicPage() {
       return;
     }
 
-    // 解析引擎
     const lines = rawLrc.split('\n');
     const parsed = [];
     const timeExp = /\[(\d{2,}):(\d{2})(?:[.:](\d{2,3}))?\]/g;
@@ -70,11 +64,9 @@ export default function MusicPage() {
     if (hasValidTime) {
       setParsedLyrics(parsed.sort((a, b) => a.time - b.time));
     } else {
-      // 兜底：如果没有时间戳，也作为列表显示
       setParsedLyrics(lines.map(l => ({ time: -1, text: l.trim() })).filter(l => l.text));
     }
 
-    // 监听：歌曲ID、歌词文本、以及所有可能的歌词字段
   }, [currentSong?.id, currentSong?.lyric, currentSong?.lrc, currentSong?.lyrics]);
 
   const activeLyricIndex = useMemo(() => {
@@ -84,7 +76,6 @@ export default function MusicPage() {
     return Math.max(0, idx);
   }, [currentTime, parsedLyrics]);
 
-  // 🌟 保持修复：精准容器滚动逻辑，不影响全局滚动条
   useEffect(() => {
     if (activeLyricRef.current && lyricContainerRef.current && activeTab === 'lyrics') {
       const container = lyricContainerRef.current;
@@ -146,19 +137,16 @@ export default function MusicPage() {
 
 
       <PageTransition>
-        {/* 📱 小屏顶栏留白收一档；lg 以上仍是 mt-28 */}
         <div className="w-full max-w-7xl mx-auto mt-28 max-lg:mt-20 px-4 sm:px-10 relative z-10">
           <div className="animate-fade-in-up mb-10">
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-widest mb-2 transition-colors duration-700">云端乐律</h1>
             <p className="text-slate-600 dark:text-slate-400 font-medium tracking-wider transition-colors duration-700">在代码的缝隙中寻找灵魂的共鸣</p>
           </div>
 
-          {/* 📱 小屏两块面板上下堆叠：高度交给内容撑开（h-auto / max-h-none），
-              否则固定高度下右侧歌词/歌单面板会塌成 0 高、并压到下面的留言板。
-              lg 以上完全走原来的 calc(100vh-320px) + min/max 那套。 */}
+          {
+}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full items-stretch h-[calc(100vh-320px)] min-h-[600px] max-h-[720px] max-lg:h-auto max-lg:max-h-none">
 
-            {/* 左侧：控制台 (保留之前调好的光晕和唱片效果) */}
             <div className="md:col-span-5 h-full flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl p-10 relative overflow-hidden transition-all duration-500">
               <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden">
                 <div className="relative w-48 h-48 lg:w-64 lg:h-64 flex-shrink-0 aspect-square mb-10 flex items-center justify-center">
@@ -186,12 +174,11 @@ export default function MusicPage() {
                   <button onClick={togglePlayMode} className="p-2 transition-transform hover:scale-110">{getPlayModeIcon()}</button>
                   <div className="flex items-center gap-4 lg:gap-6">
                     <button onClick={prevSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipBack size={28} fill="currentColor" /></button>
-                    {/* 播放键的圆形背景：只在大屏缩小 2%（lg:scale-[0.98]）。
-                        悬停要单独写 lg:hover:scale-[1.03]，否则 lg: 那条会把 hover:scale-105 盖掉。 */}
+                    {
+}
                     <button onClick={togglePlay} className="w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-105 lg:scale-[0.98] lg:hover:scale-[1.03] shadow-xl shadow-indigo-500/40">
-                      {/* 播放三角：2.14rem = 34.24px，比原来的 32px 大 7%（墨迹 20 → 21.4px），
-                          与博客前台音乐页的大屏档取值一致。
-                          偏移统一成和首页播放器一样的 translateX(1.9%)（原来这里是 ml-1）。 */}
+                      {
+}
                       {isPlaying ? <Pause size={32} className="w-[2.14rem] h-[2.14rem]" fill="currentColor" /> : <Play size={32} className="w-[2.14rem] h-[2.14rem]" fill="currentColor" style={{ transform: 'translateX(1.9%)' }} />}
                     </button>
                     <button onClick={nextSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipForward size={28} fill="currentColor" /></button>
@@ -210,21 +197,18 @@ export default function MusicPage() {
               </div>
             </div>
 
-            {/* 右侧：面板 (保留之前的遮罩和滚动修复) */}
             <div className="md:col-span-7 h-full flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl relative transition-colors duration-700 overflow-hidden">
               <div className="flex items-center justify-center gap-1 p-1 mt-6 mx-auto bg-white/50 dark:bg-slate-900/50 rounded-full shadow-inner border border-white/40 w-64 z-20 shrink-0">
                 <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-2 rounded-full font-black text-[13px] transition-all ${activeTab === 'lyrics' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-500'}`}>歌词</button>
                 <button onClick={() => setActiveTab('playlist')} className={`flex-1 py-2 rounded-full font-black text-[13px] transition-all ${activeTab === 'playlist' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-500'}`}>歌单</button>
               </div>
 
-              {/* 📱 小屏：面板堆叠后这层没有固定高度可用（里面全是 absolute），给个最小高度歌词/歌单才显示得出来 */}
               <div className="flex-1 relative mt-2 flex flex-col overflow-hidden max-lg:min-h-[360px]">
                 {activeTab === 'lyrics' && (
                   <div className="absolute inset-0 flex flex-col h-full animate-in fade-in duration-300">
                     <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-white/40 dark:from-slate-800/60 to-transparent z-10 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white/40 dark:from-slate-800/60 to-transparent z-10 pointer-events-none" />
                     <div ref={lyricContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative px-6 lyric-mask-container">
-                        {/* 📱 小屏歌词区只有 360px 高，35vh 的上下留白会把当前歌词压偏下，收到 20vh */}
                         <div className="py-[35vh] max-lg:py-[20vh] flex flex-col gap-6 text-center lg:px-10">
                             {parsedLyrics.length > 0 ? (
                               parsedLyrics.map((line: any, index: number) => {
@@ -283,7 +267,6 @@ export default function MusicPage() {
             </div>
           </div>
 
-          {/* 留言板 */}
           <div className="mt-12 mb-20 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700 relative">
              <div className="px-8 md:px-16 py-12 relative">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-300/50 dark:border-slate-700 pb-6">

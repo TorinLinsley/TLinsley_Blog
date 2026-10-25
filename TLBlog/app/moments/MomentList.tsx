@@ -39,7 +39,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
     return result;
   }, [moments, searchQuery, sortOrder]);
 
-  /** 🖼️ 点开大图：统一交给 components/ImageZoom.tsx 那一套浏览器（和正文图片完全同一套交互） */
   const openLightbox = (images: string[], idx: number) => {
     const gallery = (images || []).filter(Boolean).map((src) => ({ src, alt: '' }));
     if (!gallery.length) return;
@@ -104,8 +103,8 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         </div>
       </div>
 
-      {/* 📝 正文按 Markdown 渲染（列表/加粗/代码/链接都正常）——
-          用户 2026-10-22 反馈：写 `- 站外链接…` 结果减号没了，因为以前是纯文本 + 去标记 ✗ */}
+      {
+}
       {moment.contentHtml ? (
         <div
           className="moment-content prose prose-sm max-w-none text-slate-800 dark:text-slate-200 text-[14px] md:text-[16px] leading-relaxed font-medium break-words"
@@ -121,7 +120,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         <div className="min-w-0 flex-1 pr-2">
           {moment.location && (
             <span className="inline-flex items-center gap-1 md:gap-1.5 text-[9px] md:text-[11px] font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 max-w-full truncate border border-indigo-500/10">
-              {/* 🌟 就是这里！shrink-0 已经乖乖放进 className 里面了 */}
               <MapPin size={10} className="md:w-3 md:h-3 shrink-0" />
               <span className="truncate">{moment.location}</span>
             </span>
@@ -199,7 +197,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         )}
       </LayoutGroup>
 
-      {/* 🖼️ 灯箱已经统一交给 components/ImageZoom.tsx（全站一套：底部箭头、滑动翻页、滚轮/捏合缩放） */}
 
     </div>
   );

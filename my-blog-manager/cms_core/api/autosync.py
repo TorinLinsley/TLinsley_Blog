@@ -18,16 +18,13 @@ import threading
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 
-# 目录型同步源：博客里的目标名 → 控制台里的源目录
 SYNC_DIRS = {
     "posts": "posts",
     "chatters": "chatters",
     "moments": "moments",
-    # 🌟 文章总目录在控制台这边是 resources/ResShare，博客前台读的是顶层 resources/
     "resources": "resources/ResShare",
 }
 
-# 文件型同步源（相对控制台根目录）
 SYNC_FILES = [
     "app/about/about.md",
     "data/albums.ts",
@@ -41,7 +38,6 @@ POLL_SECONDS = 1.5
 _lock = threading.Lock()
 _started = False
 _baseline = {}
-# 最近一次同步里「前端删不掉」的路径（前端会多出这些旧文件），给接口/界面用 ✓
 LAST_PROBLEMS: list = []
 
 
@@ -62,7 +58,6 @@ def _remove(path: str) -> bool:
         return False
 
 
-# 删不掉的东西往这里挪（点开头的目录，博客前台扫描时直接跳过）
 STALE_DIR = ".stale"
 
 
@@ -109,20 +104,18 @@ def mirror_dir(src: str, dst: str, problems: list | None = None, stale_root: str
         src_names = []
     src_set = set(src_names)
 
-    # 1. 补新的 / 覆盖变了的
     for name in src_names:
         sp = os.path.join(src, name)
         dp = os.path.join(dst, name)
         if os.path.isdir(sp):
             if os.path.exists(dp) and not os.path.isdir(dp):
-                _remove(dp) or _quarantine(dp, stale_root)  # 类型冲突：文件换成目录
+                _remove(dp) or _quarantine(dp, stale_root)
             mirror_dir(sp, dp, problems, stale_root)
         else:
             if os.path.isdir(dp):
-                _remove(dp) or _quarantine(dp, stale_root)  # 类型冲突：目录换成文件
+                _remove(dp) or _quarantine(dp, stale_root)
             shutil.copy2(sp, dp)
 
-    # 2. 删掉源里已经没有的（点开头的内部文件不碰）
     try:
         dst_names = os.listdir(dst)
     except OSError:
@@ -148,7 +141,6 @@ def blog_root():
     target = str(cfg.get("blogPath") or "").strip()
     if not target or not os.path.isdir(target):
         return None
-    # 和 sync.py 一样的防呆：必须是真正的博客项目，绝不乱复制
     if not os.path.exists(os.path.join(target, "package.json")):
         return None
     return target
@@ -223,7 +215,6 @@ def sync_now(only=None, verbose: bool = True) -> bool:
         if not os.path.isdir(src):
             continue
         try:
-            # 增量镜像：不清空目标，所以博客前台不会看到「目录突然变空」
             with _lock:
                 mirror_dir(src, dst, problems)
             if verbose:

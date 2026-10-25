@@ -10,7 +10,6 @@ import { useToast } from '../../components/ToastProvider';
 import FloatingImageTool from '../../components/editor/FloatingImageTool';
 import { fetchBackend } from '../../lib/apiBase';
 
-// 🌟 新增：引入配置和评论组件
 import Comments from '../../components/Comments';
 import { siteConfig } from '../../siteConfig';
 
@@ -30,11 +29,6 @@ export default function FriendsBoard() {
 
   const [editableFriends, setEditableFriends] = useState<Friend[]>(initialFriends);
 
-  /**
-   * 🤝 友链数据按请求问后端要（和照片墙/项目一个道理）：
-   * `data/friends.ts` 是构建时打进 bundle 的快照，「更新本地」写盘后不重建看不到变化。
-   * 后端没起来就先用快照顶着，不至于白屏。
-   */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -50,7 +44,6 @@ export default function FriendsBoard() {
   const [friendModal, setFriendModal] = useState<{ isOpen: boolean; mode: 'add' | 'edit'; data: Partial<Friend> }>({ isOpen: false, mode: 'add', data: {} });
   const [isImgToolOpen, setIsImgToolOpen] = useState(false);
 
-  // 🌟 新增：控制复制按钮的状态和读取配置模板
   const [isCopied, setIsCopied] = useState(false);
   const applyFormat = siteConfig.friendLinkApplyFormat;
 
@@ -183,7 +176,6 @@ export default function FriendsBoard() {
         {editableFriends.map((friend) => (
           <motion.div key={friend.id} variants={itemVariants} className="group relative">
 
-            {/* 📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
             <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all -translate-y-2 group-hover:translate-y-0 max-lg:translate-y-0!">
                <button onClick={() => setFriendModal({ isOpen: true, mode: 'edit', data: friend })} className="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Edit3 size={14}/></button>
                <button onClick={() => setDeleteModal({ isOpen: true, id: friend.id, name: friend.name })} className="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Trash2 size={14}/></button>
@@ -209,7 +201,6 @@ export default function FriendsBoard() {
         ))}
       </motion.div>
 
-      {/* 🌟 新增：申请友链引导区 (与前端组件一致的移动端适配) */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -256,7 +247,6 @@ export default function FriendsBoard() {
         </div>
       </motion.div>
 
-      {/* 🌟 新增：Gitalk 评论区 */}
       <motion.div
         id="gitalk-container"
         className="mt-12 md:mt-16 scroll-mt-24 px-2 md:px-0"

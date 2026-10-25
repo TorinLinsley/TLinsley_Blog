@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// 安全解析 LRC 歌词
 function parseLrc(lrcText: string) {
   if (!lrcText || lrcText.length > 20000) return [];
   const lines = lrcText.split('\n');
@@ -174,7 +173,6 @@ export default function CloudPlayer({ songIds }: { songIds: string[] }) {
     return (
       <div className="md:col-span-5 rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-xl p-6 flex flex-col items-center justify-center transition-colors duration-700 h-[220px]">
         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        {/* 【修改点】：文字加入 dark:text-white */}
         <span className="text-slate-800 dark:text-white font-bold tracking-widest animate-pulse text-sm">CONNECTING...</span>
       </div>
     );
@@ -201,7 +199,6 @@ export default function CloudPlayer({ songIds }: { songIds: string[] }) {
         .animate-cursor { animation: cursorBlink 0.8s step-end infinite; }
       `}</style>
 
-      {/* 音乐播放器卡片主体：加入 dark 模式背景适配 */}
       <div className="md:col-span-5 rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-xl p-6 flex flex-col justify-between transition-all duration-700 hover:scale-[1.02] relative group overflow-hidden min-h-[220px]">
         <audio ref={audioRef} src={currentSong.src || undefined} onTimeUpdate={handleTimeUpdate} onEnded={nextSong} onLoadedMetadata={handleTimeUpdate} />
         <div className={`absolute -top-20 -right-20 w-48 h-48 bg-indigo-500/20 blur-[50px] rounded-full transition-opacity duration-1000 ${isPlaying ? 'opacity-100' : 'opacity-30'}`}></div>
@@ -217,7 +214,6 @@ export default function CloudPlayer({ songIds }: { songIds: string[] }) {
               <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 tracking-widest uppercase bg-white/50 dark:bg-slate-900/50 px-2 py-0.5 rounded-sm shadow-sm transition-colors duration-700">Cloud Music</span>
               <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-white/40 dark:bg-slate-700/50 px-2 rounded-full transition-colors duration-700">{currentIndex + 1} / {playlist.length}</span>
             </div>
-            {/* 【修改点】：歌曲标题和歌手加上暗色模式字体 */}
             <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate drop-shadow-sm transition-colors duration-700">{currentSong.title}</h3>
             <p className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate drop-shadow-sm transition-colors duration-700">{currentSong.artist}</p>
           </div>
@@ -237,8 +233,8 @@ export default function CloudPlayer({ songIds }: { songIds: string[] }) {
           <div className="flex items-center justify-center gap-6">
             <button onClick={prevSong} className="text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors drop-shadow-sm"><svg className="w-[2.25rem] h-[2.25rem]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
             <button onClick={togglePlay} className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-600 hover:scale-110 transition-all border-2 border-white/50 dark:border-slate-600">
-              {/* 播放/暂停图标外框 24px（w-6），三角墨迹约 15px，偏移 +1.9%，详见 CloudPlayer.tsx。
-                  ⚠️ 这个组件当前没有任何地方 import，改了看不到效果，只为与其它播放器保持一致。 */}
+              {
+}
               {isPlaying ? <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-6 h-6" style={{ transform: 'translateX(1.9%)' }} fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>}
             </button>
             <button onClick={nextSong} className="text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors drop-shadow-sm"><svg className="w-[2.25rem] h-[2.25rem]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
@@ -246,7 +242,6 @@ export default function CloudPlayer({ songIds }: { songIds: string[] }) {
         </div>
       </div>
 
-      {/* 底部独立歌词长条：夜晚可以稍微更黑一点以凸显发光字体 */}
       <div className="md:col-span-12 order-last mt-4 rounded-3xl bg-slate-900/80 dark:bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl p-5 flex items-center justify-between transition-all duration-700 hover:shadow-indigo-500/20 group min-h-[80px]">
         <div className="flex items-end justify-center gap-[4px] h-8 w-16">
           {isPlaying ? (

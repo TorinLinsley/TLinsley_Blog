@@ -1,14 +1,3 @@
-/**
- * 把 Google Fonts 的 Noto Serif SC **整套分片 woff2** 下到本地并生成 @font-face 的 CSS。
- *
- * 为什么要这么干：next/font/google 在**每次 build** 时都会去 fonts.gstatic.com 拉
- * 101 个分片文件（Noto Serif SC 有 101 个 unicode-range 子集）。服务器网络抖一下，
- * build 就报 "next/font/google queries have exactly one entry" ✗ —— 这正是反复出现的那个错。
- * 下到本地 + 自己写 @font-face，build 就**完全不碰 Google** 了 ✓
- * （unicode-range 原样保留 → 浏览器还是只下它真正用到的那几个分片，速度不变 ✓）
- *
- * 用法：node fetch_noto_serif.mjs <应用目录>
- */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 

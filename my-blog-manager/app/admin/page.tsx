@@ -2,23 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { siteConfig } from '../../siteConfig'; // 确保路径正确，可能需要根据你的目录结构调整为 '../siteConfig'
+import { siteConfig } from '../../siteConfig';
 
 export default function AdminDashboard() {
-  // 当前选中的功能模块
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 操作队列（模拟你说的：上传照片、保存文章算一次操作）
-  // 这里先放两条假数据看看效果，后面我们会通过全局状态或 Context 来动态管理
   const [operations, setOperations] = useState([
     { id: 1, text: '更新了个人头像', time: '10:05' },
     { id: 2, text: '保存草稿《GNN虚拟筛选环境配置》', time: '10:30' }
   ]);
 
-  // 控制操作箱的展开与折叠
   const [isOpBoxOpen, setIsOpBoxOpen] = useState(false);
 
-  // 左侧导航菜单配置
   const menuItems = [
     { id: 'dashboard', name: '全息仪表盘', icon: '🌌' },
     { id: 'posts', name: '文章与草稿', icon: '📝' },
@@ -29,15 +24,13 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen pt-20 pb-10 px-4 md:px-10 flex flex-col md:flex-row gap-6 max-w-[1600px] mx-auto relative z-10">
 
-      {/* ==========================================
-          1. 左侧中枢导航栏
-          ========================================== */}
+      {
+}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="w-full md:w-64 shrink-0 flex flex-col gap-6"
       >
-        {/* 个人名片区 */}
         <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 flex flex-col items-center shadow-lg">
           <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-indigo-500 to-purple-500 mb-4 shadow-[0_0_20px_rgba(99,102,241,0.4)]">
             <img src={siteConfig.avatarUrl || undefined} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-800" />
@@ -46,7 +39,6 @@ export default function AdminDashboard() {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-bold tracking-[0.2em] uppercase">CMS Administrator</p>
         </div>
 
-        {/* 导航菜单区 */}
         <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg flex flex-col gap-2">
           {menuItems.map((item) => (
             <button
@@ -65,15 +57,13 @@ export default function AdminDashboard() {
         </div>
       </motion.div>
 
-      {/* ==========================================
-          2. 右侧工作区
-          ========================================== */}
+      {
+}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex-1 flex flex-col gap-6"
       >
-        {/* 顶部操作面板 (包含红点消息和部署按钮) */}
         <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl h-20 px-6 flex items-center justify-between shadow-lg relative">
 
           <h1 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
@@ -81,7 +71,6 @@ export default function AdminDashboard() {
           </h1>
 
           <div className="flex items-center gap-4">
-            {/* 操作箱图标与红点 */}
             <div className="relative">
               <button
                 onClick={() => setIsOpBoxOpen(!isOpBoxOpen)}
@@ -98,7 +87,6 @@ export default function AdminDashboard() {
                 </span>
               )}
 
-              {/* 操作箱下拉列表 */}
               <AnimatePresence>
                 {isOpBoxOpen && (
                   <motion.div
@@ -129,14 +117,12 @@ export default function AdminDashboard() {
               </AnimatePresence>
             </div>
 
-            {/* 一键部署按钮 */}
             <button className="h-12 px-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-black text-sm shadow-lg shadow-indigo-500/30 flex items-center gap-2 transition-all active:scale-95">
               🚀 全部上传并部署
             </button>
           </div>
         </div>
 
-        {/* 核心内容渲染区 (根据 Tab 动态切换) */}
         <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 rounded-3xl p-6 min-h-[500px] shadow-lg">
 
           {activeTab === 'dashboard' && (

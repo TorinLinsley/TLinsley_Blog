@@ -16,9 +16,9 @@ export default function Sakura() {
     const generated = Array.from({ length: 40 }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
-      size: 8 + Math.random() * 12, // 8px 到 20px 大小的花瓣
-      duration: 6 + Math.random() * 8, // 飘落时间 6-14 秒
-      delay: Math.random() * -15, // 随机错开下落时间
+      size: 8 + Math.random() * 12,
+      duration: 6 + Math.random() * 8,
+      delay: Math.random() * -15,
     }));
     setPetals(generated);
   }, []);
@@ -42,7 +42,6 @@ export default function Sakura() {
             left: p.left,
             width: `${p.size}px`,
             height: `${p.size * 1.2}px`,
-            // 樱花特有的圆角形状
             borderRadius: '100% 0 100% 0',
             animation: `sakuraFall ${p.duration}s linear infinite`,
             animationDelay: `${p.delay}s`,

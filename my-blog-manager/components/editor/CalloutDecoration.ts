@@ -4,18 +4,6 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { CALLOUT_ICONS, CALLOUT_DEFAULT_ICON } from '../../lib/rehypeCallout';
 import { CALLOUT_TYPES, CALLOUT_MARKER } from './calloutBridge';
 
-/**
- * 编辑器里的 Callout 外观（Obsidian 的 > [!note] 标题）。
- *
- * 只加**装饰**，不动文档结构也不动文本：
- *   - 引用块上挂 class="callout callout-<type>"（画框）
- *   - 第一个段落上挂 class="callout-title"（画标题行底色）
- *   - 标题行最前面塞一个图标（和预览/前台同一个 SVG）
- *   - 标题里那段 `[!type]` 标记默认藏起来 —— 预览里本来就不显示它，
- *     藏着编辑器才和预览长得一样；光标进到这一行时再露出来（跟 Obsidian 一个脾气），
- *     那会儿就能直接改类型字母 ✓
- * 文档里那段文字**始终是真实文本**，保存时照旧按 `> [!info] 标题` 写回 .md。
- */
 
 const calloutKey = new PluginKey('calloutDecoration');
 
@@ -39,7 +27,7 @@ export const CalloutDecoration = Extension.create({
 
               const text = first.textContent || '';
               const match = text.match(CALLOUT_MARKER);
-              if (!match) return true; // 普通引用：一个字都不碰
+              if (!match) return true;
 
               const kind = match[1].toLowerCase();
               if (!CALLOUT_TYPES.includes(kind)) return true;
@@ -56,11 +44,9 @@ export const CalloutDecoration = Extension.create({
                 })
               );
 
-              // 标题行内容从 pos + 2 开始（blockquote 起点 +1，段落起点再 +1）
               const titleStart = pos + 2;
               const markerEnd = titleStart + match[0].length;
 
-              // 光标不在标题这一行 → 藏掉 [!type]，前面补个图标（= 预览的样子）
               const cursorInTitle = from >= titleStart - 1 && to <= titleStart + first.content.size;
               if (!cursorInTitle) {
                 if (markerEnd > titleStart) {

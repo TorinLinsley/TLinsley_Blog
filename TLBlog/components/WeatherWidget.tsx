@@ -1,4 +1,3 @@
-// components/WeatherWidget.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -14,7 +13,6 @@ export default function WeatherWidget() {
         const res = await fetch('/api/weather');
         const data = await res.json();
 
-        // 🌟 按照和风 V7 文档结构解析：数据在 data.now 中
         if (data.code === "200" && data.now) {
           setWeather({
             city: "北京市",
@@ -27,7 +25,6 @@ export default function WeatherWidget() {
           throw new Error(data.message || "Data Error");
         }
       } catch (err) {
-        // 报错时开启赛博模拟模式
         setWeather({ city: "北京市", temp: 22, text: "气候模拟", icon: "101", isMock: true });
       } finally {
         setLoading(false);
@@ -37,14 +34,13 @@ export default function WeatherWidget() {
     fetchWeather();
   }, []);
 
-  // 图标映射逻辑保持不变...
   const getWeatherIcon = (iconCode: string) => {
     const code = parseInt(iconCode);
     if (code === 100) return <Sun className="text-amber-400" size={38} />;
     if (code >= 101 && code <= 104) return <Cloud className="text-slate-300" size={38} />;
     if (code >= 300 && code <= 399) return <CloudRain className="text-blue-400" size={38} />;
     if (code >= 400 && code <= 499) return <Snowflake className="text-indigo-200" size={38} />;
-    if (code >= 150 && code <= 153) return <Sun className="text-orange-200" size={38} />; // 夜间晴/多云
+    if (code >= 150 && code <= 153) return <Sun className="text-orange-200" size={38} />;
     return <Cloud className="text-slate-400" size={38} />;
   };
 

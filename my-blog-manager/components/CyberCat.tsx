@@ -11,10 +11,8 @@ export default function CyberCat() {
   const [isThinking, setIsThinking] = useState(false);
 
   const chatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  /** 🖐️ 刚刚是「拖动」还是「点击」——拖动松手后浏览器还会补一次 click，那次不算摸猫 */
   const draggedRef = useRef(false);
 
-  // --- 💬 说话功能 ---
   const speak = (text: string, duration = 6000) => {
     setSpeech(text);
     if (chatTimeoutRef.current) clearTimeout(chatTimeoutRef.current);
@@ -23,9 +21,8 @@ export default function CyberCat() {
     }, duration);
   };
 
-  // --- 🖱️ 交互事件：摸猫猫 ---
   const handlePetCat = () => {
-    if (draggedRef.current) return;   // 刚才是把猫拖走，不是摸它
+    if (draggedRef.current) return;
     if (isPetted) return;
     setIsPetted(true);
     speak("呼噜噜... 摸得本喵很舒服喵~", 2000);
@@ -34,12 +31,11 @@ export default function CyberCat() {
     }, 2000);
   };
 
-  // --- 🐟 交互事件：喂小鱼干 ---
   const handleFeed = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // 阻止触发摸猫或拖拽
+    e.stopPropagation();
     if (isThinking) return;
 
-    setShowInput(false); // 喂食时关掉输入框
+    setShowInput(false);
     setIsThinking(true);
     speak("嗷呜！真好吃喵！本喵吃饱了要说两句...", 6000);
 
@@ -61,7 +57,6 @@ export default function CyberCat() {
     }
   };
 
-  // --- 💬 交互事件：发送聊天 ---
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isThinking) return;
@@ -90,7 +85,6 @@ export default function CyberCat() {
     }
   };
 
-  // --- ⏳ 随机挂机语录 ---
   useEffect(() => {
     const randomBarks = [
       "喵呜~ 今天天气真不错喵~",
@@ -113,26 +107,13 @@ export default function CyberCat() {
   return (
     <motion.div
       drag
-      /* 🖐️ 和下面那个悬浮播放器一样：想去哪就拖到哪。
-         ⚠️ 原来这里写的是 dragConstraints={{ left:0, right:0, top:0, bottom:0 }} ——
-         那个值等于「位移上限 0 像素」，看着有 drag 属性，实际拖不动、只会弹回来。
-         所以别再加 dragConstraints（播放器也没加）。 */
       dragMomentum={false}
-      /* 🐱 left = 音乐播放器的左边距 + 3rem。
-         3rem 正好是猫左边那两个按钮的偏移量（下面那个 div 是 -left-12 = -3rem），
-         所以按钮的左边缘会**正好和播放器的左边缘对齐**，不会被推到屏幕外面去。
-         = max(0px, 1.5rem - 2vw) + 3rem = max(3rem, 4.5rem - 2vw)
-         （1920 的屏：max(48px, 33.6px) = 48px → 猫在 48px，按钮左边缘落在 0，和播放器齐平） */
       style={{ touchAction: 'none', right: 'max(1.5rem, calc(2.5rem - 2vw))' }}
-      /* 拖完紧接着那一次 click 要忽略：拖猫不该等于摸猫 */
       onPointerDownCapture={() => { draggedRef.current = false; }}
       onDragStart={() => { draggedRef.current = true; }}
       whileDrag={{ scale: 1.1, cursor: "grabbing" }}
-      /* 📱 小屏的显示/隐藏由 layout.tsx 里那层 hidden md:block 统一控制（和博客前台一致），这里不管 */
-      /* ↔️ 默认在**右下角**（和悬浮播放器同一侧、叠在它上面），右下角让给计算器 */
       className="fixed bottom-20 z-[9999] flex flex-col items-center group cursor-grab active:cursor-grabbing"
     >
-      {/* 💬 聊天气泡 */}
       <div className="relative w-full flex justify-center mb-6">
         <AnimatePresence>
           {speech && (
@@ -150,21 +131,16 @@ export default function CyberCat() {
         </AnimatePresence>
       </div>
 
-      {/* 🐈 猫咪本体 & 交互按钮区 */}
       <div className="relative">
 
-        {/* 🌟 核心修改区：去掉了 opacity-0 和 group-hover，让按钮常驻显示 */}
         <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
 
-            {/* 💬 聊天按钮 */}
             <button
-              /* 和播放器那两个按钮一样：从按钮上按下不触发拖动，点击照常 */
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                  e.stopPropagation();
                  setShowInput(!showInput);
               }}
-              // 稍微加了一点半透明背景，让常驻按钮在深色背景下也好看
               className="bg-white/90 dark:bg-slate-700/90 p-2.5 rounded-full shadow-md hover:scale-110 active:scale-95 transition-transform border border-gray-100 dark:border-slate-600 text-blue-500 hover:text-blue-600 flex items-center justify-center backdrop-blur-sm"
               title="聊天"
             >
@@ -173,7 +149,6 @@ export default function CyberCat() {
               </svg>
             </button>
 
-            {/* 🐟 喂食按钮 */}
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={handleFeed}
@@ -185,7 +160,6 @@ export default function CyberCat() {
             </button>
         </div>
 
-        {/* 猫咪图片容器 */}
         <div
           className="w-[120px] h-[120px] relative cursor-pointer"
           onClick={handlePetCat}
@@ -225,7 +199,6 @@ export default function CyberCat() {
         </div>
       </div>
 
-      {/* ⌨️ 互动输入框 */}
       <AnimatePresence>
         {showInput && (
           <motion.form

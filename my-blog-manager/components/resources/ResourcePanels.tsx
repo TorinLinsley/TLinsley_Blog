@@ -6,47 +6,16 @@ import { usePathname } from 'next/navigation';
 import { registerLayer } from '../layerStack';
 import { FolderLines, TocBars } from '../MorphIcons';
 
-/** 小屏导航栏高度（和 Navbar 里保持一致）。写成 rem，跟着手机上缩小的根字号一起缩。 */
 const NAV_H = '3.25rem';
 
-/** 小屏「按钮行」的高度：左右两个展开按钮固定占这么一行，正文从它下面才开始（所以不会挡住正文） */
 const TOOL_ROW_H = '3rem';
 
-/**
- * 抽屉的开合状态放在**组件外面**。
- *
- * 原因：资源页是 [[...path]] 动态路由，在它下面切换文章时，Next 会把整棵子树
- * 卸载重建（实测：文章→文章也一样，不只是第一次进文章）。state 活不过这次重挂载，
- * 于是用户一点文章，抽屉就"自己收起来"了。
- * 把状态存在模块作用域里，重挂载时读回来即可；刷新页面时模块重新初始化，自然是关着的。
- *
- * （这份和博客前台 TLBlog/components/ResourcePanels.tsx 是故意保持一致的，改一边记得改另一边。）
- */
 let drawerMemory: null | 'left' | 'right' = null;
 
-/**
- * 两个展开按钮的图标：都改成了**真实线条的形变**（见 components/MorphIcons.tsx）—— 和前台 TLBlog 同一套。
- *   · 文章列表：文件夹外框 + 里面两条线 —— 展开时那两条线各自旋转、朝中心靠拢交叉成叉，外框不动
- *   · 大纲：    默认态**继续用 outline.svg 遮罩**，展开时三条真实矩形从左往右"依次伸"出来，
- *              动画结束后淡入回 outline-open.svg（保证最终外观和以前完全一致）
- *
- * ⚠️ 历史说明：这里原来是「两张 svg 都常驻、只切透明度、刻意不加任何过渡」——
- *    因为遮罩的内部线条浏览器不允许动画，想"形变"就必须把线画成真实元素。
- *    这个改动是用户明确要求的，所以覆盖了当初那个"保持瞬间"的决定。
- *    原来担心的"换图标会闪一下空白"的问题依然不存在：
- *    大纲那张遮罩**常驻在 DOM 里**，只改透明度，不会重新取图解码 ✓
- */
 function PanelIcon({ which, open }: { which: 'left' | 'right'; open: boolean }) {
   return which === 'left' ? <FolderLines open={open} /> : <TocBars open={open} />;
 }
 
-/**
- * 资源分享页的三栏容器（控制台版）。
- *
- * · 大屏（≥1024px）：跟原来一样，左列表 / 中正文 / 右大纲 三栏并排；
- * · 小屏（<1024px）：只留中间的正文，左右各给一个展开按钮，
- *   点它把对应的那一栏从侧边滑出来（盖住按钮），点空白处收起。
- */
 export default function ResourcePanels({
   left,
   right,
@@ -58,13 +27,9 @@ export default function ResourcePanels({
 }) {
   const pathname = usePathname();
   const [panel, setPanelState] = useState<null | 'left' | 'right'>(() =>
-    // 回到资源分享首页（没选中文章）就复位；切文章时把上次的开合状态还原回来
     pathname === '/resources' ? null : drawerMemory
   );
 
-  // 这次挂载是不是「切文章导致的重挂载」？是的话抽屉必须直接出现在原位，
-  // 否则 framer-motion 会把 initial（滑出屏幕外）再演一遍 —— 看起来就是点一下文章、
-  // 抽屉又自己从旁边滑出来一次。
   const skipEntranceRef = useRef(pathname !== '/resources' && drawerMemory !== null);
   useEffect(() => {
     skipEntranceRef.current = false;
@@ -76,7 +41,6 @@ export default function ResourcePanels({
     setPanelState(value);
   };
 
-  // 用户从文章退回资源分享首页时收起
   useEffect(() => {
     if (pathname === '/resources') {
       drawerMemory = null;
@@ -84,7 +48,6 @@ export default function ResourcePanels({
     }
   }, [pathname]);
 
-  // 抽屉打开时锁住背景滚动
   useEffect(() => {
     document.body.style.overflow = panel ? 'hidden' : '';
     return () => {
@@ -95,21 +58,14 @@ export default function ResourcePanels({
   const drawerRef = useRef<HTMLElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-  // 抽屉开着就登记成一层：点空白只收最上面那层，且不等动画播完，
-  // 所以「先收导航栏菜单、再立刻收这个抽屉」点两下就行；顺带挡住"点空白穿透到正文链接" ✓
   useEffect(() => {
     if (!panel) return;
     return registerLayer({
       panel: () => drawerRef.current,
-      // ⚠️ 这里**不**把整条按钮行当 controls：
-      //    按钮行是通栏的（left-0 right-0），两个按钮中间那块空档也属于这一行，
-      //    如果整行都算"控件"，点那一块就不会被当成空白 → 收不掉下面那层。
-      //    按钮本身由 layerStack 里的 INTERACTIVE（button/a/input…）单独放行，够用了。
       close: () => setPanel(null),
     });
   }, [panel]);
 
-  // 导航栏高度 / 按钮行高度用 CSS 变量喂给小屏样式（和大屏的 112px 对齐口径分开写）
   return (
     <>
       <style>{`
@@ -162,11 +118,8 @@ export default function ResourcePanels({
         }
       `}</style>
 
-      {/* 小屏：左右两个展开按钮占一整行（固定在导航栏正下方，不随内容滚动）。
-          ⚠️ z 必须**高于遮罩**（遮罩 z-[45]）：遮罩现在盖到了这一行的位置，
-          这一行自己没有底色（只有两个按钮），所以效果是"这一片区域跟着变暗、
-          两个按钮保持正常亮度且照旧可点"，正好是想要的样子。
-          （抽屉本身是 z-50，从这一行下面开始，不会压到按钮。） */}
+      {
+}
       <div
         data-res-toolbar
         ref={toolbarRef}
@@ -204,10 +157,8 @@ export default function ResourcePanels({
           paddingRight: 14,
         }}
       >
-        {/* 左：大屏常驻
-            ⚠️ 宽度用 vw 算，不用 % —— % 是相对 .res-main 的**内容盒**，上面一加左右 padding
-               它就会跟着缩水；用 vw（再减掉原来那 28px 的边距）算出来和以前一模一样，
-               于是新留出来的边距**全部由中间正文那一栏承担**。 */}
+        {
+}
         <section
           className="hidden lg:flex shrink-0 bg-slate-200/50 dark:bg-slate-900/55 backdrop-blur-[60px] shadow-2xl border border-white/30 dark:border-white/10 overflow-hidden transition-all duration-700 flex-col"
           style={{ width: 'clamp(240px, calc((100vw - 28px) * 0.21), 420px)', borderRadius: '15px' }}
@@ -215,7 +166,6 @@ export default function ResourcePanels({
           {left}
         </section>
 
-        {/* 中：正文（小屏时占满） */}
         <section
           className="flex-1 bg-slate-200/50 dark:bg-slate-900/55 backdrop-blur-[60px] shadow-2xl border border-white/30 dark:border-white/10 overflow-hidden transition-all duration-700 flex flex-col relative"
           style={{ borderRadius: '15px', minWidth: 300 }}
@@ -223,7 +173,6 @@ export default function ResourcePanels({
           {children}
         </section>
 
-        {/* 右：大屏常驻（宽度同样用 vw 算，理由见左边那条注释） */}
         <section
           className="hidden lg:flex shrink-0 bg-slate-200/50 dark:bg-slate-900/55 backdrop-blur-[60px] shadow-2xl border border-white/30 dark:border-white/10 overflow-hidden transition-all duration-700 flex-col"
           style={{ width: 'clamp(260px, calc((100vw - 28px) * 0.23), 460px)', borderRadius: '15px' }}
@@ -232,14 +181,11 @@ export default function ResourcePanels({
         </section>
       </main>
 
-      {/* 小屏：抽屉 + 遮罩 */}
       <AnimatePresence>
         {panel && (
           <>
-            {/* 🕶️ 遮罩从导航栏底下就开始盖，**把展开按钮那一行也一起罩进去**。
-                以前是从那一行下面开始的（top 加了 TOOL_ROW_H），于是那一行不变暗，
-                看着像漏了一块。按钮那一行本身在 z-[46]、高于这层 z-[45]，
-                所以按钮不会被压暗、也照旧能点。 */}
+            {
+}
             <motion.div
               key="res-mask"
               data-res-mask

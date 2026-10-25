@@ -23,7 +23,6 @@ export default function MusicPage() {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ================= 歌词解析器 =================
   const parsedLyrics = useMemo(() => {
     if (!currentSong) return [];
     if (Array.isArray(currentSong.lyrics) && currentSong.lyrics.length > 0) return currentSong.lyrics;
@@ -114,7 +113,6 @@ export default function MusicPage() {
 
   return (
     <div className="min-h-screen relative pb-10 flex flex-col">
-      {/* 动态背景 */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-[-10%] bg-cover bg-center transition-all duration-1000 blur-[50px] opacity-40 dark:opacity-20 saturate-150" style={{ backgroundImage: `url(${songCover})` }} />
         <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-sm" />
@@ -131,7 +129,6 @@ export default function MusicPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full items-stretch h-[calc(100vh-250px)] min-h-[600px]">
 
-            {/* ================= 左侧：控制台 ================= */}
             <div className="md:col-span-5 h-full flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl p-10 relative overflow-hidden transition-all duration-500">
               <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden">
                 <div className="relative w-56 h-56 lg:w-72 lg:h-72 flex-shrink-0 aspect-square mb-10 flex items-center justify-center">
@@ -158,10 +155,8 @@ export default function MusicPage() {
                   <button onClick={togglePlayMode} className="p-2 transition-transform hover:scale-110">{getPlayModeIcon()}</button>
                   <div className="flex items-center gap-4 lg:gap-6">
                     <button onClick={prevSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipBack size={36} fill="currentColor" /></button>
-                    {/* 播放/暂停图标 36（比原来 32 大 4 → 三角墨迹 20→22.5px，+2.5px）。
-                        lucide v1.7.0 的 Play 本身就是圆角三角，墨迹横向 5→20.008，
-                        几何居中 = -2.1%，按实机手感取值 +1.9%。
-                        ⚠️ 这个组件当前没有任何地方 import，改了看不到效果，只为与其它播放器保持一致。 */}
+                    {
+}
                     <button onClick={togglePlay} className="w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-105 shadow-xl shadow-indigo-500/40">{isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ transform: 'translateX(1.9%)' }} />}</button>
                     <button onClick={nextSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipForward size={36} fill="currentColor" /></button>
                   </div>
@@ -179,7 +174,6 @@ export default function MusicPage() {
               </div>
             </div>
 
-            {/* ================= 右侧：面板 (彻底解决割裂线) ================= */}
             <div className="md:col-span-7 h-full flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl relative transition-colors duration-700 overflow-hidden">
               <div className="flex items-center justify-center gap-1 p-1 mt-6 mx-auto bg-white/50 dark:bg-slate-900/50 rounded-full shadow-inner border border-white/40 w-64 z-20 shrink-0">
                 <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-2 rounded-full font-black text-[13px] transition-all ${activeTab === 'lyrics' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-500'}`}>歌词</button>
@@ -190,7 +184,6 @@ export default function MusicPage() {
                 {activeTab === 'lyrics' && (
                   <div className="absolute inset-0 flex flex-col h-full animate-in fade-in duration-300">
 
-                    {/* 🌟 核心修复 1：使用 CSS Mask 替代颜色遮罩，彻底杜绝割裂线 */}
                     <div
                       ref={lyricContainerRef}
                       className="h-full overflow-y-auto no-scrollbar scroll-smooth relative px-6 lyric-mask-container"
@@ -204,7 +197,6 @@ export default function MusicPage() {
                                     className={`transition-all duration-700 cursor-pointer px-4 rounded-2xl ${isActive ? 'opacity-100 scale-105 py-2 bg-white/10' : 'opacity-20 hover:opacity-40'}`}
                                     onClick={() => duration > 0 && handleSeek({ target: { value: String((line.time / duration) * 100) } } as any)}
                                   >
-                                    {/* 🌟 核心修复 2：字体字号缩小，显得更精致 */}
                                     <p className={`font-black tracking-tight leading-relaxed transition-all duration-700 ${
                                       isActive 
                                       ? 'text-lg md:text-xl text-indigo-600 dark:text-indigo-400' 
@@ -268,7 +260,6 @@ export default function MusicPage() {
             </div>
           </div>
 
-          {/* 留言板 */}
           <div className="mt-12 mb-20 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700 relative">
              <div className="px-8 md:px-16 py-12 relative">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-300/50 dark:border-slate-700 pb-6">
@@ -289,7 +280,6 @@ export default function MusicPage() {
         </div>
       </PageTransition>
 
-      {/* 🌟 注入关键 CSS：通过 mask-image 实现上下边缘的真正虚化，彻底干掉割裂线 */}
       <style jsx global>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }

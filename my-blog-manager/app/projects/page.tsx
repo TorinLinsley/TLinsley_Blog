@@ -11,7 +11,6 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen relative pb-20">
       <PageTransition>
-        {/* 📱 只动布局：小屏顶部留白收一档；lg（≥1024px）仍是原来的 mt-28 */}
         <div className="mt-20 lg:mt-28">
           <ProjectsBoard />
         </div>

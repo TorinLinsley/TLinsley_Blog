@@ -1,31 +1,4 @@
 #!/usr/bin/env node
-/**
- * 🔄 无损更新器 —— 更新到仓库最新版，**尽量既拿到新东西、又保住你自己的修改**。
- *
- * 每个文件都会三方比较：
- *
- *     base  = 你上次更新时拿到的原版（存在 .update-baseline/ 里）
- *     mine  = 你本地现在的文件
- *     theirs= 新版里的文件
- *
- *   · mine == theirs        → 已经是最新，跳过
- *   · mine == base          → 你没动过 → 直接用新版覆盖 ✓
- *   · mine != base, theirs == base → 只有你改了、上游没动 → 保持原样 ✓
- *   · mine != base, theirs != base → **双方都改了** → 三方合并 ✓
- *        合并干净 → 直接写入（新改动 + 你的改动都在）✓
- *        真冲突   → 保留你的文件，另外写一份 `<文件名>.merge` 让你手动挑 ✓
- *        （没有 git 或没有 base → 保留你的，另一个版本写成 `<文件名>.new` ✓）
- *
- * 另外：内容（文章/说说/杂谈/资源/工具/图片）、站点配置、data/*.ts、本机配置、node_modules
- * **永远不碰** ✓；覆盖前还会把旧文件备份进 .update-backup-<时间戳>/ ✓
- *
- * 用法：
- *   node scripts/update.mjs                  # 从 GitHub 更新
- *   node scripts/update.mjs --dry-run        # 只预览，不改文件
- *   node scripts/update.mjs --from <目录>     # 从本地目录更新（离线 / 自测）
- *   node scripts/update.mjs --repo 用户/仓库 --branch main
- *   node scripts/update.mjs --write-manifest # 维护者：发布前刷新 .update-manifest.json
- */
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -33,23 +6,15 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
-/** 你的仓库（分叉出去就改这里，或用 --repo 传） */
 let REPO = 'TorinLinsley/TLinsley_Blog';
 let BRANCH = 'main';
 
 const MANIFEST_NAME = '.update-manifest.json';
 const BASELINE_DIR = '.update-baseline';
 
-// ───────────────────────── 永远不碰的东西 ─────────────────────────
 
-/**
- * 任何一层目录叫这些名字就整体跳过。
- * ⚠️ 必须按"路径里的段"判断，不能只判根目录 —— 子项目里的
- *    `TLBlog/node_modules`、`my-blog-manager/.next` 同样要排除 ✗
- */
 const NEVER_SEGMENTS = new Set(['node_modules', '.next', '.git']);
 
-/** 目录前缀：内容、运行时数据（相对仓库根） */
 const NEVER_DIRS = [
   'TLBlog/posts',
   'TLBlog/chatters',
@@ -64,7 +29,6 @@ const NEVER_DIRS = [
   'my-blog-manager/manager_data',
 ];
 
-/** 精确路径：用户配置 / 密钥 / 本机相关 */
 const NEVER_FILES = new Set([
   'TLBlog/siteConfig.ts',
   'TLBlog/app/about/about.md',
@@ -88,7 +52,7 @@ const NEVER_FILES = new Set([
   '.lock-hash',
 ]);
 
-const MIRROR_MAX_BYTES = 1024 * 1024; // base 镜像只留 1MB 以内的文件（大文件走 .new 兜底）
+const MIRROR_MAX_BYTES = 1024 * 1024;
 
 const rel = (p) => p.split(path.sep).join('/');
 const log = (...a) => console.log(...a);
@@ -102,15 +66,7 @@ function isNever(r) {
   return NEVER_DIRS.some((d) => r === d || r.startsWith(d + '/'));
 }
 
-// ───────────────────────── 基础工具 ─────────────────────────
 
-/**
- * 算文件指纹。
- *
- * ⚠️ 文本文件先把 CRLF 归一成 LF 再算 —— 否则 Windows 上 `core.autocrlf=true`
- *    会把工作区文件换成 CRLF，而仓库/压缩包里是 LF，指纹**永远对不上**，
- *    更新器就会误以为"每个文件你都改过"，什么都不更新 ✗
- */
 function fileHash(file) {
   const buf = fs.readFileSync(file);
   const isText = !buf.includes(0);
@@ -147,11 +103,6 @@ function readManifest(root) {
   }
 }
 
-/**
- * 生成基线清单。
- * ⚠️ fromRoot 必须是**新版源码**（src.root），绝不能传用户自己的目录 ✗ ——
- *    从用户目录生成的话，等于把他改过的内容记成"原版"，下次更新就会把他的改动覆盖掉 ✗✗
- */
 function writeManifest(fromRoot, toDir) {
   const files = {};
   for (const r of listUpdatable(fromRoot)) files[r] = fileHash(path.join(fromRoot, r));
@@ -160,7 +111,6 @@ function writeManifest(fromRoot, toDir) {
   return Object.keys(files).length;
 }
 
-/** 把一份源码里"可更新"的文件镜像成 base，供下次合并用 */
 function refreshBaseline(root, srcRoot) {
   const dir = path.join(root, BASELINE_DIR);
   fs.rmSync(dir, { recursive: true, force: true });
@@ -189,12 +139,6 @@ function hasGit() {
   return _git;
 }
 
-/**
- * 三方合并：mine + base + theirs → mine
- * 返回 'clean'（干净合并）| 'conflict'（有冲突，结果写进 <file>.merge）| null（做不了）
- *
- * ⚠️ 三个输入先归一成 LF（Windows 工作区可能是 CRLF，不归一的话 git 会认为"整篇都改了"✗）
- */
 function mergeFile(mineFile, baseFile, theirsFile) {
   if (!hasGit() || !fs.existsSync(baseFile)) return null;
 
@@ -220,26 +164,22 @@ function mergeFile(mineFile, baseFile, theirsFile) {
   }
 
   if (conflicts === 0) {
-    fs.copyFileSync(tmpMine, mineFile); // 合并结果落到正式文件（LF）
+    fs.copyFileSync(tmpMine, mineFile);
     fs.rmSync(tmpDir, { recursive: true, force: true });
     return 'clean';
   }
-  // 有冲突：带冲突标记的结果另存为 <文件>.merge，正式文件保持你的版本不动
   fs.copyFileSync(tmpMine, mineFile + '.merge');
   fs.rmSync(tmpDir, { recursive: true, force: true });
   return 'conflict';
 }
 
-// ───────────────────────── 本次更新改了什么 ─────────────────────────
 
-/** 粗略统计文本文件行数（给"新增文件"用） */
 function countLines(file) {
   const buf = fs.readFileSync(file);
-  if (buf.includes(0)) return 0; // 二进制不算行
+  if (buf.includes(0)) return 0;
   return buf.toString('utf8').split('\n').length;
 }
 
-/** 两个文件的增删行数：优先用 git（精确），没有 git 就按行集合粗略估 */
 function diffStat(a, b) {
   const isText = (f) => !fs.readFileSync(f).includes(0);
   if (hasGit() && isText(a) && isText(b)) {
@@ -247,7 +187,7 @@ function diffStat(a, b) {
       const line = String(out).split('\n').find((x) => x.trim());
       if (!line) return null;
       const [add, del] = line.split('\t');
-      if (add === undefined || add === '-') return null; // 二进制
+      if (add === undefined || add === '-') return null;
       return { add: Number(add) || 0, del: Number(del) || 0 };
     };
     try {
@@ -256,7 +196,7 @@ function diffStat(a, b) {
         stdio: ['ignore', 'pipe', 'ignore'],
       }));
     } catch (e) {
-      const r = parse(e.stdout || ''); // 有差异时退出码是 1，输出还在 stdout
+      const r = parse(e.stdout || '');
       if (r) return r;
     }
   }
@@ -268,13 +208,6 @@ function diffStat(a, b) {
   return { add: lb.filter((x) => !sa.has(x)).length, del: la.filter((x) => !sb.has(x)).length };
 }
 
-/**
- * 上游相比"你手上的版本"改了什么。
- *
- * 基线哈希优先取**内容镜像**（.update-baseline/，能做行数统计 + 三方合并）；
- * 没有镜像时退回清单里的哈希（`.update-manifest.json`，仓库自带 ✓）——
- * 这样**第一次更新**的人也能看到"这次改了什么"的清单，只是没有 +N/-N 行数 ✓
- */
 function upstreamChangelog(srcRoot, baseDir, manifest) {
   const rows = [];
   for (const r of listUpdatable(srcRoot)) {
@@ -300,7 +233,6 @@ function upstreamChangelog(srcRoot, baseDir, manifest) {
   return rows;
 }
 
-// ───────────────────────── 拿新版源码 ─────────────────────────
 
 function downloadSource() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tlblog-update-'));
@@ -329,7 +261,6 @@ function downloadSource() {
   return { root: path.join(unpack, top[0]), cleanup: () => fs.rmSync(tmp, { recursive: true, force: true }) };
 }
 
-// ───────────────────────── 参数 ─────────────────────────
 
 const argv = process.argv.slice(2);
 const opt = (name) => {
@@ -371,7 +302,6 @@ if (has('--write-manifest')) {
 log('\n🔄 TLinsleyBlog 无损更新\n');
 log(`   项目目录：${ROOT}`);
 
-// 1) 新版从哪来
 const from = opt('--from');
 let src;
 if (from) {
@@ -399,23 +329,21 @@ if (!manifest && !hasBaseline) {
   log('   这次改了什么能列出来 ✓ 但行数统计、自动三方合并要下次才有 ✓\n');
 }
 
-// ⚠️ 清单必须在**刷新基线之前**算 —— 基线一刷新就等于拿新版跟自己比，永远是"没有新改动" ✗
 const hasAnyBaseline = hasBaseline || !!manifest;
 const changelog = hasAnyBaseline ? upstreamChangelog(src.root, baseDir, manifest) : [];
 const changedRows = changelog.filter((x) => x.kind === 'mod');
 const addedRows = changelog.filter((x) => x.kind === 'add');
 
-// 2) 逐文件决定
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const backupDir = path.join(ROOT, `.update-backup-${stamp}`);
 
 const added = [];
 const updated = [];
 const same = [];
-const onlyMine = []; // 只有你改了，上游没动
-const merged = []; // 双方都改，自动合并成功
-const conflicted = []; // 双方都改，冲突了（留 .merge）
-const keptMine = []; // 双方都改，但没法合并（留 .new）
+const onlyMine = [];
+const merged = [];
+const conflicted = [];
+const keptMine = [];
 
 for (const r of listUpdatable(src.root)) {
   const srcFile = path.join(src.root, r);
@@ -441,13 +369,11 @@ for (const r of listUpdatable(src.root)) {
   const localTouched = baseHash ? localHash !== baseHash : false;
   const upstreamTouched = baseHash ? newHash !== baseHash : true;
 
-  // 你改过、上游没动 → 保持原样
   if (localTouched && !upstreamTouched) {
     onlyMine.push(r);
     continue;
   }
 
-  // 双方都改了 → 尝试三方合并
   if (localTouched && upstreamTouched) {
     if (dryRun) {
       merged.push(r);
@@ -462,13 +388,11 @@ for (const r of listUpdatable(src.root)) {
       conflicted.push(r);
       continue;
     }
-    // 没 git / 没 base → 保留本地，新版另存 .new
     fs.copyFileSync(srcFile, dstFile + '.new');
     keptMine.push(r);
     continue;
   }
 
-  // 走 here：上游改了、你这边==base（或没基线）→ 覆盖
   updated.push(r);
   if (!dryRun) {
     const bak = path.join(backupDir, r);
@@ -478,19 +402,16 @@ for (const r of listUpdatable(src.root)) {
   }
 }
 
-// 3) 刷新基线 + 清单
 if (!dryRun) {
   const srcManifest = path.join(src.root, MANIFEST_NAME);
   if (fs.existsSync(srcManifest)) fs.copyFileSync(srcManifest, path.join(ROOT, MANIFEST_NAME));
-  else writeManifest(src.root, ROOT); // 新版没带清单 → 从**新版**生成（不能从用户目录生成 ✗）
+  else writeManifest(src.root, ROOT);
   const n = refreshBaseline(ROOT, src.root);
   log(`\n   基线已刷新（${n} 个文件）`);
 }
 
-// 4) 汇总"你这边"的情况
 const touched = onlyMine.length + merged.length + conflicted.length + keptMine.length;
 
-// 5) 报告
 log('');
 log('════════════ 本次更新内容（上游相比你手上的版本）════════════');
 if (!hasAnyBaseline) {

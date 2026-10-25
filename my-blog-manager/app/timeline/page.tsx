@@ -5,15 +5,8 @@ import PageTransition from '../../components/PageTransition';
 import { siteConfig } from '../../siteConfig';
 import TimelineClient from '../../components/TimelineClient';
 
-// 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-// ⚡ 改成 ISR（静态化 + 30 秒刷新）——只对**只读**页面这么干 ✓
-//   以前 force-dynamic → 每次切页都要服务端现渲染（实测首字节 1.155 秒 ✗）而且无法预取 ✗
-//   现在静态化 → 悬停预取 ✓ 切页几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（看数据够用 ✓）
-//   ⚠️ 编辑页（posts/[slug]、chatter/[slug]）**故意保持动态** ✗ 那里必须永远看到最新数据 ✓
 export const revalidate = 30;
 
-// 🏷️ 标签页标题：栏目页 = 「栏目名 | 站点名」（和导航栏、其它栏目页同一套规则）
 export const metadata = {
   title: "归档与探索 | " + siteConfig.title,
 };
@@ -31,7 +24,6 @@ export default function Timeline() {
         const slug = fileName.replace(/\.md$/, '');
         const fullPath = path.join(postsDirectory, fileName);
 
-        // 🌟 核心清理：不再读取物理状态 (stats)，彻底抛弃 mtime
         const fileContents = fs.readFileSync(fullPath, 'utf8');
         const { data } = matter(fileContents);
 
@@ -48,14 +40,11 @@ export default function Timeline() {
           description: data.description || '',
           tags: postTags,
           cover: data.cover || siteConfig.defaultPostCover,
-          // 删除了坑人的 mtime
         });
       });
 
-      // 🌟 核心修复：权重排序 -> YAML 精确日期第一，slug 字母表第二
       posts.sort((a, b) => {
         const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
-        // 如果两篇文章的日期和时分秒完全一样，按文件名排序兜底，确保在任何服务器上顺序一致
         return dateDiff !== 0 ? dateDiff : b.slug.localeCompare(a.slug);
       });
     }

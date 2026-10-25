@@ -2,15 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// 🌟 引入了新的图标 Camera, Users, Sprout
 import { MessageCircleHeart, ChevronLeft, ChevronRight, BookOpen, ScrollText, Coffee, FileText, Sparkles, Award, Shield, X, Grid, LockKeyhole, Camera, Users, Sprout } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-// 🌟 引入定制的无干扰留言板组件与站点配置
 import LabComments from '../../components/LabComments';
 import { siteConfig } from '../../siteConfig';
 
-// 🌟 引入相册与友链数据以统计徽章 (请确保路径正确，如果报错请调整 ../ 的数量)
 import { albums } from '../../data/albums';
 import { friendsData } from '../../data/friends';
 
@@ -19,11 +16,7 @@ function seededRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-// ==========================================
-// 🌟 0. 炼金六边形徽章组件 (HexBadge) 满血特效版
-// ==========================================
 const HexBadge = ({ badge, locked = false }: any) => {
-  // 1~10阶 材质与动画特效
   const tierStyles: Record<number, string> = {
     1: 'from-[#5d4037] to-[#8d6e63] border-[#4e342e] text-[#d7ccc8] shadow-[0_0_8px_#5d403744]',
     2: 'from-[#475569] to-[#94a3b8] border-[#334155] text-[#f1f5f9] shadow-[0_0_10px_#64748b66] bg-[length:200%_200%] animate-[hex-shine_6s_infinite_ease-in-out]',
@@ -42,7 +35,6 @@ const HexBadge = ({ badge, locked = false }: any) => {
 
   return (
     <div className="relative group cursor-pointer flex justify-center z-10 hover:z-50">
-      {/* 徽章本体：未解锁则变成灰色封印状态 */}
       <div
         className={`w-[52px] h-[60px] flex items-center justify-center ${badge.colorTier !== 10 ? 'bg-gradient-to-br' : ''} ${bgStyle} border-2 transition-all duration-300 ${locked ? 'grayscale brightness-50 opacity-60' : 'group-hover:scale-110 group-hover:-translate-y-1 group-hover:brightness-110'}`}
         style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
@@ -51,7 +43,6 @@ const HexBadge = ({ badge, locked = false }: any) => {
         {locked && <LockKeyhole size={16} className="absolute text-[#e8e4d9] opacity-80" />}
       </div>
 
-      {/* 悬浮提示框 */}
       <div className="absolute top-[115%] left-1/2 -translate-x-1/2 px-4 py-2.5 bg-[#1a110b]/95 border border-[#8b6b4a]/60 rounded-xl text-[11px] font-bold text-[#e8e4d9] tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex flex-col items-center min-w-[120px]">
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#1a110b] border-t border-l border-[#8b6b4a]/60 rotate-45" />
         <span className="text-[#8b6b4a] text-[10px] mb-1 uppercase border-b border-[#8b6b4a]/30 pb-1 w-full text-center">{badge.typeLabel}</span>
@@ -62,9 +53,6 @@ const HexBadge = ({ badge, locked = false }: any) => {
   );
 };
 
-// ==========================================
-// 🌟 1. 魔法信息卡片组件
-// ==========================================
 const MagicTooltip = ({ title, type, content, author, color }: any) => (
   <motion.div
     initial={{ opacity: 0, y: -10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: 0.9 }}
@@ -101,9 +89,6 @@ const MagicTooltip = ({ title, type, content, author, color }: any) => (
   </motion.div>
 );
 
-// ==========================================
-// 🌟 2. 交互式玻璃药水瓶
-// ==========================================
 const LiquidFlask = ({ item, router }: { item: any; router: any }) => {
   const [isHovered, setIsHovered] = useState(false);
   const colorMap: Record<string, string> = { post: '#3b82f6', chatter: '#f59e0b', moment: '#10b981' };
@@ -156,9 +141,6 @@ const LiquidFlask = ({ item, router }: { item: any; router: any }) => {
   );
 };
 
-// ==========================================
-// 🌟 3. 便利贴纸
-// ==========================================
 const StickyNote = ({ note }: { note: any }) => {
   const [isHovered, setIsHovered] = useState(false);
   return (
@@ -176,25 +158,17 @@ const StickyNote = ({ note }: { note: any }) => {
   );
 };
 
-// ==========================================
-// 🌟 4. 核心实验室组件 (完全体)
-// ==========================================
 export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: any) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const [realWishes, setRealWishes] = useState<any[]>([]);
 
-  // 控制图鉴面板的开关
   const [showCatalog, setShowCatalog] = useState(false);
 
-  // =========================================================
-  // 🌟 终极 RPG 经验结算与全图鉴徽章生成系统 (兼容照片与友链)
-  // =========================================================
   const rpgStats = useMemo(() => {
     if (siteConfig?.enableLevelSystem !== true) return null;
 
-    // 统计照片与友链 (纯发徽章，不加经验)
     const totalPhotos = (albums || []).reduce((acc: number, curr: any) => acc + (curr.photos?.length || 0), 0);
     const totalFriends = (friendsData || []).length;
 
@@ -255,13 +229,9 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
     }
     const progressPercent = ((remainingExp / expNeededForNextLevel) * 100).toFixed(1);
 
-    // ==========================================
-    // 🛡️ 全图鉴生成器 (显式配置，精准控制)
-    // ==========================================
     const allCatalogBadges: any[] = [];
     const ownedIds = new Set();
 
-    // 1. 等级徽章配置 (1~50级满，10个阶段)
     const levelConfig = [
       { num: 1, tier: 1, title: '见习术士' }, { num: 2, tier: 2, title: '初级刻印' },
       { num: 3, tier: 3, title: '魔药调配员' }, { num: 5, tier: 4, title: '矩阵构筑师' },
@@ -275,7 +245,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
       if (level >= conf.num) ownedIds.add(id);
     });
 
-    // 2. 深度文章 & 杂谈随笔配置 (10~500篇满，10个阶段)
     const postChatterConfig = [
       { num: 10, tier: 2, title: '初学乍练' }, { num: 50, tier: 3, title: '渐入佳境' },
       { num: 100, tier: 4, title: '百篇达成' }, { num: 150, tier: 5, title: '笔耕不辍' },
@@ -293,7 +262,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
       if (chatters.length >= conf.num) ownedIds.add(idChatter);
     });
 
-    // 3. 瞬间思绪配置 (10~800篇满，10个阶段)
     const momentConfig = [
       { num: 10, tier: 2, title: '初次碎念' }, { num: 50, tier: 3, title: '活跃思维' },
       { num: 100, tier: 4, title: '百念连结' }, { num: 200, tier: 5, title: '二百瞬息' },
@@ -307,7 +275,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
       if (moments.length >= conf.num) ownedIds.add(id);
     });
 
-    // 4. 照片墙配置 (10~100张满，3个阶段)
     const photoConfig = [
       { num: 10, tier: 3, title: '光影初现' },
       { num: 50, tier: 6, title: '时光捕手' },
@@ -319,7 +286,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
       if (totalPhotos >= conf.num) ownedIds.add(id);
     });
 
-    // 5. 友链配置 (10~50个满，3个阶段)
     const friendConfig = [
       { num: 10, tier: 3, title: '初结羁绊' },
       { num: 20, tier: 6, title: '高朋满座' },
@@ -440,19 +406,14 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
         @keyframes hex-shine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
       `}} />
 
-      {/* ========================================== */}
-      {/* 🌟 魔法资质档案板与荣耀徽章墙 */}
-      {/* ========================================== */}
       {rpgStats && (
         <div className="w-full max-w-5xl mb-8 px-4 z-40 flex flex-col gap-4 relative">
 
-          {/* 上半部：资质档案板 */}
           <div className="bg-[#231a16]/90 backdrop-blur-md px-6 py-5 rounded-3xl border-2 border-[#8b6b4a]/60 shadow-[0_5px_25px_rgba(0,0,0,0.6)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-visible group z-50">
             <div className="absolute -right-16 -top-16 text-[#8b6b4a]/10 opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none rotate-12">
               <Sparkles size={200} strokeWidth={0.5} />
             </div>
 
-            {/* 左侧：等级与头衔 */}
             <div className="flex items-center gap-4 z-10 w-full md:w-auto">
               <div className="relative flex items-center justify-center w-14 h-14 bg-[#1a110b] rounded-full border-[3px] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
                 <span className="text-[#d4af37] text-[10px] absolute top-1.5 font-black">Lv.</span>
@@ -466,7 +427,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
               </div>
             </div>
 
-            {/* 中间：鎏金经验条 */}
             <div className="flex-1 w-full md:max-w-md flex flex-col z-10">
               <div className="flex justify-between items-end mb-2 px-1">
                 <span className="text-[#d4af37] text-xs font-black tracking-widest uppercase">Experience</span>
@@ -484,7 +444,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
               </div>
             </div>
 
-            {/* 右侧：今日结算面板 (带悬浮明细) */}
             <div className="flex items-center gap-6 z-20 md:border-l border-[#8b6b4a]/30 md:pl-6 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 mt-2 md:mt-0 relative group/tooltip cursor-help">
               <div className="flex flex-col items-center flex-1 md:flex-none">
                 <span className="text-[#8b6b4a] text-[10px] font-bold tracking-widest mb-1 border-b border-dashed border-[#8b6b4a]/50">今日研习</span>
@@ -513,7 +472,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
             </div>
           </div>
 
-          {/* 下半部：荣誉徽章墙 (🌟 修复层级，确保被 Tooltip 盖住) */}
           <div className="bg-[#231a16]/80 backdrop-blur-md px-6 py-5 rounded-3xl border border-[#8b6b4a]/40 shadow-[0_5px_20px_rgba(0,0,0,0.5)] relative z-10">
             <div className="flex justify-between items-center mb-4 border-b border-[#8b6b4a]/30 pb-2">
               <h3 className="text-[#d4af37] font-black tracking-widest text-sm uppercase flex items-center gap-2">
@@ -532,9 +490,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
             </div>
           </div>
 
-          {/* ========================================== */}
-          {/* 🌟 全图鉴 Modal 面板 (含照片与友链扩展区) */}
-          {/* ========================================== */}
           <AnimatePresence>
             {showCatalog && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -594,7 +549,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
                       ))}
                     </div>
 
-                    {/* 🌟 新增：光影回忆徽章区 */}
                     <div className="flex items-center gap-4 mt-16 mb-8">
                       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#8b6b4a]/50 to-transparent" />
                       <span className="text-[#8b6b4a] text-xs font-black tracking-widest uppercase flex items-center gap-2"><Camera size={14} /> 光影回忆徽章 (满破 100张)</span>
@@ -606,7 +560,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
                       ))}
                     </div>
 
-                    {/* 🌟 新增：羁绊结弦徽章区 */}
                     <div className="flex items-center gap-4 mt-16 mb-8">
                       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#8b6b4a]/50 to-transparent" />
                       <span className="text-[#8b6b4a] text-xs font-black tracking-widest uppercase flex items-center gap-2"><Users size={14} /> 羁绊结弦徽章 (满破 50人)</span>
@@ -626,7 +579,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
         </div>
       )}
 
-      {/* 原本的数据仪表盘与月份切换 */}
       <div className="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center gap-6 mb-12 px-4">
         <div className="flex items-center bg-[#231a16]/90 backdrop-blur-md px-6 py-3 rounded-2xl border-2 border-[#8b6b4a] shadow-[0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden">
           <AnimatePresence mode="popLayout">
@@ -667,7 +619,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
         </div>
       </div>
 
-      {/* 药水瓶书架区域 */}
       <div className="w-full relative z-0">
         <AnimatePresence mode="wait">
           <motion.div key={currentMonthStr} initial={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: 1.05, filter: 'blur(4px)' }} transition={{ duration: 0.4, ease: "easeInOut" }} className="w-full flex flex-col items-center pb-10">
@@ -686,7 +637,6 @@ export default function AlchemyLab({ posts = [], chatters = [], moments = [] }: 
         </AnimatePresence>
       </div>
 
-      {/* 留言区域 */}
       <div className="w-full max-w-4xl mx-auto mt-10 mb-16 px-4">
          <h2 className="text-xl font-black text-[#8b6b4a] mb-2 font-serif text-center uppercase tracking-widest border-b border-[#8b6b4a]/30 pb-4">
             「 {formattedMonth} 的访客留言簿 」

@@ -40,7 +40,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
   const processedMoments = useMemo(() => {
     let baseMoments = moments ? [...moments] : [];
 
-    // 拦截并在顶层混合暂缓队列的数据
     const pendingMoments = operations
       .filter(op => op.type === 'create_moment')
       .map(op => ({
@@ -67,7 +66,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
     return result;
   }, [moments, searchQuery, sortOrder, operations]);
 
-  /** 🖼️ 点开大图：统一交给 components/ImageZoom.tsx 那一套浏览器（和正文图片完全同一套交互） */
   const openLightbox = (images: string[], idx: number) => {
     const gallery = (images || []).filter(Boolean).map((src) => ({ src, alt: '' }));
     if (!gallery.length) return;
@@ -77,7 +75,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
   const handleFileUpload = async (files: FileList | File[]) => {
     const picUrl = (siteConfig as any).picBedUrl || "https://pic.dusays.com";
     const picToken = (siteConfig as any).picBedToken;
-    // 🖥️ 没配置图床 Token 时自动改用本地图库（存进博客 public/uploads），不再拦人
     const useLocal = !picToken;
     setIsUploading(true);
     showToast(useLocal ? `正在存入本地图库 ${files.length} 张图片...` : `正在上传 ${files.length} 张图片...`, "info");
@@ -276,7 +273,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
     );
   };
 
-  // 🌟 将卡片渲染抽象为一个函数，方便分列渲染
   const renderMomentCard = (moment: any) => (
     <motion.div
       key={moment.id}
@@ -287,14 +283,12 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
       transition={{ duration: 0.4, type: 'spring', stiffness: 100 }}
       className="flex flex-col bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-xl border border-white/40 dark:border-white/10 p-8 md:p-10 transition-shadow hover:shadow-2xl overflow-hidden relative group w-full"
     >
-      {/* 霓虹队列状态提示 */}
       {moment.isPending && (
         <div className="absolute top-0 left-0 w-full bg-amber-500/10 text-amber-600 dark:text-amber-400 py-1.5 flex justify-center items-center gap-2 text-[10px] font-black tracking-widest uppercase border-b border-amber-500/20 backdrop-blur-md z-10">
           <Clock size={12} className="animate-pulse" /> 等待更新至本地
         </div>
       )}
 
-      {/* 悬浮删除按钮：📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
       <button
         onClick={() => handleDeleteClick(moment)}
         className={`absolute ${moment.isPending ? 'top-10' : 'top-6'} right-6 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all duration-300 shadow-sm z-10`}
@@ -311,8 +305,8 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
           <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-1"><Clock size={12} /> {timeAgo(moment.date)}</div>
         </div>
       </div>
-      {/* 📝 正文按 Markdown 渲染（列表/加粗/代码/链接都正常）——
-          用户 2026-10-22 反馈：写 `- 站外链接…` 结果减号没了，因为以前是纯文本 + 去标记 ✗ */}
+      {
+}
       {moment.contentHtml ? (
         <div
           className="moment-content prose prose-sm max-w-none text-slate-800 dark:text-slate-200 text-[16px] leading-relaxed font-medium break-words"
@@ -381,17 +375,14 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         </div>
       </div>
 
-      {/* 🌟 完美的 Flexbox 分列瀑布流！彻底告别错位和缝隙！ */}
       <LayoutGroup>
         {processedMoments.length > 0 ? (
           <div className="flex flex-col md:flex-row gap-8 pb-32 w-full items-start">
-            {/* 左列 */}
             <div className="flex-1 flex flex-col gap-8 w-full min-w-0">
               <AnimatePresence mode='popLayout'>
                 {processedMoments.filter((_, i) => i % 2 === 0).map(moment => renderMomentCard(moment))}
               </AnimatePresence>
             </div>
-            {/* 右列 */}
             <div className="flex-1 flex flex-col gap-8 w-full min-w-0">
               <AnimatePresence mode='popLayout'>
                 {processedMoments.filter((_, i) => i % 2 === 1).map(moment => renderMomentCard(moment))}
@@ -412,7 +403,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         )}
       </LayoutGroup>
 
-      {/* 发布弹窗 */}
       <AnimatePresence>
         {isPublishOpen && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -567,7 +557,6 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         )}
       </AnimatePresence>
 
-      {/* 🖼️ 灯箱已经统一交给 components/ImageZoom.tsx（全站一套：底部箭头、滑动翻页、滚轮/捏合缩放） */}
 
     </div>
   );

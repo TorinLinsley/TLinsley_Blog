@@ -5,7 +5,6 @@ import PageTransition from '../../components/PageTransition';
 import ChatterBoard from './ChatterBoard';
 import { siteConfig } from '../../siteConfig';
 
-// 🌟 卡片预览也走「和杂谈详情页同一套」渲染管线（带 callout / 代码语言标记）
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -16,18 +15,11 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../lib/hljsLanguages';
 import rehypeCodeLang from '../../lib/rehypeCodeLang';
 import rehypeCallout from '../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import rehypeKatex from 'rehype-katex';
 import 'highlight.js/styles/atom-one-dark.css';
 
-// 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-// ⚡ 改成 ISR（静态化 + 30 秒刷新）——只对**只读**页面这么干 ✓
-//   以前 force-dynamic → 每次切页都要服务端现渲染（实测首字节 1.155 秒 ✗）而且无法预取 ✗
-//   现在静态化 → 悬停预取 ✓ 切页几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（看数据够用 ✓）
-//   ⚠️ 编辑页（posts/[slug]、chatter/[slug]）**故意保持动态** ✗ 那里必须永远看到最新数据 ✓
 export const revalidate = 30;
 
 export const metadata = {
@@ -35,21 +27,11 @@ export const metadata = {
   description: "日常碎片与灵感记录",
 };
 
-/**
- * 卡片里的正文预览渲染。
- *
- * 以前卡片是直接把 Markdown 原文当纯文本显示，所以 `> [!info] 标题`
- * 会原样露出一串符号（前台和控制台都一样）；
- * 现在按详情页那套管线渲染成 HTML，标注块在卡片里也能显示成带图标的框。
- * 卡片窄，所以 .chatter-preview 里给引用块/callout 留了左右内边距（见 globals.css）。
- */
 async function renderChatterPreview(raw: string) {
   let content = raw.replace(/\r\n/g, '\n');
   content = content.replace(/[\u200B-\u200D\uFEFF]/g, '');
   content = content.replace(/^[ \t]+$/gm, '');
-  // 修复「1.百度」这种没空格导致渲染不成列表的写法
   content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
-  // 连续 3 个以上换行 → 真正的空行（照抄详情页的做法，只是不碰代码块）
   const blocks = content.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g);
   content = blocks
     .map((block, index) => (index % 2 === 1 ? block : block.replace(/\n{3,}/g, (m) => '\n\n' + '<br>'.repeat(m.length - 2) + '\n\n')))
@@ -65,7 +47,7 @@ async function renderChatterPreview(raw: string) {
     .use(rehypeCallout)
     // @ts-ignore
     .use(rehypeHighlight, {
-      detect: false, // 没写语言就保持纯文本：不猜语言、不着色
+      detect: false,
       ignoreMissing: true,
       languages: hljsLanguages,
     })
@@ -96,12 +78,12 @@ export default async function ChatterPage() {
       return {
         slug,
         title: data.title || '',
-        date: data.date || '1970-01-01', // 👇 核心修复：加上日期兜底防崩溃
+        date: data.date || '1970-01-01',
         tags: data.tags || [],
         mood: data.mood || '',
         cover: data.cover || '',
-        content: plain,                                   // 纯文本：搜索用
-        contentHtml: await renderChatterPreview(plain),    // 渲染好的 HTML：卡片预览用
+        content: plain,
+        contentHtml: await renderChatterPreview(plain),
       };
     }));
 

@@ -5,20 +5,18 @@ import Link from 'next/link';
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm'; // 🌟 核心引入：支持删除线和表格等 GFM 语法
+import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../../lib/hljsLanguages';
 import rehypeCodeLang from '../../../lib/rehypeCodeLang';
 import rehypeCallout from '../../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import remarkMath from 'remark-math';
 import remarkHardBreaks from '../../../lib/remarkHardBreaks';
 import rehypeKatex from 'rehype-katex';
 
-// 引入高亮主题
 import 'highlight.js/styles/atom-one-dark.css';
 
 import PageTransition from '../../../components/PageTransition';
@@ -31,15 +29,8 @@ import Comments from '../../../components/Comments';
 import SidebarLyric from '../../../components/SidebarLyric';
 import { extractToc } from '../../../lib/extractToc';
 
-// 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
 export const dynamic = 'force-dynamic';
 
-/**
- * 🏷️ 标签页标题：详情页 = 「文章标题 | 站点名」。
- *
- * 以前这里没有 generateMetadata —— 从「归档与探索」点进一篇文章，标签页开头就什么都不剩了
- * （只剩站点名），和栏目页面对不上。控制台和前台用同一套规则：内容名在最前。
- */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
@@ -70,48 +61,33 @@ async function getPostData(slug: string) {
   const fileContents = fs.readFileSync(fullPath, 'utf8');
   let { data, content } = matter(fileContents);
 
-  // ==========================================
-  // 🌟 前台渲染清洗区：终极防吞换行补丁！
-  // ==========================================
 
-  // 1. 数字列表没写空格时补一个空格（1.百度 -> 1. 百度），好让它真的渲染成列表。
-  //    ⚠️ 但点号后面是**数字**时绝不补 —— 那多半是版本号/小数（1.20.1 : <链接>、1.5倍），
-  //    补完 remark 就当成有序列表，版本号会变成列表序号（前台那个列表 bug 就是这么来的）。
   content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
 
-  // 2. 🌟 拯救被 Markdown 引擎吞噬的“连续空行”！
-  // 统一换行符，并清理纯空格的废弃空行
   content = content.replace(/\r\n/g, '\n').replace(/^[ \t]+$/gm, '');
 
-  // 将代码块切开保护，只处理正文的连续空行！
   const blocks = content.split(/(```[\s\S]*?```)/g);
   content = blocks.map((block, index) => {
-    // 奇数索引是代码块，原样返回，绝对不碰！
     if (index % 2 === 1) return block;
 
-    // 偶数索引是正文。把 3 个以上的连续 \n 替换为真实的 <br/> 标签。
-    // （3 个 \n 相当于中间空了 1 行真正的空白）
     return block.replace(/\n{3,}/g, (match) => {
       const brCount = match.length - 2;
       return '\n\n' + '<br/>'.repeat(brCount) + '\n\n';
     });
   }).join('');
 
-  // ==========================================
 
   const processedContent = await unified()
     .use(remarkParse)
     .use(remarkHardBreaks)
     .use(remarkGfm)
     .use(remarkMath)
-    // 🌟 allowDangerousHtml 必须开启，这样上面生成的 <br/> 才能顺利通过变成真正的换行！
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeCodeLang)
     .use(rehypeCallout)
-    // 语言由作者显式指定（编辑器里每个代码块右上角的下拉）：没写就保持纯文本
     // @ts-ignore
     .use(rehypeHighlight, {
-      detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
+      detect: false,
       ignoreMissing: true,
       languages: hljsLanguages
     })
@@ -151,12 +127,10 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
   return (
     <div className="min-h-screen relative pb-20">
       <PageTransition>
-        {/* ⚠️ 这个 max-w 只管大屏幕：小屏走 w-[95%]/w-[90%]，根本到不了这个上限，行为不变。
-            以前卡在 max-w-6xl(1152px)，中间正文板只有 ~800px；现在放宽到 1900px，
-            1080p 屏上正文板 ≈1376px（约翻一倍）。右侧 aside 固定 320px 不变，
-            两栏继续由 mx-auto 整体水平居中。 */}
-        {/* 📱 小屏只动布局：顶部留白收一档（mt-20），两栏本来就是 flex-col、侧栏自动落到正文下面，
-            长标题加 break-words 防止撑破卡片；从 md 档起仍是原来的 mt-28，大屏不变。 */}
+        {
+}
+        {
+}
         <main className="w-[95%] md:w-[90%] max-w-[1900px] mx-auto mt-20 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
 
           <article className="flex-1 bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px] rounded-3xl shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
@@ -319,12 +293,8 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
               </div>
             </div>
 
-            {/* 大屏：右侧常驻大纲卡片（sticky：滚到导航栏下面就顶住不动）；
-                手机端由下面的 MobileToc 提供右上角按钮 + 抽屉 —— 隐藏手机端的活由
-                ClientTOC 自己（max-lg:hidden）干 ✓
-                ⚠️ 千万**别在这里再套一层 div 来隐藏手机端**：那层 div 会变成 sticky 的
-                   「包含块」，而它的高度正好等于大纲卡片本身 → sticky 顶不动，就变成
-                   跟着页面一起滚了 ✗（这个坑踩过一次） */}
+            {
+}
             {postData.toc.length > 0 && (
               <ClientTOC toc={postData.toc} panelClass="bg-white/60 dark:bg-slate-900/55 backdrop-blur-xl dark:backdrop-blur-[60px]" />
             )}
@@ -332,7 +302,6 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
         </main>
       </PageTransition>
 
-      {/* 手机端：右上角固定的大纲按钮 + 抽屉（复用资源分享页那套大纲，和前端一模一样 ✓） */}
       {postData.toc.length > 0 && <MobileToc contentKey={resolvedParams.slug} />}
     </div>
   );

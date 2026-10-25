@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-#
-# 在**服务器**上装"星辉控制台"（前端 + 后端），让它直接管理服务器上的博客前台目录。
-#
-#   sudo bash setup-console-server.sh
-#
-# 前置：先跑过 setup-server.sh（Node 已装、前台在 /srv/www/tlblog）。
-# 装完访问方式（控制台只监听 127.0.0.1，公网扫不到）：
-#
-#   在你自己的电脑上执行：
-#     ssh -L 3010:127.0.0.1:3010 -L 7646:127.0.0.1:7646 <服务器用户>@<服务器IP>
-#   然后浏览器打开：http://127.0.0.1:3010
-#
-# 内容改动会由控制台的 autosync 直接写进 /srv/www/tlblog，
-# 前台是 force-dynamic（运行时读文件）→ 刷新即见，不用重新构建。
-# 改了代码/样式/siteConfig.ts 才需要：
-#   sudo bash /srv/www/rebuild-if-needed.sh tlblog
 
 set -euo pipefail
 
@@ -61,7 +45,6 @@ with open(path, 'w', encoding='utf-8') as f:
     json.dump(cfg, f, ensure_ascii=False, indent=2)
 print('  已写入', path)
 
-# 前端靠这个文件知道后端端口（服务器上由 systemd 固定跑，直接写死）
 with open(os.path.join(console, 'public', 'backend_config.json'), 'w', encoding='utf-8') as f:
     json.dump({'api_port': int(os.environ.get('API_PORT', '7646'))}, f)
 print('  已写入 public/backend_config.json')
@@ -95,10 +78,10 @@ cat <<EOF
        http://127.0.0.1:3010
 
 常用命令：
-  sudo systemctl restart xhconsole-api xhconsole-web     # 重启控制台
-  journalctl -u xhconsole-api -n 50 -f                   # 看后端日志
-  journalctl -u xhconsole-web -n 50 -f                   # 看前端日志
-  sudo bash /srv/www/rebuild-if-needed.sh tlblog        # 改了前台代码后重建
+  sudo systemctl restart xhconsole-api xhconsole-web
+  journalctl -u xhconsole-api -n 50 -f
+  journalctl -u xhconsole-web -n 50 -f
+  sudo bash /srv/www/rebuild-if-needed.sh tlblog
 
 控制台目录: ${CONSOLE_DIR}
 管的前台:   ${BLOG_DIR}   （内容改完刷新即见，不用重建）

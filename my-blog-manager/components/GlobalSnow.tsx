@@ -8,7 +8,6 @@ export default function GlobalSnow() {
 
   useEffect(() => {
     setMounted(true);
-    // 1. 初始化检查：从 localStorage 读取或检查 body 类名
     const checkWinter = () => {
       const isActive = document.body.classList.contains("winter-mode") || localStorage.getItem("winter-mode") === "true";
       setIsWinter(isActive);
@@ -17,8 +16,6 @@ export default function GlobalSnow() {
 
     checkWinter();
 
-    // 2. 核心魔法：创建一个观察器，监控 body 类名的变化
-    // 这样当 ThemeToggleBlock 修改类名时，这里能实时感应到并开始下雪
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === "class") {
@@ -47,10 +44,8 @@ export default function GlobalSnow() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[190] overflow-hidden">
-      {/* 1. 全局冷色调滤镜 */}
       <div className="absolute inset-0 bg-blue-500/5 dark:bg-blue-900/10 mix-blend-overlay transition-opacity duration-1000" />
 
-      {/* 2. 真正的雪花粒子 */}
       {snowParticles.map((p, i) => (
         <div
           key={i}

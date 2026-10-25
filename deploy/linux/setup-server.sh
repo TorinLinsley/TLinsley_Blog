@@ -1,20 +1,9 @@
 #!/usr/bin/env bash
-#
-# 在**正式服务器**（Ubuntu 22.04，无桌面）上跑一次：把博客前台的运行环境装好。
-#
-#   sudo bash setup-server.sh
-#
-# 做完之后，你在虚拟机里执行 deploy/linux/upload-to-server.sh，文件就会 rsync 过来，
-# 由 /srv/www/rebuild-if-needed.sh 判断"要不要重建"。
-#
-# 幂等：重复跑只会补缺。
 
 set -euo pipefail
 
-# 跑站点的用户：默认用"你 ssh 登录的那个用户"（云服务器常见 root 或 ubuntu），
-# 这样 rsync 上传时权限天然对得上，不用再折腾属主。
 APP_USER="${APP_USER:-${SUDO_USER:-blog}}"
-WORK="${WORK:-/srv/www/tlblog}"      # 博客前台工作目录
+WORK="${WORK:-/srv/www/tlblog}"
 PORT="${PORT:-3000}"
 SERVICE="${SERVICE:-tlblog}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
@@ -45,9 +34,7 @@ fi
 mkdir -p "$WORK"
 chown -R "$APP_USER:$APP_USER" "$WORK"
 
-# 把路径/用户写进 /etc/tlblog.env：以后跑重建脚本不用再带参数
 cat > /etc/tlblog.env <<EOF
-# 由 setup-server.sh 生成；rebuild-if-needed.sh 会自动读取
 APP_USER=${APP_USER}
 WORK=${WORK}
 SERVICE=${SERVICE}
@@ -64,7 +51,6 @@ install -m 644 "$HERE/tlblog.service" "/etc/systemd/system/${SERVICE}.service"
 sed -i "s#__APP_USER__#${APP_USER}#g; s#__WORK__#${WORK}#g; s#__PORT__#${PORT}#g" "/etc/systemd/system/${SERVICE}.service"
 systemctl daemon-reload
 systemctl enable "$SERVICE"
-# 首次还没有代码，先别急着重启失败：有内容了就启
 if [ -f "$WORK/package.json" ]; then
   systemctl restart "$SERVICE"
 fi

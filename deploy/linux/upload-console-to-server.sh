@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-#
-# 在**虚拟机**上执行：把控制台项目同步到服务器，并在服务器上重建 + 重启。
-#
-#   bash upload-console-to-server.sh                 只传代码（日常更新用，内容不动）
-#   bash upload-console-to-server.sh --with-content  第一次：连文章/说说/资源/图片一起传
-#   bash upload-console-to-server.sh --dry-run       只看要传什么
-#
-# ⚠️ 服务器上这几样永远不覆盖（服务器有自己的）：
-#      data/deploy_config.json       （里面记的 blogPath 是服务器的路径）
-#      public/backend_config.json    （后端端口，由服务器固定）
-#      node_modules / .next / .git
-#
-# 前提：server.env 填好了（同 upload-to-server.sh 用同一个文件）。
 
 set -euo pipefail
 
@@ -56,8 +43,8 @@ EXCLUDES=(
   --exclude '.git'
   --exclude '.code-hash'
   --exclude '.lock-hash'
-  --exclude 'data/deploy_config.json'      # 服务器自己的路径配置
-  --exclude 'public/backend_config.json'   # 服务器自己的端口配置
+  --exclude 'data/deploy_config.json'
+  --exclude 'public/backend_config.json'
 )
 
 if [ "$WITH_CONTENT" = "0" ]; then
@@ -74,7 +61,6 @@ else
 fi
 
 echo "==> 同步 $CONSOLE/  →  $SERVER_SSH:$CONSOLE_DIR/"
-# 目标目录先建好（归 blog 用户所有）
 ssh "${SSH_ARGS[@]}" "$SERVER_SSH" "sudo mkdir -p '$CONSOLE_DIR' && sudo chown \$(whoami) '$CONSOLE_DIR'" || true
 
 rsync -az --delete --info=stats1 ${DRY_RUN} \

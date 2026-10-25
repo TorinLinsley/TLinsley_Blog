@@ -1,11 +1,3 @@
-/**
- * 🧭 控制台的导航项 —— **只此一份**。
- *
- * 两个地方共用它：
- *   ① `components/Navbar.tsx`（控制台自己的导航栏）
- *   ② `app/tools/[...file]/route.ts` 在控制台里预览工具网页时注入的那条导航栏
- *      （见前台 public/toolnav.js，两边用的是同一个脚本）
- */
 export const navLinks = [
   { name: '首页', href: '/' },
   { name: '资源分享', href: '/resources' },

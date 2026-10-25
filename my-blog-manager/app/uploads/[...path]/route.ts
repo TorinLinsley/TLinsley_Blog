@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-// 🖥️ 本地图库预览通道
-// 博客里插入的是相对路径 /uploads/xxx.jpg。控制台和博客不同源，
-// 预览时请求会打到控制台自己身上，于是图片是裂的。
-// 这个路由把 /uploads/* 映射到博客项目的 public/uploads 目录，
-// 让控制台（编辑器、设置页）里也能正常看到图。
 
 const MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -33,7 +28,6 @@ async function readBlogPath(): Promise<string> {
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await ctx.params
 
-  // 防目录穿越
   if (
     !segments ||
     segments.length === 0 ||

@@ -3,29 +3,21 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// 【引入你的独立工具模块】
 import CalculatorTool from './toolbox/CalculatorTool';
-// import TomatoClock from './toolbox/TomatoClock'; // 未来扩展预留
 
-// 【核心架构：插件注册表】
-// 以后加新工具，只需要往这个数组里添加对象即可，完全解耦！
 const TOOL_REGISTRY = [
   { id: 'calc', name: '计算器', icon: '🧮', component: <CalculatorTool /> },
-  // { id: 'tomato', name: '番茄钟', icon: '🍅', component: <TomatoClock /> },
 ];
 
 export default function GlobalToolbox() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
 
-  // 获取当前激活的工具对象
   const activeTool = TOOL_REGISTRY.find(t => t.id === activeToolId);
 
   return (
-    /* ↔️ 默认在**左下角**（计算器挪到右边，左边让给猫和悬浮播放器） */
     <div className="fixed bottom-6 left-6 z-[9999] flex flex-col items-start gap-3">
 
-      {/* 展开的面板区域 */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -35,7 +27,6 @@ export default function GlobalToolbox() {
             transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
             className="mb-2 bg-white/70 dark:bg-slate-800/80 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-2xl rounded-3xl p-4 w-64 flex flex-col gap-4 overflow-hidden"
           >
-            {/* 动态渲染：工具箱导航栏 */}
             <div className="flex flex-wrap gap-2 border-b border-slate-300/50 dark:border-slate-700/50 pb-3">
               {TOOL_REGISTRY.map(tool => (
                 <button
@@ -48,15 +39,12 @@ export default function GlobalToolbox() {
               ))}
             </div>
 
-            {/* 动态渲染：激活的工具组件 */}
             <AnimatePresence mode="wait">
               {activeTool ? (
-                // 直接渲染注册表里绑定的独立组件
                 <div key={activeTool.id}>
                   {activeTool.component}
                 </div>
               ) : (
-                // 空状态提醒
                 <motion.div
                   key="empty"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -71,7 +59,6 @@ export default function GlobalToolbox() {
         )}
       </AnimatePresence>
 
-      {/* 悬浮主开关按钮 */}
       <button
         onClick={() => { setIsOpen(!isOpen); if (!isOpen && !activeToolId) setActiveToolId(TOOL_REGISTRY[0].id); }}
         className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 hover:scale-110 active:scale-95 z-50

@@ -5,7 +5,6 @@ import PageTransition from '../../components/PageTransition';
 import ChatterBoard from './ChatterBoard';
 import { siteConfig } from '@/siteConfig';
 
-// 🌟 卡片预览也走「和杂谈详情页同一套」渲染管线（带 callout / 代码语言标记）
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -16,18 +15,12 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../lib/hljsLanguages';
 import rehypeCodeLang from '../../lib/rehypeCodeLang';
 import rehypeCallout from '../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见该文件注释）
 import { repairMarkdown } from '../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import rehypeRepoCard from '../../lib/rehypeRepoCard';
 import rehypeKatex from 'rehype-katex';
 import 'highlight.js/styles/atom-one-dark.css';
 
-// 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
-// ⚡ 改成 ISR（静态化 + 定时刷新）：
-//   以前是 force-dynamic → 每次点击都要等服务端现渲染（首字节约 1 秒 ✗）而且**无法被预取** ✗
-//   现在页面是静态的 → <Link> 的预取生效 ✓ 悬停就取好 ✓ 点下去几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（文章/相册这类"偶尔变一次"的数据完全够 ✓）
 export const revalidate = 30;
 
 
@@ -36,21 +29,11 @@ export const metadata = {
   description: "日常碎片与灵感记录",
 };
 
-/**
- * 卡片里的正文预览渲染。
- *
- * 以前卡片是直接把 Markdown 原文当纯文本显示，所以 `> [!info] 标题`
- * 会原样露出一串符号；现在按详情页那套管线渲染成 HTML，
- * 标注块在卡片里也能显示成带图标的框。
- * 卡片窄，所以 .chatter-preview 里给引用块/callout 留了左右内边距（见 globals.css）。
- */
 async function renderChatterPreview(raw: string) {
   let content = raw.replace(/\r\n/g, '\n');
   content = content.replace(/[\u200B-\u200D\uFEFF]/g, '');
   content = content.replace(/^[ \t]+$/gm, '');
-  // 修复「1.百度」这种没空格导致渲染不成列表的写法
   content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
-  // 连续 3 个以上换行 → 真正的空行（照抄详情页的做法，只是不碰代码块）
   const blocks = content.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g);
   content = blocks
     .map((block, index) => (index % 2 === 1 ? block : block.replace(/\n{3,}/g, (m) => '\n\n' + '<br>'.repeat(m.length - 2) + '\n\n')))
@@ -66,7 +49,7 @@ async function renderChatterPreview(raw: string) {
     .use(rehypeCallout)
     // @ts-ignore
     .use(rehypeHighlight, {
-      detect: false, // 没写语言就保持纯文本：不猜语言、不着色
+      detect: false,
       ignoreMissing: true,
       languages: hljsLanguages,
     })
@@ -79,12 +62,10 @@ async function renderChatterPreview(raw: string) {
 }
 
 export default async function ChatterPage() {
-  // 注意：这里我们假设你的 md 文件放在根目录的 chatters 文件夹里
   const chattersDirectory = path.join(process.cwd(), 'chatters');
   let chatters = [];
 
   try {
-    // 确保文件夹存在
     if (!fs.existsSync(chattersDirectory)) {
       fs.mkdirSync(chattersDirectory);
     }
@@ -95,7 +76,7 @@ export default async function ChatterPage() {
       const slug = fileName.replace(/\.md$/, '');
       const fileContents = fs.readFileSync(path.join(chattersDirectory, fileName), 'utf8');
       const { data, content } = matter(fileContents);
-      const plain = content.replace(/^#+ .*\n/m, ''); // 去除开头的 markdown 标题以优化截取显示
+      const plain = content.replace(/^#+ .*\n/m, '');
 
       return {
         slug,
@@ -104,12 +85,12 @@ export default async function ChatterPage() {
         tags: data.tags || [],
         mood: data.mood || '',
         cover: data.cover || '',
-        content: plain,                                  // 纯文本：搜索用
-        contentHtml: await renderChatterPreview(plain),  // 渲染好的 HTML：卡片预览用
+        content: plain,
+        contentHtml: await renderChatterPreview(plain),
       };
     }));
 
-    chatters = parsed.sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime())); // 按时间倒序
+    chatters = parsed.sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()));
   } catch (e) {
     console.error("读取杂谈文件失败:", e);
   }
@@ -117,7 +98,6 @@ export default async function ChatterPage() {
   return (
     <div className="min-h-screen relative pb-10">
       <PageTransition>
-        {/* 将解析好的数据传递给客户端组件进行瀑布流渲染 */}
         <ChatterBoard chatters={chatters} />
       </PageTransition>
     </div>

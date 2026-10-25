@@ -3,23 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-/**
- * 🧳 「游客昵称」发布框（**不用 GitHub、不用数据库、不用登录**）。
- *
- * ⚠️ 这里**只有发布框，没有列表** ✓ —— 列表由外层 `Comments.tsx` 统一渲染，
- *    两种发布方式看到的是同一份列表（GitHub 那些评论也在一起）✓
- *
- * 之前 Gitalk 的硬伤：访客没 GitHub 账号就发不了、还要额外拉它的 JS/CSS（慢）。
- * 这里走本站自己的接口 `/api/comments`，评论落在 `data/comments/*.json`：
- *   · 谁都能评论（随便起个昵称即可，留空就是"匿名游客"）✓
- *   · 没有第三方脚本、没有跨域请求，加载快 ✓
- *   · 内容按**纯文本**显示（不解析 markdown）—— 从根上杜绝 XSS ✓
- *   · 发完会镜像一份到 GitHub Issue 留档（配了 token 才启用，前台无感 ✓）
- *
- * 管理删除：浏览器控制台执行
- *   localStorage.setItem('commentsAdminKey', '你在服务器上设的 COMMENTS_ADMIN_KEY')
- * 刷新后列表里本站的评论右上角就会出现 ✕（清掉这一行即可撤销）
- */
 
 type CommentItem = {
   id: string;
@@ -36,15 +19,9 @@ export default function GuestComments({
   onPosted,
 }: {
   page?: string;
-  /** 发成功之后把这条评论交给外层，立刻补进列表 ✓ */
   onPosted?: (c: CommentItem) => void;
 } = {}) {
   const pathname = usePathname();
-  /**
-   * 评论按"页面标识"归档：默认用当前路由 pathname ✓
-   * 说说、灵境那种不是路由一页一个的，就把自己的 id 传进来 ✓
-   * —— 全站共用这一套组件，**哪个界面都能游客评论** ✓
-   */
   const currentPage = page || pathname;
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
@@ -56,7 +33,6 @@ export default function GuestComments({
     try {
       setName(localStorage.getItem('commentNickname') || '');
     } catch {
-      /* 隐私模式下 localStorage 可能不可用，忽略 */
     }
   }, []);
 
@@ -86,7 +62,6 @@ export default function GuestComments({
         try {
           localStorage.setItem('commentNickname', name.trim());
         } catch {
-          /* ignore */
         }
       }
     } catch {
@@ -118,7 +93,6 @@ export default function GuestComments({
           />
         </div>
 
-        {/* 🍯 蜜罐：正常用户看不见也不会填，填了就是机器人 */}
         <input ref={trapRef} type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
 
         <div className="flex items-center justify-between gap-3 mt-3">

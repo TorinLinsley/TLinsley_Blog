@@ -144,7 +144,6 @@ export default function MusicClient() {
 
           <div className="flex flex-col md:grid md:grid-cols-12 gap-6 md:gap-8 w-full md:items-stretch md:h-[calc(100vh-320px)] md:min-h-[600px] md:max-h-[720px]">
 
-            {/* ====== 左侧/顶部：播放控制台 ====== */}
             <div className="md:col-span-5 flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl p-6 md:p-10 relative overflow-hidden transition-all duration-500 shrink-0 min-h-[460px] sm:min-h-[500px] md:min-h-0">
 
               <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden py-4 md:py-0">
@@ -171,21 +170,17 @@ export default function MusicClient() {
                 </div>
                 <div className="w-full flex items-center justify-between px-1 md:px-2 lg:px-4">
                   <button onClick={togglePlayMode} className="p-2 transition-transform hover:scale-110">{getPlayModeIcon()}</button>
-                  {/* 小屏（<md）按钮间距往外分开 5%：gap-3(0.75rem=手机 9px) → 0.925rem(手机 11.1px)。
-                      按中心距算：上下首半径 12 + 间距 + 播放键半径 21 = 42px，
-                      5% = 2.1px，所以间距 9 → 11.1px ✓。md / lg 两级保持 gap-4 / gap-6 不变。 */}
+                  {
+}
                   <div className="flex items-center gap-[0.925rem] md:gap-4 lg:gap-6">
                     <button onClick={prevSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipBack size={24} className="md:w-7 md:h-7" fill="currentColor" /></button>
-                    {/* 播放键的圆形背景：只在大屏缩小 2%（lg:scale-[0.98]）。
-                        再单独写 lg:hover:scale-[1.03] 是为了保住悬停放大——0.98 × 1.05 ≈ 1.03，
-                        否则 lg: 那条会把 hover:scale-105 盖掉。 */}
+                    {
+}
                     <button onClick={togglePlay} className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-105 lg:scale-[0.98] lg:hover:scale-[1.03] shadow-xl shadow-indigo-500/40">
-                      {/* 播放三角的光学偏移：原来这里是 ml-1（把三角往右推），
-                          现在统一成和首页播放器一样的 translateX(1.9%)（lucide 自带圆角三角）。 */}
-                      {/* 播放三角大小：
-                           · 小屏（<md）size=22px —— 墨迹 13.75px，和首页播放器（11.25px）差 22%
-                           · md 平板 32px —— 不变
-                           · lg 大屏 lg:w-[2.14rem] = 34.24px —— 比 32px 大 7%（墨迹 20 → 21.4px） */}
+                      {
+}
+                      {
+}
                       {isPlaying ? <Pause size={22} className="md:w-8 md:h-8 lg:w-[2.14rem] lg:h-[2.14rem]" fill="currentColor" /> : <Play size={22} className="md:w-8 md:h-8 lg:w-[2.14rem] lg:h-[2.14rem]" fill="currentColor" style={{ transform: 'translateX(1.9%)' }} />}
                     </button>
                     <button onClick={nextSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipForward size={24} className="md:w-7 md:h-7" fill="currentColor" /></button>
@@ -204,7 +199,6 @@ export default function MusicClient() {
               </div>
             </div>
 
-            {/* ====== 右侧/底部：歌词与歌单面板 ====== */}
             <div className="md:col-span-7 flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl relative transition-colors duration-700 overflow-hidden h-[450px] md:h-auto shrink-0">
               <div className="flex items-center justify-center gap-1 p-1 mt-4 md:mt-6 mx-auto bg-white/50 dark:bg-slate-900/50 rounded-full shadow-inner border border-white/40 w-48 md:w-64 z-20 shrink-0">
                 <button onClick={() => setActiveTab('lyrics')} className={`flex-1 py-1.5 md:py-2 rounded-full font-black text-xs md:text-[13px] transition-all ${activeTab === 'lyrics' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-500'}`}>歌词</button>
@@ -275,7 +269,6 @@ export default function MusicClient() {
             </div>
           </div>
 
-          {/* ====== 留言板 ====== */}
           <div className="mt-8 md:mt-12 mb-20 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[32px] md:rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700 relative">
              <div className="px-5 sm:px-8 md:px-16 py-8 md:py-12 relative">
                 <div className="flex items-center gap-3 mb-6 md:mb-8 border-b border-slate-300/50 dark:border-slate-700 pb-4 md:pb-6">

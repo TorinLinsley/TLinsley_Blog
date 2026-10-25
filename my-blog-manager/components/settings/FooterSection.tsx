@@ -12,12 +12,10 @@ interface FooterSectionProps {
 export default function FooterSection({ formData, handleUpdate, pushToQueue }: FooterSectionProps) {
   const { showToast } = useToast();
 
-  // 1. 初始化数据，如果 formData 还没加载到，提供默认回退
   const buildDate = formData.buildDate || "2026-03-23T00:00:00";
   const icpConfig = formData.icpConfig || { name: "", link: "" };
   const footerBadges = formData.footerBadges || [];
 
-  // 用于新增徽章的临时状态
   const [newBadgeName, setNewBadgeName] = useState("");
   const [newBadgeColor, setNewBadgeColor] = useState("text-indigo-500");
 
@@ -34,7 +32,6 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
       showToast("徽章名称不能为空", "warning");
       return;
     }
-    // 默认给一个通用的星星 SVG 图标
     const newBadge = {
       name: newBadgeName.trim(),
       color: newBadgeColor,
@@ -50,7 +47,6 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
     handleUpdate('footerBadges', updated);
   };
 
-  // 预设一些好看的颜色给徽章用
   const colorPresets = [
     "text-slate-500", "text-sky-500", "text-cyan-400", "text-teal-400",
     "text-indigo-500", "text-purple-500", "text-pink-500", "text-rose-400", "text-amber-500"
@@ -81,14 +77,13 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
 
         <div className="space-y-8">
 
-          {/* 1. 建站时间选择 */}
           <div>
             <label className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2">
               <Calendar size={14} className="text-indigo-400" /> 建站时间 (起始原点)
             </label>
             <input
               type="datetime-local"
-              value={buildDate.slice(0, 16)} // datetime-local 需要 YYYY-MM-DDThh:mm 格式
+              value={buildDate.slice(0, 16)}
               onChange={(e) => handleUpdate('buildDate', `${e.target.value}:00`)}
               className="w-full bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700/50"
             />
@@ -97,13 +92,11 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
 
           <hr className="border-white/20 dark:border-slate-700/30" />
 
-          {/* 2. 技术栈徽章管理 */}
           <div>
             <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
               <LayoutTemplate size={16} className="text-cyan-500" /> 技术栈徽章管理
             </h3>
 
-            {/* 已有徽章列表 */}
             <div className="flex flex-wrap gap-3 mb-6">
               <AnimatePresence>
                 {footerBadges.map((badge: any, index: number) => (
@@ -117,7 +110,6 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
                     <svg className={`w-3.5 h-3.5 ${badge.color}`} fill="currentColor" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: badge.svg }} />
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{badge.name}</span>
 
-                    {/* 悬浮删除按钮：📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
                     <button
                       onClick={() => handleRemoveBadge(index)}
                       className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity hover:bg-red-600 shadow-md"
@@ -130,7 +122,6 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
               {footerBadges.length === 0 && <span className="text-xs text-slate-400">目前没有配置任何徽章哦</span>}
             </div>
 
-            {/* 新增徽章面板 */}
             <div className="bg-slate-50/50 dark:bg-slate-950/30 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 flex flex-col md:flex-row items-center gap-3">
               <input
                 type="text"
@@ -147,7 +138,6 @@ export default function FooterSection({ formData, handleUpdate, pushToQueue }: F
                     onClick={() => setNewBadgeColor(color)}
                     className={`w-5 h-5 rounded-full transition-transform ${newBadgeColor === color ? 'scale-125 ring-2 ring-offset-1 ring-slate-300' : 'hover:scale-110'}`}
                   >
-                    {/* 使用 Tailwind 类名推导个近似底色展示 */}
                     <div className={`w-full h-full rounded-full bg-current ${color}`}></div>
                   </button>
                 ))}

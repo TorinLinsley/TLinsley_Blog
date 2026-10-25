@@ -36,29 +36,22 @@ CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 DEPLOY_CONFIG = os.path.join(PROJECT_ROOT, "data", "deploy_config.json")
 
-# ---------------------------------------------------------------- 命名规则
-# 工具目录名 = 地址栏 /tools/<这一段>/… ，所以只允许最干净的 ASCII：字母数字开头，后面可跟 . _ -
 DIR_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
-# 浏览器地址栏 / Windows / Linux 都不能用的字符（给前端做即时提示用，后端也照这个挡）
 ILLEGAL_CHARS = "\\/:*?\"<>|#%&{}$!+'`=@~^[];,\t\n\r"
-# Windows 保留名（就算大小写不一样、带扩展名也不能用）
 RESERVED_NAMES = {
     "CON", "PRN", "AUX", "NUL",
     *(f"COM{i}" for i in range(1, 10)),
     *(f"LPT{i}" for i in range(1, 10)),
 }
 
-# 浏览目录时永远跳过这些（太大 / 没意义）
 SKIP_DIRS = {"node_modules", ".next", ".git", ".idea", ".vscode", "dist", "build", "__pycache__", ".trash"}
 
 ICON_EXTS = {".svg", ".ico", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".bmp"}
 
-# 工具页导航栏主题的 6 个预设（见 app/tools/ToolsAdmin.tsx 里的选项）
 NAV_THEMES = {"auto", "dark-trans", "dark-solid", "light-trans", "light-solid", "hidden"}
 
 
-# ---------------------------------------------------------------- 基础工具
 def get_blog_path() -> str:
     """博客项目物理路径（和同步/图床用的是同一个配置：data/deploy_config.json 的 blogPath）"""
     try:
@@ -155,7 +148,6 @@ def safe_child(base: str, rel: str) -> str:
     return target
 
 
-# ---------------------------------------------------------------- 接口
 @router.get("/list")
 async def list_tools():
     root = blog_root()
@@ -192,8 +184,6 @@ async def save_tool(request: Request):
         entry = str(data.get("entry") or "").strip().replace("\\", "/").lstrip("/")
         description = str(data.get("description") or "").strip()
         icon = str(data.get("icon") or "").strip()
-        # 工具页导航栏主题：6 个预设 = 明暗(auto/dark/light) × 透明度(trans/solid)，外加 hidden
-        # 老数据兼容：dark → dark-trans、light → light-solid（和当初的行为一致）
         nav_theme = str(data.get("navTheme") or "auto").strip()
         if nav_theme == "dark":
             nav_theme = "dark-trans"
@@ -218,7 +208,6 @@ async def save_tool(request: Request):
         src = os.path.join(tdir, orig_dir) if orig_dir else None
         dst = os.path.join(tdir, dir_name)
 
-        # ① 改名：只改文件夹，里面东西原样跟着走
         if orig_dir and orig_dir != dir_name:
             if not os.path.isdir(src):
                 return {"success": False, "message": f"原目录不存在：tools/{orig_dir}"}
@@ -227,16 +216,13 @@ async def save_tool(request: Request):
             os.rename(src, dst)
             print(f"[工具] 📦 目录改名 tools/{orig_dir} → tools/{dir_name}")
 
-        # ② 目录不存在就创建
         if not os.path.isdir(dst):
             os.makedirs(dst, exist_ok=True)
             print(f"[工具] 📁 新建工具目录 tools/{dir_name}")
 
-        # ③ 入口文件检查（没有就提示，但仍然保存 —— 可能文件还没放上来）
         entry_abs = safe_child(dst, entry)
         entry_missing = not os.path.isfile(entry_abs)
 
-        # ④ 写清单
         items = read_tools()
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         row = {
@@ -323,9 +309,6 @@ async def browse(path: str = "", mode: str = "dir"):
         rel = os.path.relpath(cur, root).replace("\\", "/")
         rel = "" if rel == "." else rel
 
-        # 目录不存在时要如实回答（exists=False）：控制台那边靠它提示
-        # "这个工具目录还没建/主网页文件名对不上"。以前这里是悄悄退回根目录列内容，
-        # 前端根本分不清"目录不存在"和"目录是空的" ✗
         if not os.path.isdir(cur):
             parent = rel.rsplit("/", 1)[0] if "/" in rel else ""
             return {"success": True, "path": rel, "parent": parent, "dirs": [], "files": [], "exists": False}
@@ -392,14 +375,9 @@ async def upload_icon(file: UploadFile = File(...)):
         return {"success": False, "message": f"上传失败：{e}"}
 
 
-# ──────────────────────────── 网络图标（Iconify 聚合库） ────────────────────────────
-# 为什么走服务端转发：api.iconify.design 在国内经常连不上，浏览器直接去取会一片空白 ✗
-# 所以搜索/取形状都由**服务器**去拿，浏览器只跟我们自己的后端说话 ✓
-# 选中的图标会**下载到本地** public/uploads/ico/，之后就是普通本地图标，不依赖外网 ✓
 
 ICONIFY = "https://api.iconify.design"
 
-# 来源下拉里列出来的图标库（想加哪个直接往这里加一行）
 ICON_SETS = [
     {"prefix": "mdi", "label": "Material Design Icons"},
     {"prefix": "material-symbols", "label": "Material Symbols"},
@@ -419,10 +397,7 @@ ICON_SETS = [
     {"prefix": "logos", "label": "品牌 Logo（SVG Logos）"},
 ]
 
-# 搜过的关键字缓存（同一批结果不用反复求 Iconify）
 _ICON_CACHE: dict = {}
-# 图标形状统一用 currentColor：前端渲染走的是 CSS mask + background:currentColor，
-# 颜色由页面主题决定（深色模式自动变白）；万一被当 <img> 用也只是黑色，不会跑偏。
 _ICON_FILL = "currentColor"
 
 
@@ -467,7 +442,6 @@ async def icon_search(q: str = "", prefix: str = "", limit: int = 48):
             if not names:
                 return {"success": True, "icons": [], "message": f"没搜到「{q}」相关的图标"}
 
-            # Iconify 可以按库批量取：一次请求拿回这一库里所有命中的形状
             grouped: dict = {}
             for full in names:
                 if ":" not in full:
@@ -555,7 +529,6 @@ async def icon_import_font(request: Request):
             return {"success": False,
                     "message": "请填 iconfont 项目的在线链接（Symbol 标签 → 查看在线链接 → 复制那串 //at.alicdn.com/…js）"}
 
-        # 有人会顺手把图标名（icon-xxx / tuichu 这种）粘进来 —— 明确告诉他去哪儿拿链接
         if re.fullmatch(r"[A-Za-z0-9_\-]+", url):
             return {"success": False,
                     "message": f"「{url}」看着是图标名，不是链接 —— 在项目里点「Symbol」标签，"
@@ -583,7 +556,6 @@ async def icon_import_font(request: Request):
             res.raise_for_status()
             js = res.text
 
-        # 把每个 <symbol id="..." viewBox="...">…</symbol> 抠出来
         blocks = re.findall(r"<symbol\b[^>]*>[\s\S]*?</symbol>", js)
         saved = []
         for blk in blocks:

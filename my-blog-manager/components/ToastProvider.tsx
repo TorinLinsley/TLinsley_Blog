@@ -3,13 +3,11 @@
 import { createContext, useContext, useRef, useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// 撤回按钮（比如删除后弹一个「撤销」）
 export interface ToastAction {
   label: string;
   onClick: () => void;
 }
 
-// 定义全局可以调用的方法
 interface ToastContextType {
   showToast: (text: string, type?: 'success' | 'warning' | 'error' | 'info', action?: ToastAction) => void;
 }
@@ -31,7 +29,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   ) => {
     setToastMsg({ text, type, action });
     if (timerRef.current) clearTimeout(timerRef.current);
-    // 带「撤销」的提示多留一会儿，好让人来得及点
     timerRef.current = setTimeout(() => setToastMsg(null), action ? 6000 : 3000);
   };
 
@@ -75,7 +72,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// 导出一个万能钩子，任何组件引用它就能召唤弹窗
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) throw new Error("useToast 必须在 ToastProvider 内部使用");

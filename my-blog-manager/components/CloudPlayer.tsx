@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useMusic } from './MusicProvider';
-// 🌟 核心引入：Next.js 路由钩子
 import { useRouter } from 'next/navigation';
 
 const formatTime = (time: number) => {
@@ -14,7 +13,6 @@ const formatTime = (time: number) => {
 export default function CloudPlayer() {
   const { playlist, currentSong, isPlaying, progress, currentTime, duration, currentLyric, isLoading, togglePlay, nextSong, prevSong, handleSeek } = useMusic();
   const [displayedLyric, setDisplayedLyric] = useState("");
-  // 🌟 初始化路由
   const router = useRouter();
 
   useEffect(() => {
@@ -56,7 +54,6 @@ export default function CloudPlayer() {
     );
   }
 
-  // 🌟 拦截事件防冒泡的专属函数
   const safeTogglePlay = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -89,7 +86,6 @@ export default function CloudPlayer() {
         .safe-wave { animation: safeWave 1s ease-in-out infinite; transform-origin: bottom; will-change: height; }
       `}</style>
 
-      {/* 🌟 终极逻辑：在外层 Div 直接绑定 onClick 进行页面跳转 */}
       <div
         onClick={() => router.push('/music')}
         className="h-full w-full rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-xl p-6 flex flex-col justify-between transition-all duration-700 hover:scale-[1.02] relative group overflow-hidden cursor-pointer"
@@ -123,7 +119,6 @@ export default function CloudPlayer() {
         </div>
 
         <div className="relative z-10 mt-auto">
-          {/* 🌟 核心拦截：把进度条的点击也拦住 */}
           <div
              className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300 font-bold mb-3 transition-colors duration-700"
              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -140,25 +135,20 @@ export default function CloudPlayer() {
             <span className="w-10">{formatTime(duration)}</span>
           </div>
 
-          {/* 🌟 核心拦截：使用我们上面写的 safe 函数，阻止事件冒泡 */}
-          {/* 按钮间距统一成 0.6875rem = 原 gap-6(1.5rem) 的 45.8%：
-              桌面 11px、手机 8.25px，两边收紧程度一致（博客前台同步改动）。 */}
-          {/* 大屏整排放大 5%（lg:scale-105）：按钮与间距等比放大，收紧比例不变；手机端不动。
-              （博客前台同步改动。） */}
+          {
+}
+          {
+}
           <div className="flex items-center justify-center gap-[0.6875rem] lg:scale-105">
             <button onClick={safePrevSong} className="text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors drop-shadow-sm relative z-20">
-               {/* 上一首/下一首图标外框 36px（2.25rem）：这两个图形只占外框 50%（高度 12/24），
-                   播放三角占 73%（17.5/24）。按墨迹高度对齐：36 × 50% = 18px ≈ 17.5px，
-                   只把外框设成和播放键一样的 24px 是不够的（那样看着还是小一圈）。 */}
+               {
+}
                <svg className="w-[2.25rem] h-[2.25rem]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
             </button>
 
             <button onClick={safeTogglePlay} className="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-600 hover:scale-110 transition-all border-2 border-white/50 dark:border-slate-600 relative z-20">
-              {/* 播放/暂停图标外框 24px（w-6）：三角墨迹占外框 62.5%，所以实际约 15px，
-                  比 20px 外框（12.5px）大了 2.5px。
-                  ⚠️ 换形状后几何基准变了：旧形状"外框中心对齐"= -6.25%，新形状 = -2.1%（差 4.15%）。
-                     下面这个 translateX 值保持你手调的，没动。
-                  （和博客前台 TLBlog/components/CloudPlayer.tsx 保持一致，改一边记得改另一边。） */}
+              {
+}
               {isPlaying ? <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-6 h-6" style={{ transform: 'translateX(0%)' }} fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>}
             </button>
 

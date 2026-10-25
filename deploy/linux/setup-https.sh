@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-#
-# 给博客前台配 HTTPS（Let's Encrypt），并且把 http 永久跳到 https。
-# 香港服务器不用备案，直接用就行。
-#
-# 用法：
-#   sudo DOMAIN=blog.torinlinsley.top EMAIL=you@example.com bash setup-https.sh
-#   # 想同时给裸域名也签：sudo DOMAIN=blog.torinlinsley.top DOMAIN2=torinlinsley.top EMAIL=... bash setup-https.sh
-#
-# 前提：
-#   ① 域名的 A 记录已经指向这台服务器的公网 IP（本脚本会帮你核对）
-#   ② 安全组 / 防火墙放行 80 和 443
-#   ③ nginx 已经在跑、且 server_name 是你的域名（本脚本会自动改好）
-#
-# 幂等：重复跑会复用已有证书（certbot 自己判断续期）。
 
 set -euo pipefail
 
@@ -70,9 +56,9 @@ cat <<EOF
 HTTPS 配好了：https://$DOMAIN  （http 会自动 301 跳过去）
 
 常用命令：
-  sudo certbot renew --dry-run              # 演练一次续期（不会真续）
-  sudo certbot certificates                 # 看证书有效期
-  sudo systemctl reload nginx               # 改完 nginx 配置重载
+  sudo certbot renew --dry-run
+  sudo certbot certificates
+  sudo systemctl reload nginx
 
 想再打开 HSTS（浏览器强制只用 https，注意下面这条）：
   在 $CONF 的 server 块里加：

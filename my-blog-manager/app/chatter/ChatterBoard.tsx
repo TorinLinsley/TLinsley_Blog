@@ -15,7 +15,6 @@ type Chatter = {
   mood?: string;
   cover?: string;
   content: string;
-  /** 服务端渲染好的正文 HTML（卡片预览用，标注块在这里也是框） */
   contentHtml?: string;
 };
 
@@ -23,12 +22,10 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
   const [chatters, setChatters] = useState(initialChatters);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState("全部");
-  /** 选中态指示器：减少动效时不滑动、直接瞬移 */
   const reduceMotion = useReducedMotion();
   const pillTransition = reduceMotion ? { duration: 0 } : SPRING_MORPH;
   const { showToast } = useToast();
 
-  // 👇 控制自定义弹窗的状态
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; slug: string | null; title: string | null }>({
     isOpen: false,
     slug: null,
@@ -51,8 +48,6 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
     });
   }, [chatters, searchQuery, activeTag]);
 
-  // 🗑️ 真正的执行删除逻辑
-// ... 保持其他部分不变 ...
   const confirmDelete = async () => {
     if (!deleteModal.slug) return;
     const slug = deleteModal.slug;
@@ -61,11 +56,10 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
       const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
       const config = await configRes.json();
 
-      // 调用全能删除接口
       const res = await fetch(`http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:${config.api_port}/api/drafts/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: slug }) // 这里传的是 slug (即 md 的文件名)
+        body: JSON.stringify({ id: slug })
       });
 
       const data = await res.json();
@@ -81,25 +75,21 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
       setDeleteModal({ isOpen: false, slug: null, title: null });
     }
   };
-  // ... 保持其他部分不变 ...
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-10 py-10 pt-20 lg:pt-28 relative z-10">
 
-      {/* ---------------------------------------------------------
-          💎 自定义绝美确认弹窗 (Custom Modal)
-      --------------------------------------------------------- */}
+      {
+}
       <AnimatePresence>
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            {/* 背景遮罩 */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setDeleteModal({ isOpen: false, slug: null, title: null })}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
             />
 
-            {/* 弹窗主体 */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -137,9 +127,8 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
         )}
       </AnimatePresence>
 
-      {/* ---------------------------------------------------------
-          主页面布局 (保持原样并优化删除调用)
-      --------------------------------------------------------- */}
+      {
+}
 
       <div className="mb-14 text-center">
         <motion.h1
@@ -189,7 +178,6 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
 
       <motion.div layout className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
 
-        {/* 新增项 */}
         <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="break-inside-avoid">
           <Link href="/editor?type=chatter"
             className="group flex flex-col items-center justify-center min-h-[250px] rounded-[32px] border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/10 dark:bg-slate-800/10 hover:bg-white/30 dark:hover:bg-indigo-500/5 hover:border-indigo-500 transition-all duration-500"
@@ -207,7 +195,6 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
               layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               key={chatter.slug} className="break-inside-avoid group relative"
             >
-              {/* 悬浮管理按钮组：📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
               <div className="absolute top-5 left-5 z-20 flex gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all duration-300 -translate-x-2 group-hover:translate-x-0 max-lg:translate-x-0!">
                 <Link
                   href={`/editor?id=${chatter.slug}&type=chatter`}
@@ -216,7 +203,6 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
                   <Pencil size={14} />
                 </Link>
                 <button
-                  // 👇 核心修改：点击不再直接 delete，而是打开自定义弹窗
                   onClick={(e) => {
                     e.preventDefault();
                     setDeleteModal({ isOpen: true, slug: chatter.slug, title: chatter.title || "无标题笔记" });

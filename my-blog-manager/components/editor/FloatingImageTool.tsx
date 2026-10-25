@@ -14,19 +14,17 @@ interface FloatingImageToolProps {
 
 export default function FloatingImageTool({ isOpen, onClose, onInsert }: FloatingImageToolProps) {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'local' | 'gallery'>('upload'); // 🌟 新增：切换状态
+  const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'local' | 'gallery'>('upload');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState('');
-  const [externalUrl, setExternalUrl] = useState(''); // 🌟 新增：外链输入状态
+  const [externalUrl, setExternalUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const localFileInputRef = useRef<HTMLInputElement>(null); // 🖥️ 本地图片选择框
-  // 🖼️ 「服务器图库」页签：列出博客 public/uploads 里**已经有**的图片，点一张就能插进正文
+  const localFileInputRef = useRef<HTMLInputElement>(null);
   const [galleryFiles, setGalleryFiles] = useState<{ name: string; url: string; size: number; mtime: number }[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryQuery, setGalleryQuery] = useState('');
 
-  // 🖼️ 拉服务器图库列表（= 博客项目 public/uploads 目录）
   const loadGallery = async () => {
     setGalleryLoading(true);
     try {
@@ -49,12 +47,10 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
     }
   };
 
-  // 每次切到「服务器图库」都重新拉一遍 —— 你刚传上去的图马上就能看到
   useEffect(() => {
     if (isOpen && activeTab === 'gallery') void loadGallery();
   }, [isOpen, activeTab]);
 
-  // 处理文件上传逻辑 (保持不变)
   const handleFileUpload = async (file: File) => {
     const picUrl = (siteConfig as any).picBedUrl || "https://pic.dusays.com";
     const picToken = (siteConfig as any).picBedToken;
@@ -95,7 +91,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
     }
   };
 
-  // 🖥️ 本地图片：直接存进博客项目的 public/uploads，不需要图床
   const handleLocalUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       showToast("只能上传图片文件哦！", "warning");
@@ -143,7 +138,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) handleFileUpload(e.dataTransfer.files[0]);
   };
 
-  // 🌟 新增：验证并确认外链图片
   const handleConfirmExternalUrl = () => {
     if (!externalUrl.trim()) {
       showToast("请输入有效的图片 URL", "warning");
@@ -176,7 +170,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
           style={{ position: 'fixed', top: '15vh', right: '5vw', zIndex: 99999 }}
           className="w-80 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/50 dark:border-white/10 overflow-hidden flex flex-col cursor-move"
         >
-          {/* 标题栏 */}
           <div className="flex justify-between items-center p-5 border-b border-white/30 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50">
             <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <span className="text-emerald-500 text-lg">☁️</span> 图床工作台
@@ -185,7 +178,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
           </div>
 
           <div className="p-6 cursor-default bg-white/20 dark:bg-slate-900/20">
-            {/* 🌟 模式切换 Tab */}
             {!uploadedUrl && (
               <div className="flex bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl mb-5 gap-0.5">
                 <button
@@ -219,7 +211,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
 
             {!uploadedUrl ? (
               activeTab === 'upload' ? (
-                // 模式 A：上传拖拽区
                 <div
                   onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
@@ -234,7 +225,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                   </div>
                 </div>
               ) : activeTab === 'local' ? (
-                // 🖥️ 模式 C：本地图片（存进博客 public/uploads，不用图床）
                 <div
                   onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
@@ -250,7 +240,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                   </div>
                 </div>
               ) : activeTab === 'gallery' ? (
-                // 🖼️ 模式 D：服务器图库 —— 挑一张服务器 public/uploads 里已有的图片
                 <div className="w-full flex flex-col gap-3">
                   <div className="flex gap-2">
                     <input
@@ -259,8 +248,8 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                       placeholder="筛选文件名…"
                       className="flex-1 min-w-0 px-3 py-2 text-xs bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200"
                     />
-                    {/* ⚠️ 用页面自己的气泡，别用原生 title（延迟长、灰底方块，和主题不搭）。
-                        className 交给外层锚点，shrink-0 这类布局类不能丢，否则会被挤变形 */}
+                    {
+}
                     <Tooltip label="刷新（刚传上去的图点这里就能看到）" className="shrink-0 inline-flex">
                       <button
                         onClick={() => void loadGallery()}
@@ -286,7 +275,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                         {galleryFiles
                           .filter((f) => f.name.toLowerCase().includes(galleryQuery.trim().toLowerCase()))
                           .map((f) => (
-                            /* 文件名提示也换成页面自己的气泡：网格子元素得靠 className 保持 aspect-square */
                             <Tooltip key={f.name} label={f.name} className="relative aspect-square">
                               <button
                                 type="button"
@@ -305,7 +293,6 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                   )}
                 </div>
               ) : (
-                // 🌟 模式 B：外链输入区
                 <div className="w-full space-y-4">
                   <div className="relative">
                     <textarea
@@ -324,11 +311,9 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                 </div>
               )
             ) : (
-              // 预览与确认插入区
               <div className="flex flex-col gap-4">
                 <div className="w-full h-36 rounded-2xl overflow-hidden bg-white/50 dark:bg-slate-950/50 border border-white/40 dark:border-slate-700/50 flex items-center justify-center p-2 shadow-inner group relative">
                   <img src={uploadedUrl || undefined} alt="preview" className="max-w-full max-h-full object-contain rounded-xl drop-shadow-md" />
-                  {/* 🌟 重新选择按钮 */}
                   <button
                     onClick={() => { setUploadedUrl(''); setExternalUrl(''); }}
                     className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold"

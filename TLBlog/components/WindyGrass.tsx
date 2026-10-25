@@ -6,7 +6,6 @@ interface WildBlade { id: number; height: number; width: number; delay: number; 
 
 export default function WindyGrass() {
   const [blades, setBlades] = useState<WildBlade[]>([]);
-  // 订阅日夜状态
   const { isDark } = useTheme();
 
   useEffect(() => {
@@ -28,7 +27,6 @@ export default function WindyGrass() {
              style={{ left: blade.left, height: `${blade.height}px`, width: `${blade.width * 4}px`, opacity: blade.opacity,
              animation: `swayWildGrass ${blade.duration}s ease-in-out infinite alternate`, animationDelay: `${blade.delay}s` }}>
           <div
-            // 白天变绿，晚上变白
             className={`w-full h-full transition-all duration-1000 ${isDark ? 'bg-gradient-to-t from-white/80 to-transparent' : 'bg-gradient-to-t from-emerald-500/80 to-transparent'}`}
             style={{ width: `${blade.width}px`, borderRadius: blade.isLeftCurve ? '100% 0 0 100%' : '0 100% 100% 0', transform: blade.isLeftCurve ? 'translateX(50%)' : 'translateX(-50%)' }}
           ></div>

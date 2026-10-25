@@ -3,20 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-/**
- * 🎛️ 主题化下拉框（替代原生 `<select>`）。
- *
- * 为什么不用原生 select：它的**弹出列表**是浏览器/系统自己画的，
- * 深色模式下经常是「白底 + 我们设的浅色字」→ 根本看不清是什么 ✗
- * （只改 `option` 的样式，各家浏览器支持程度还不一样。）
- *
- * 这里自己画一个，底色/文字完全跟着站点主题走：
- *   · 浅色：白底 + 深色字（hover 淡紫）
- *   · 深色：深底 + 浅色字
- * 选中项统一用主题色（indigo）高亮 ✓
- *
- * 收起方式：再点一下按钮 / 点外面 / 按 Esc ✓
- */
 export type ThemedOption = { value: string; label: string };
 
 export default function ThemedSelect({
@@ -32,17 +18,13 @@ export default function ThemedSelect({
   options: ThemedOption[];
   onChange: (value: string) => void;
   title?: string;
-  /** 直接指定按钮上显示的文字（不传就按 value 去选项里找） */
   label?: string;
-  /** 按钮本身的额外样式（字号/内边距之类） */
   className?: string;
-  /** 弹出列表的额外样式 */
   panelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
-  // 点外面 / 按 Esc 收起
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {

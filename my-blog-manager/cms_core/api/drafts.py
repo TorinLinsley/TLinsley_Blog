@@ -5,9 +5,7 @@ import yaml
 from fastapi import APIRouter, Request
 from datetime import datetime
 import re
-import markdown  # 确保你已经安装了 markdown 库 (pip install markdown)
-# ⚠️ 包一层：markdownify 默认会**吃掉** <sup>/<sub> 标签（只留文字 ✗）
-#    这里先把它们换成占位符，转完再放回 —— 于是 .md 里原样保留 <sup>…</sup> ✓
+import markdown
 from markdownify import markdownify as _md_raw
 import re as _re
 
@@ -41,13 +39,11 @@ from .markdown_utils import (
 
 router = APIRouter()
 
-# 🌟 终极物理锁死防线：绝对定位到 my-blog-manager 根目录，无视任何全局目录切换！
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
 
 def get_manager_drafts_dir() -> str:
-    # 🌟 修复：用 PROJECT_ROOT 替换 os.getcwd()
     drafts_dir = os.path.join(PROJECT_ROOT, "manager_data", "drafts")
     if not os.path.exists(drafts_dir):
         os.makedirs(drafts_dir)
@@ -123,25 +119,17 @@ async def get_draft(request: Request):
 
     raw_id = payload.get("id", "").replace(".md", "")
     doc_type = payload.get("type", "post")
-    # 🌟 修复：用 PROJECT_ROOT 替换 os.getcwd()
     base_dir = PROJECT_ROOT
     drafts_dir = get_manager_drafts_dir()
 
-    # 1. 优先从草稿箱读取 JSON
     file_path = os.path.join(drafts_dir, f"{raw_id}.json")
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             draft = json.load(f)
-        # 🖼️ 草稿 JSON 里存的是**你点「暂存」那一刻编辑器的 HTML 快照**（不是 .md）。
-        #    老代码留下的"图片上面那一行空白"会一直躺在这份快照里 ——
-        #    于是 .md 明明已经干净了，你每次打开这篇草稿还是会重新看见它 ✗
-        #    （而且刷新、重启后端都没用：接口直接把这份快照还给你）
-        #    这里读出来时顺手清一次，只认「图片上面那一个空行/零宽标记」，别的一个字不动 ✓
         if isinstance(draft.get("content"), str):
             draft["content"] = unbreak_image_lines(draft["content"])
         return {"success": True, "draft": draft}
 
-    # 2. 如果没有草稿，从物理 MD 文件读取并解析
     target_md = None
     if raw_id == "about" or doc_type == "about":
         target_md = os.path.join(base_dir, "app", "about", "about.md")
@@ -158,7 +146,6 @@ async def get_draft(request: Request):
             tags = []
             md_body = raw_content
 
-            # 🌟 拆解 YAML Front Matter
             if raw_content.strip().startswith("---"):
                 parts = raw_content.split("---", 2)
                 if len(parts) >= 3:
@@ -176,25 +163,15 @@ async def get_draft(request: Request):
                     except:
                         pass
 
-            # 🌟 将 Markdown 转换为编辑器认识的 HTML
-            # 🧮 MathExtension：草稿箱和资源分享用的是同一套渲染，公式一样不能被 markdown 改坏
-            # 🧩 先拆开连成一片的 callout，再渲染，最后套 callout 外壳（和资源分享保持一致）
             md_body = split_callout_blockquotes(md_body)
-            # 🧩 空行分隔的相邻引用块也要隔开（python-markdown 会并成一个 ✗）
             md_body = separate_blockquotes(md_body)
             html_content = markdown.markdown(
                 md_body,
                 extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', MathExtension()],
                 extension_configs={
-                    # 🎨 控制台预览是**后端 pygments** 着色的（跟前端 remark 那套不是一个引擎）：
-                    # ① 必须显式带上 codehilite —— 只挂 fenced_code 的话，代码块只有结构、没有颜色；
-                    # ② noclasses=True 让 pygments 把颜色写成内联 style，
-                    #    免得再维护一套 .k/.s/.c 的 CSS（前端那套 .hljs-* 它用不上）；
-                    # ③ guess_lang=False：没写语言就不猜，跟前端 detect:false 保持一致。
                     'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
                 },
             )
-            # 🖼️ 图片紧贴上一行时，nl2br 会顶出一个 <br> → 编辑器里变成图片上面的一行空白，先拆掉
             html_content = unbreak_image_lines(html_content)
             html_content = render_callouts(html_content)
 
@@ -224,7 +201,6 @@ async def delete_draft(request: Request):
         return {"success": False, "message": "JSON 解析失败"}
 
     raw_id = payload.get("id", "").replace(".md", "").replace(".json", "")
-    # 🌟 修复：用 PROJECT_ROOT 替换 os.getcwd()
     base_dir = PROJECT_ROOT
     drafts_dir = get_manager_drafts_dir()
 
@@ -252,7 +228,6 @@ async def delete_draft(request: Request):
 async def sync_local_operations(request: Request):
     payload = await request.json()
     operations = payload.get("operations", [])
-    # 🌟 修复：用 PROJECT_ROOT 替换 os.getcwd()
     base_dir = PROJECT_ROOT
     drafts_dir = get_manager_drafts_dir()
     results = []
@@ -267,68 +242,37 @@ async def sync_local_operations(request: Request):
             if not final_id or final_id == 'new':
                 final_id = f"{doc_type}_{int(time.time())}"
 
-            # ==========================================
-            # 🌟 核心防吞空行逻辑：在给 markdownify 之前拦截处理 HTML
-            # ==========================================
             raw_html = data.get("content", "")
 
-            # 1. 空段落（编辑器里连按两下回车）统一换成「段内硬换行 + 零宽连接符」——
-            #    和资源分享那边同一个写法：段级空行在引用块里不稳定（存→读→再存会丢 ✗）
             raw_html = re.sub(
                 r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
                 "<br>\u200d",
                 raw_html,
             )
 
-            # 2. 调用 markdownify 进行基础转换，保留 img
-            # 强制让它保留 br 标签！
-            #    表格单独走自己的转换（markdownify 的表格输出每行都多一条分隔线）
-            #    callout 外壳也先抠出来（不然里面的 span/svg 会被当裸 HTML 吐进 .md ✗）
-            #
-            # 🎨 带样式的内联标签（颜色/字号 <span style>、高亮 <mark>、彩色下划线 <u>、上下标）
-            #    markdownify 会把它们连同样式一起吃掉 ✗
-            #    → 表现就是「编辑器里明明画了彩色下划线/标了颜色，一发布就变回原样」（用户实测反馈 ✗）
-            #    这里先抠成占位符、转完再原样放回（和资源分享用的是同一份实现 ✓）
-            #    ⚠️ 必须在 stash_tables / stash_callouts **之前**抠：
-            #       表格、callout 里的颜色/下划线也要保住 ✓
             raw_html, inline_tags = protect_inline_tags(raw_html)
             raw_html, tables = stash_tables(raw_html)
             raw_html, callouts = stash_callouts(raw_html)
             md_content = md(raw_html, heading_style="ATX", keep=['img', 'br'], code_language_callback=code_language_callback)
 
-            # 3. markdownify 可能把 <br> 留下来；为在 MD 里形成真实空行，全部换成纯 \n\n ✓
-            #    ⚠️⚠️ 这一步**必须在放回表格之前**做 ✗→✓（原来是放回表格之后才做 ✗）
-            #       原因：表格此时已经是 Markdown 文本了 ✗ 一旦某个单元格里还留着 `<br>`，
-            #             这个全局替换会把它变成**真换行** → 表格那一行被劈成两行 ✗
-            #             → 刷新读回来就是「表格散了 + 后面几行变成裸文本带 |」✗（用户实测反馈 ✓）
-            #       resources.py 那边本来就是这个顺序 ✓（实测转换结果里表格行完好 ✓）✓
-            #       这里只是把顺序对齐 ✓ 表格、callout、空行保护的做法一个字都没改 ✗
             md_content = re.sub(r'<br\s*\/?>', '\n\n', md_content)
 
             md_content = restore_tables(md_content, tables)
             md_content = restore_callouts(md_content, callouts)
             md_content = collapse_blank_lines(md_content)
-            # 🖼️ 图片上面那个凭空多出来的空行去掉（图片紧贴上一段正文，和资源分享同一套）
             md_content = glue_image_blocks(md_content)
 
-            # 4. 引用块：连成一片的 callout 拆开
-            #    ⚠️ 但**不往 .md 里插** `<!-- -->` 分隔符 —— 那是读取时该干的事 ✓
             md_content = split_callout_blockquotes(md_content)
-            # 🎨 最后把颜色/彩色下划线/高亮/上下标原样放回去（放最后：中间那些空白整理不能碰它们 ✓）
             md_content = restore_inline_tags(md_content, inline_tags)
-            # ==========================================
 
-            # 🌟 处理日期与精确时间
             input_date = str(data.get("date", "")).strip()
             if input_date:
-                # 如果前端只传了 "YYYY-MM-DD" (长度 <= 10)，帮它补上现在的时分秒
                 if len(input_date) <= 10:
                     current_time = datetime.now().strftime("%H:%M:%S")
                     final_date = f"{input_date} {current_time}"
                 else:
                     final_date = input_date
             else:
-                # 如果没传，生成完整的当前时间
                 final_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             fm = {
@@ -365,7 +309,6 @@ async def sync_local_operations(request: Request):
 
 @router.get("/all_tags")
 async def get_all_historical_tags():
-    # 🌟 修复：用 PROJECT_ROOT 替换 os.getcwd()
     base_dir = PROJECT_ROOT
     scan_dirs = {"post": os.path.join(base_dir, "posts"), "chatter": os.path.join(base_dir, "chatters")}
     tag_collections = {"post": set(), "chatter": set()}

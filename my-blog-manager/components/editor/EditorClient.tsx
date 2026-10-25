@@ -10,7 +10,6 @@ import FloatingImageTool from '../../components/editor/FloatingImageTool';
 export default function EditorClient({ historyPostTags, historyChatterTags, historyMoods }: any) {
   const searchParams = useSearchParams();
 
-  // 使用 state 追踪当前文档 ID，以便新建草稿保存后更新 ID
   const [currentDocId, setCurrentDocId] = useState(searchParams.get('id') || 'new');
   const docType = (searchParams.get('type') as 'post' | 'chatter' | 'about') || 'post';
 
@@ -24,18 +23,15 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  // 💡 图床状态路由：区分当前打开的图床是给谁用的
   const [isImgToolOpen, setIsImgToolOpen] = useState(false);
   const [imgToolTarget, setImgToolTarget] = useState<'editor' | 'cover'>('editor');
 
   const editorRef = useRef<RichTextEditorHandle>(null);
 
-  // 锁定 About 标题
   useEffect(() => {
     if (docType === 'about') setTitle('关于我');
   }, [docType]);
 
-  // 从草稿箱加载旧数据
   useEffect(() => {
     if (currentDocId !== 'new') {
       const loadDraft = async () => {
@@ -60,9 +56,8 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
       };
       loadDraft();
     }
-  }, []); // 仅组件挂载时执行一次，防止保存更新 ID 后死循环重复拉取
+  }, []);
 
-  // 💾 真实物理落盘接口
   const handleSave = async (isPublish: boolean) => {
     if (!title.trim() && docType !== 'about') {
       alert("⚠️ 请填写文章标题后再保存！");
@@ -99,12 +94,10 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
       if (data.success) {
         setLastSaved(new Date().toLocaleTimeString());
 
-        // 👇 就是漏了这句！加上成功提示框！
         alert("✅ 草稿保存成功！。");
 
-        // 如果是新文，保存后获得了真实的 ID，触发无感刷新
         if (currentDocId === 'new' && data.id) {
-          setCurrentDocId(data.id); // 更新组件内存 ID
+          setCurrentDocId(data.id);
           window.history.replaceState(null, '', `/editor?id=${data.id}&type=${docType}`);
         }
       } else {
@@ -155,17 +148,16 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
         />
       </aside>
 
-      {/* 图床智能分发 */}
       <FloatingImageTool
         isOpen={isImgToolOpen}
         onClose={() => setIsImgToolOpen(false)}
         onInsert={(url) => {
           if (imgToolTarget === 'editor') {
             editorRef.current?.insertImage(url);
-            if (!cover) setCover(url); // 如果给正文插图时封面为空，顺便自动当封面
+            if (!cover) setCover(url);
           } else if (imgToolTarget === 'cover') {
             setCover(url);
-            setIsImgToolOpen(false); // 封面设置完直接关掉弹窗，提升体验
+            setIsImgToolOpen(false);
           }
         }}
       />

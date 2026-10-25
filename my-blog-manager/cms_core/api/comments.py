@@ -25,7 +25,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
 MAX_NAME = 24
 MAX_CONTENT = 2000
-MAX_PER_PAGE = 500  # 和前台保持一致：每页最多留这么多条
+MAX_PER_PAGE = 500
 
 
 def _blog_root():
@@ -123,15 +123,8 @@ def _mirror_conf():
     return (token or None), (owner or None), (repo or None)
 
 
-# 镜像过去的游客评论正文长这样：
-#     🧳 **游客评论 · 昵称**
-#     （空行）
-#     正文…
-# 取出来时剥掉包装 —— 这样它在列表里和本站存的那条**长得一模一样** ✓
 _GUEST_BODY = re.compile(r"^🧳\s*\*\*游客评论\s*·\s*([^*\n]+?)\*\*\s*\n+([\s\S]*)$")
 
-# 早期版本正文末尾挂过一行小字（<sub>2026/9/29 16:58:02 · 由本站评论区代发…</sub>）。
-# 仓库里那些老评论还带着它 → 取出来时剪掉：①列表里少一行没用的字 ②和本站那份对得上，去重才有效 ✓
 _OLD_FOOTER = re.compile(r"\n*<sub>[^<]*</sub>\s*$")
 
 
@@ -166,7 +159,7 @@ def _normalize_issue_comment(x: dict, page: str) -> dict:
             "content": _strip_old_footer((m.group(2) or "").strip()),
             "createdAt": ts,
             "source": "guest",
-            "avatar": "",  # 空头像 → 前端画彩色首字母块（和本站游客评论一致 ✓）
+            "avatar": "",
         }
     return {
         "id": f"gh-{x.get('id')}",
@@ -287,16 +280,12 @@ def list_comments(page: str = ""):
     if not _valid_page(page):
         return {"ok": False, "message": "页面标识不合法"}
 
-    # 本地游客评论 + GitHub 那边的评论 → 合并成同一份列表（下拉只决定发布方式 ✓）
     local = _read(page)
     gh = _github_comments(page)
 
-    # 🔄 双向对齐之一：**在 GitHub 那边删掉的镜像评论，本地这份也跟着删**（条件保守，宁可不删 ✗）
     if gh["ok"] and gh["issue"]:
         alive = {(c.get("name"), c.get("content")) for c in gh["comments"] if c.get("source") == "guest"}
-        # 刚发出去的（2 分钟内）先不动：镜像那一步是"发完顺手做"的，可能还在路上 ⏳
         cutoff = int(time.time() * 1000) - 2 * 60 * 1000
-        # 重新读一次：上面查 GitHub 花了几百毫秒，这期间可能刚有人发了新评论 —— 别覆盖掉 ✗
         fresh = _read(page)
         known = {c.get("id") for c in local}
         kept = [
@@ -310,8 +299,6 @@ def list_comments(page: str = ""):
             _write(page, kept)
         local = kept
 
-    # ⚠️ 游客评论是"两处都有"的（本站 JSON + 镜像到 Issue）→ 按「昵称 + 正文」把镜像那份
-    #    去掉，否则同一条会显示两遍 ✗（本站那份时间更精确，留它 ✓）
     seen = {(c.get("name"), c.get("content")) for c in local}
     merged = local + [
         c for c in gh["comments"] if not (c.get("source") == "guest" and (c.get("name"), c.get("content")) in seen)
@@ -362,8 +349,6 @@ def delete_comment(page: str = "", id: str = ""):
         return {"ok": False, "message": "没找到这条评论"}
     _write(page, left)
 
-    # 🔄 双向对齐之二：**本地删掉的游客评论，GitHub 那边镜像的那份也一起删**，
-    #    否则刷新一下它又会从 GitHub 冒出来 ✗（两边永远对不齐）
     if target:
         try:
             _delete_mirrors(page, target.get("name") or "", target.get("content") or "")

@@ -5,13 +5,6 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 
-/**
- * Windows 11 风格的右键菜单
- *  - 图标 + 文字一一对应（图标就是这一项要干的事）
- *  - 危险操作（删除）用醒目的红色
- *  - 右侧带快捷键提示
- *  - 用 portal 挂到 body 上，所以不会被左栏的 overflow / backdrop-blur 裁掉
- */
 export type ContextMenuItem =
   | { kind: 'separator'; key?: string }
   | {
@@ -42,7 +35,6 @@ export default function ContextMenu({
 
   useEffect(() => setMounted(true), []);
 
-  // 贴着鼠标打开；贴近视口边缘时自动翻转，保证整块都看得见
   useLayoutEffect(() => {
     if (!mounted) return;
     const el = boxRef.current;
@@ -58,7 +50,6 @@ export default function ContextMenu({
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      // 点在菜单自己身上不关（交给菜单项的 onClick 处理）
       if (boxRef.current?.contains(e.target as Node)) return;
       onClose();
     };
@@ -67,8 +58,6 @@ export default function ContextMenu({
     };
     const onScroll = () => onClose();
 
-    // mousedown 和 click 都监听：真实鼠标操作走 mousedown，
-    // 程序化点击（合成 click）也能正常收起
     window.addEventListener('mousedown', onDown, true);
     window.addEventListener('click', onDown, true);
     window.addEventListener('keydown', onKey, true);

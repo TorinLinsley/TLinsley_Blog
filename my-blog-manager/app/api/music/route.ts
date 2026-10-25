@@ -6,18 +6,9 @@ const NET_EASE_HEADERS = {
   Referer: 'https://music.163.com/',
 }
 
-// 🎵 接口变更说明（2026-09）：
-// 旧接口 https://music.163.com/api/song/detail 已被网易云限流，
-// 会返回 {"msg":"操作频繁，请稍候再试","code":405}，表现为"所有歌都查不到"。
-// 改用新版 v3 接口，注意字段也跟着变了：
-//   artists[0].name -> ar[0].name
-//   album.name      -> al.name
-//   album.picUrl    -> al.picUrl
 const DETAIL_API = 'https://music.163.com/api/v3/song/detail'
 const LYRIC_API = 'https://music.163.com/api/song/lyric'
 
-// 轻量内存缓存：歌曲信息很少变，缓存可以大幅减少对网易云的请求，
-// 避免短时间内反复刷新页面再次触发限流。
 const CACHE_TTL = 10 * 60 * 1000
 const songCache = new Map<string, { at: number; data: SongResult }>()
 
@@ -33,7 +24,6 @@ type SongResult = {
   error?: string
 }
 
-// 新接口用 ar/al，旧接口用 artists/album，两个都兼容，万一以后再变也不至于全挂
 type NetEaseSong = {
   name?: string
   ar?: { name?: string }[]
@@ -61,8 +51,6 @@ async function fetchSong(songId: string): Promise<SongResult> {
 
   const detail = await detailRes.json()
 
-  // 网易云限流时返回的是 {"msg":"操作频繁","code":405}，没有 songs 字段。
-  // 这里把这种情况明确区分出来，避免又被人误读成"歌不存在"。
   if (!detail.songs && detail.code === 405) {
     return { id: songId, error: 'rate_limited' }
   }
@@ -79,7 +67,6 @@ async function fetchSong(songId: string): Promise<SongResult> {
       const lrcData = await lrcRes.json()
       lrcText = lrcData.lrc?.lyric || ''
     } catch {
-      /* 歌词可选，失败不影响主流程 */
     }
   }
 

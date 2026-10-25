@@ -30,7 +30,6 @@ export default function MusicSection({ formData, handleUpdate, pushToQueue, musi
                       <span className="text-[10px] font-mono text-pink-500 mt-0.5">#{id}</span>
                     </div>
                   </div>
-                  {/* 📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
                   <button onClick={() => removeSong(index)} className="w-8 h-8 shrink-0 rounded-lg bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all hover:bg-red-500 hover:text-white flex items-center justify-center">✕</button>
                 </div>
               );
@@ -62,7 +61,6 @@ export default function MusicSection({ formData, handleUpdate, pushToQueue, musi
             )}
           </AnimatePresence>
 
-          {/* 【核心修复】：加上了真正的更新 key (cloudMusicIds) 和新数组 */}
           <button
             onClick={() => pushToQueue('网易云歌单', 'cloudMusicIds', formData.cloudMusicIds)}
             className="w-full py-4 bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl mt-4 active:scale-95 transition-all"

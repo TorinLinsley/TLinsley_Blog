@@ -2,17 +2,6 @@
 
 import React from 'react';
 
-/**
- * 🎨 图标按钮
- *
- * 用 CSS mask 实现「不管 SVG 原本什么颜色都能换成主题色」：
- * mask 只取 SVG 的形状（alpha 通道），颜色完全由 background-color 决定。
- *
- * 配色规则（按需求）：
- *   浅色模式 黑色  hover #4f39f6
- *   深色模式 白色  hover #4f39f6
- *   过渡 0.2s（Tailwind 的 duration-200）
- */
 export default function IconButton({
   icon,
   title,

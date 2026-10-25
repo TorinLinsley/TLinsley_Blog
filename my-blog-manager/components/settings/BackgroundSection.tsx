@@ -7,16 +7,10 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 👈 新增状态：用来存放刚刚上传成功，但还没决定是否加入背景的图片 URL
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const localFileInputRef = useRef<HTMLInputElement>(null); // 🖥️ 本地图片选择框
+  const localFileInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * 🏷️ 每张背景图的体积（url -> 字节数）。
-   * 必须由**后端**探：跨域图片没有 CORS 头，浏览器里量不到 Content-Length。
-   * 探不到就只是不显示体积，不影响别的功能。
-   */
   const [bgSizes, setBgSizes] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -41,18 +35,15 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
         const data = await res.json();
         if (!cancelled && data.success) setBgSizes(data.sizes || {});
       } catch {
-        /* 探不到就算了，静默失败 */
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(formData.bgImages)]);
 
-  /** 体积格式化：MB / KB */
   const fmtSize = (bytes: number) =>
     bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
-  /** 体积最小的那张（建议放第一位当首屏） */
   const smallestUrl = (() => {
     const entries = Object.entries(bgSizes);
     if (entries.length < 2) return '';
@@ -66,11 +57,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
     showToast("已移除一张背景图", "success");
   };
 
-  /**
-   * 🔀 调整背景图顺序（前后挪一位）。
-   * 顺序有意义：轮播按数组顺序走，而且**第 1 张是首屏先加载的那张** ——
-   * 把体积最小的放第一位，首屏就最快。
-   */
   const moveBg = (index: number, dir: -1 | 1) => {
     const list = [...(formData.bgImages || [])];
     const target = index + dir;
@@ -94,7 +80,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
     showToast("✅ 成功添加背景图！", "success");
   };
 
-  // 🖥️ 本地图片：直接存进博客项目的 public/uploads，不需要图床
   const handleLocalUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       showToast("只能上传图片文件哦！", "warning");
@@ -131,13 +116,11 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
     }
   };
 
-  // 【核心功能】：真实的图床上传逻辑
   const handleFileUpload = async (file: File) => {
     const picUrl = formData.picBedUrl || "https://pic.dusays.com";
     const picToken = formData.picBedToken;
 
     if (!picToken) {
-      // 没配置图床时不再报错拦住用户，直接存到博客本地目录
       return handleLocalUpload(file);
     }
     if (!file.type.startsWith('image/')) {
@@ -152,7 +135,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
       const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
       const configData = await configRes.json();
 
-      // 构建 multipart/form-data
       const uploadData = new FormData();
       uploadData.append('file', file);
       uploadData.append('url', picUrl);
@@ -166,7 +148,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
       const data = await res.json();
       if (data.success && data.url) {
         showToast("🎉 图片上传成功！请确认是否加入背景库", "success");
-        // 👈 上传成功，拿到真实 URL，触发确认面板
         setPendingImageUrl(data.url);
       } else {
         showToast(`上传失败: ${data.message}`, "error");
@@ -178,7 +159,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
     }
   };
 
-  // 确认或取消加入背景
   const confirmAddPendingImage = () => {
     if (pendingImageUrl) {
       handleUpdate('bgImages', [...formData.bgImages, pendingImageUrl]);
@@ -210,7 +190,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
           <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">🌌 视觉背景配置</h2>
           <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">管理网站的全局轮播背景图 ({formData.bgImages?.length || 0} 张)</p>
         </div>
-        {/* 👈 修复暂存参数：传入真正的 key 和 value */}
         <button onClick={() => pushToQueue('视觉背景图', 'bgImages', formData.bgImages)} className="px-6 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
           暂存背景修改
         </button>
@@ -222,11 +201,10 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
             <AnimatePresence>
               {formData.bgImages?.map((url: string, index: number) => (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={index} className="relative group rounded-2xl overflow-hidden aspect-video shadow-md border border-white/20">
-                  {/* ⚠️ 别加 group-hover:scale-* —— 悬停时整张图突然放大、移开又缩回去，
-                      鼠标在网格里来回移动时一片图都在"涨缩"，看着很晃；这里只显示按钮就够了 */}
+                  {
+}
                   <img src={url || undefined} alt={`bg-${index}`} className="w-full h-full object-cover" />
 
-                  {/* 第 1 张就是「首屏先加载」的那张，标出来免得搞混 */}
                   {index === 0 && (
                     <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[10px] font-black shadow-lg">首屏</span>
                   )}
@@ -234,18 +212,14 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
                     <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-lg bg-black/50 text-white text-[10px] font-black shadow">第 {index + 1} 张</span>
                   )}
 
-                  {/* 🏷️ 体积徽标：最小的那张标绿，直接告诉你该把谁放第一位 */}
                   {bgSizes[url] > 0 && (
                     <span className={`absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-lg text-[10px] font-black shadow-lg ${url === smallestUrl ? 'bg-emerald-500 text-white' : 'bg-black/55 text-white'}`}>
                       {fmtSize(bgSizes[url])}{url === smallestUrl ? ' · 最小' : ''}
                     </span>
                   )}
 
-                  {/* 操作按钮：桌面悬停出现，📱 手机上常显。
-                      这一层**只是按钮的容器**，不加背景色、不加模糊、不加缩放 ——
-                      三个按钮各自有实心背景 + 阴影，本来就看得清；
-                      一旦给这层加 bg-black/40 之类的底色，悬停时整张图会被压暗，
-                      看着就像"图片变了"（用户明确要求：图片任何时候都不许有变化）。 */}
+                  {
+}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2">
                     <button
                       onClick={() => moveBg(index, -1)}
@@ -315,7 +289,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
             )}
           </div>
 
-          {/* 🖥️ 不用图床：直接存进博客本地 public/uploads */}
           <button
             onClick={() => !isUploading && localFileInputRef.current?.click()}
             className="px-6 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
@@ -326,7 +299,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
         </div>
       </div>
 
-      {/* 👈 【新增】：上传成功后的浮动确认面板 */}
       <AnimatePresence>
         {pendingImageUrl && (
           <motion.div

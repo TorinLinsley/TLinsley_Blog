@@ -48,14 +48,6 @@ export default function PhotoWallPage() {
     showToast("📍 变更已加入待处理队列，请在 Navbar 点击更新本地", "info");
   };
 
-  /**
-   * 🖼️ 相册数据不从 bundle 里那份拿。
-   *
-   * `data/albums.ts` 是**构建时打包进前端**的，`import { albums }` 拿到的是编译那一刻的快照。
-   * 后端「更新本地」把新相册写进文件之后，页面一刷新读到的还是旧快照 ——
-   * 表现就是那个很吓人的 bug：**加完相册点更新本地，新相册反而"消失"了**（其实文件里在，只是没显示）。
-   * 所以挂载后问后端要真实数据，文件才是唯一真相；后端没起来就用编译进来那份先顶着。
-   */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -77,7 +69,6 @@ export default function PhotoWallPage() {
   return (
     <div className="min-h-screen relative pb-32">
 
-      {/* 🌟 核心修复 2：加入 key 强制重置状态！只要 isImgToolOpen 变了，组件就完全重生 */}
       <FloatingImageTool
         key={isImgToolOpen ? 'tool-open' : 'tool-closed'}
         isOpen={isImgToolOpen}
@@ -93,7 +84,6 @@ export default function PhotoWallPage() {
       />
 
       <AnimatePresence>
-        {/* 物理销毁弹窗 */}
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
@@ -122,10 +112,8 @@ export default function PhotoWallPage() {
           </div>
         )}
 
-        {/* 🌟 相册编辑弹窗 */}
         {albumModal.isOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            {/* 🌟 核心修复 1：去掉了 onClick 属性，防止误触关闭！ */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative w-full max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[40px] border border-white/20 p-8 shadow-2xl">
               <h2 className="text-2xl font-black mb-6 dark:text-white">{albumModal.mode === 'add' ? '创建新相册' : '修改相册属性'}</h2>
@@ -135,9 +123,8 @@ export default function PhotoWallPage() {
 
                 <div className="relative group">
                    <input type="text" value={albumModal.data.cover || ''} onChange={e => setAlbumModal({...albumModal, data: {...albumModal.data, cover: e.target.value}})} className="w-full bg-slate-100 dark:bg-black/20 rounded-2xl px-5 py-3.5 pr-14 dark:text-white outline-none border border-transparent focus:border-indigo-500" placeholder="封面图片 URL" />
-                   {/* ⚠️ 原生的 title="唤起图床" 换成页面自己的气泡。
-                       这颗按钮本来是 absolute 定位的，所以把定位类交给 Tooltip 的外层锚点，
-                       按钮自己退回普通子元素（w-10 h-10 撑满即可） */}
+                   {
+}
                    <Tooltip label="唤起图床" className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex">
                       <button onClick={() => { setImgToolTarget('album'); setIsImgToolOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors shadow-md">
                          <CloudUpload size={18} />
@@ -161,17 +148,14 @@ export default function PhotoWallPage() {
           </div>
         )}
 
-        {/* 🌟 照片编辑弹窗 */}
         {photoModal.isOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            {/* 🌟 核心修复 1：同样去掉 onClick 误触关闭 */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative w-full max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[40px] border border-white/20 p-8 shadow-2xl">
               <h2 className="text-2xl font-black mb-6 dark:text-white">{photoModal.mode === 'add' ? '添加新照片' : '修改照片'}</h2>
               <div className="space-y-5">
-                {/* 📷 图片链接 + 图片工具：**添加和编辑共用这一套** ✓
-                    用户要求："图片单个编辑那个编辑窗口和添加图片那个一样就好了" ——
-                    以前这段只在"添加"时渲染 ✗ 编辑态只能改描述、换不了图 → 只能删了重加，太麻烦 ✗ */}
+                {
+}
                 <div className="relative group">
                   <input type="text" value={photoModal.data.url || ''} onChange={e => setPhotoModal({...photoModal, data: {...photoModal.data, url: e.target.value}})} className="w-full bg-slate-100 dark:bg-black/20 rounded-2xl px-5 py-3.5 pr-14 dark:text-white outline-none border border-transparent focus:border-indigo-500" placeholder="照片直链 URL" />
                   <button onClick={() => { setImgToolTarget('photo'); setIsImgToolOpen(true); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors shadow-md">
@@ -187,10 +171,6 @@ export default function PhotoWallPage() {
                   const album = editableAlbums.find(a => a.id === currentAlbum.id);
                   if(!album) return;
                   if(photoModal.mode === 'add') album.photos = [{...photoModal.data}, ...album.photos];
-                  // ⚠️ 编辑时 **url 也要一起写回** ✓
-                  //    （以前只写回 caption ✗ → 描述能改、图片链接改不了 → 只能删了重加 ✗ 用户反馈过）
-                  //    编辑窗口打开时传进来的就是整张照片对象（data: photo ✓），所以 url 本来就是原值，
-                  //    用户不动它就等于没改，动了就直接换图 ✓ 不会误清空 ✓
                   else album.photos[photoModal.index!] = {
                     ...album.photos[photoModal.index!],
                     url: photoModal.data.url,
@@ -207,7 +187,6 @@ export default function PhotoWallPage() {
       </AnimatePresence>
 
       <PageTransition>
-        {/* 📱 小屏顶栏留白收一档；lg 以上仍是 mt-28 */}
         <div className="w-full max-w-7xl mx-auto mt-28 max-lg:mt-20 px-4 sm:px-10 relative z-10">
 
           {!currentAlbum && (
@@ -254,7 +233,6 @@ export default function PhotoWallPage() {
 
                   {matchedAlbums.map((album) => (
                     <div key={album.id} className="group cursor-pointer flex flex-col items-center relative">
-                      {/* 📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
                       <div className="absolute top-0 right-0 z-50 flex flex-col gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all -translate-x-4 group-hover:translate-x-0 max-lg:translate-x-0!">
                          <button onClick={(e) => { e.stopPropagation(); setAlbumModal({ isOpen: true, mode: 'edit', data: album }); }} className="p-2.5 bg-indigo-500 text-white rounded-xl shadow-lg hover:scale-110 transition-transform"><Edit3 size={16}/></button>
                          <button onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, type: 'album', id: album.id, title: album.title }); }} className="p-2.5 bg-red-500 text-white rounded-xl shadow-lg hover:scale-110 transition-transform"><Trash2 size={16}/></button>
@@ -307,7 +285,6 @@ export default function PhotoWallPage() {
                 {currentAlbum.photos.map((photo, index) => (
                   <div key={index} className="break-inside-avoid relative group rounded-2xl overflow-hidden shadow-lg bg-white/20 dark:bg-slate-800/20 border border-white/30 dark:border-white/10 transition-all duration-500 hover:scale-[1.02] cursor-pointer">
 
-                    {/* 📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
                     <div className="absolute top-3 left-3 z-30 flex gap-1.5 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all translate-y-2 group-hover:translate-y-0 max-lg:translate-y-0!">
                       <button onClick={(e) => { e.stopPropagation(); setPhotoModal({ isOpen: true, mode: 'edit', index, data: photo }); }} className="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-md text-slate-700 flex items-center justify-center shadow-sm hover:bg-indigo-500 hover:text-white transition-all"><Pencil size={12}/></button>
                       <button onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, type: 'photo', photoIndex: index, title: '这张照片' }); }} className="w-7 h-7 rounded-lg bg-white/80 backdrop-blur-md text-red-500 flex items-center justify-center shadow-sm hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12}/></button>

@@ -1,24 +1,11 @@
 @import "tailwindcss";
 
-/* 1. 声明暗黑模式变体 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ========================================================
-   📱 手机上点按钮 / 链接时闪的那一下蓝色半透明遮罩（tap highlight）
-   整站统一干掉，省得每个页面、每个组件都自己处理一遍。
-   它是**继承属性**，写在 html 上就整站生效。
-   ======================================================== */
 html {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ========================================================
-   🖱️ 除输入框外，别处不要出现文本光标（I 型光标）
-   · 输入框 / 文本域 / contenteditable 照常是 I 型；
-   · 链接 / 按钮 / 下拉 照常是手型；
-   · 带 cursor-* 工具类的元素**不受影响**（类选择器优先级更高，会盖过这里的规则），
-     所以像控制台里那种拖拽分隔条的 col-resize 还是好好的。
-   ======================================================== */
 html { cursor: default; }
 body * { cursor: default; }
 body a,
@@ -38,13 +25,6 @@ body input[type="file"],
 body input[type="submit"],
 body input[type="button"] { cursor: pointer; }
 
-/* ========================================================
-   🎛️ 原生控件 / 原生下拉的配色跟着主题走
-   浏览器给 <select> 画的**弹出列表**默认是白底，而深色模式下我们给的字色是浅色
-   → 「白底 + 浅灰字」，根本看不清是什么 ✗
-   ① color-scheme：让原生控件（下拉、日期框、滚动条…）整体按主题深浅渲染；
-   ② 再把 option 的底色/字色显式写死（浅色=白底黑字，深色=深底浅字）双保险 ✓
-   ======================================================== */
 :root { color-scheme: light; }
 .dark { color-scheme: dark; }
 select option,
@@ -52,29 +32,12 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
 .dark select option,
 .dark select optgroup { background-color: #1e293b; color: #e2e8f0; }
 
-/* ========================================================
-   🌟 首页响应式：大屏保持原来的嵌套布局，
-      小屏（<1024px）把这两个容器「打散」(display:contents)，
-      好让里面的卡片各自参与外层排序（照片墙、说说能单独排位置）。
-      用自定义类而不是 Tailwind 的 contents + lg:flex，
-      因为那两者谁覆盖谁取决于 Tailwind 的生成顺序，不可靠。
-   ======================================================== */
 @media (max-width: 1023.98px) {
   .home-right-col,
   .home-sub-grid {
     display: contents;
   }
 
-  /* ========================================================
-     📱 手机整站等比缩小
-     用根字号 —— Tailwind 的尺寸全是 rem 基准，会跟着缩「并重新排版」。
-     ⚠️ 千万不要用 zoom：它只是把页面整体缩小、右边留一片空白，
-        不会重新排版，长句照样按原宽度换行。
-     配套已把手机导航栏那些写死的 px 改成 rem
-     （Navbar 的 NAV_HEIGHT、ResourcePanels 的 NAV_H 与偏移量），
-     否则会出现「字缩了、导航栏没缩」。
-     只影响小屏；桌面 ≥1024px 完全不变。
-     ======================================================== */
   html {
     font-size: 74%;
   }
@@ -94,12 +57,8 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
 }
 
 
-/* 2. 基础环境与性能优化 */
 @layer base {
   :root {
-    /* 🈶 本地自托管的思源宋体（@font-face 在 app/noto-serif-sc.css，分片在 public/fonts/）——
-       以前这里写的是 `var(--font-serif), …` 自引用（靠 next/font 在 <html> 上塞变量），
-       现在字体改成自托管、不再有那个变量，所以直接写字体名 ✓ */
     --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
   }
 
@@ -130,25 +89,9 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     -webkit-backdrop-filter: blur(12px);
   }
 
-  /* ============================================================
-     🧱 没有「毛玻璃」的浏览器兜底（OPPO ColorOS 自带浏览器等）
 
-     用户反馈：同一台手机上 Edge 正常、vivo 自带浏览器正常、电脑全部正常，
-     只有 OPPO 自带的那个浏览器 —— 卡片半透明生效了，但**模糊那一步整个被跳过** ✗
-     背景图清清楚楚透上来、字糊在上面，看着像坏了 ✗
-     （那个浏览器设置里只有「无图模式」一项、而且是关着的 → 不是设置问题，
-       是它的内核就不做 backdrop-filter ✗ 服务器端没法让它变出来 ✗）
 
-     所以这里只做一件事：**没有毛玻璃时别难看** ✓
-     把这类卡片的底色换成更实的半透明 → 字不会糊在背景图上，
-     看着像"另一种干净风格"而不是"像坏了" ✓
 
-     ⚠️ 安全性：`@supports not (...)` —— 这一块**只在完全不支持 backdrop-filter
-        的浏览器里生效** ✓ 正常的 Chrome / Edge / Safari / vivo 浏览器一律不受影响 ✓
-     ⚠️ 只改 background-color，**不碰 background-image** ——
-        渐变按钮（bg-gradient-to-*）的渐变属于背景图，照样保留 ✓ 不会被盖掉 ✓
-     ⚠️ 以后哪个元素被这条改得不对：给它加一个 `data-keep-glass` 属性即可排除 ✓
-     ============================================================ */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     [class*="backdrop-blur-"]:not([data-keep-glass]) {
       background-color: rgba(255, 255, 255, 0.86) !important;
@@ -158,14 +101,7 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     }
   }
 
-  /* ⚠️⚠️ 上面那段 @supports **抓不住 OPPO 自带浏览器** ✗
-     实测：CSS 确实已经上线 ✓ 缓存也清了 ✓ 但它就是一点变化都没有 ✗
-     原因：那个浏览器**嘴上说支持 backdrop-filter**（CSS.supports 返回 true ✗）
-           渲染的时候又整个跳过 ✗ —— 它撒谎 ✗ @supports 自然判不出来 ✗
 
-     所以只能"点名"：UA 命中就在 <html> 上挂 .no-glass（见 app/layout.tsx 里那段内联脚本 ✓
-     它跑在 <head> 里、body 绘制之前 ✓ 不会有先正常一下再变实的闪动 ✓）
-     规则和 @supports 那段**完全一样**，只是换个触发条件 ✓ */
   .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
     background-color: rgba(255, 255, 255, 0.86) !important;
   }
@@ -178,7 +114,6 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
   }
 }
 
-/* 3. 音乐播放器进度条样式 */
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -188,7 +123,6 @@ input[type=range]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-/* 4. 火狐专项优化与布局兜底 */
 @layer base {
   [class*="backdrop-blur-"] {
     will-change: backdrop-filter;
@@ -207,9 +141,6 @@ input[type=range]::-webkit-slider-thumb {
   }
 }
 
-/* ========================================================
-   5. 全局滚动条美化 (Chrome, Edge, Safari)
-   ======================================================== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -225,27 +156,12 @@ input[type=range]::-webkit-slider-thumb {
   background: rgba(99, 102, 241, 0.8);
 }
 
-/* ========================================================
-   6. Firefox 浏览器的兼容写法
-   ======================================================== */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
 }
-/* ========================================================
-   分割线 <hr>：让它像「一行文字」那样独占一个行盒
-   （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
 
-   以前：<hr> 身上只有一条 1px 的 border-top，border-box 高度就是 1px，margin 又是 0 ——
-   于是整条线被**塞进相邻两行的行距缝里**，看着像"夹在两行之间"，而不是自己占一行。
-   编辑器那边更明显：行号是按「整块的行盒高度」定位的（见 RichTextEditor 的 measureLineBox），
-   1px 高 → 那条线的行号只有 14px 高，位置还和下一行的行号重叠在一起（538 vs 539）✗
 
-   现在：高度取「一个行盒」（1lh；不支持 lh 单位的老浏览器退回 1.8em），
-   border 归零、线挪到 ::before 画在行盒正中间；字号/行高/外边距都跟着段落走
-   （下面各处 ".prose p, .prose hr" 那几条），所以它占的空间和一行普通文字完全相同 ✓
-   行号也就自然拿到和文字行同样高的行盒，上下对齐 ✓
-   ======================================================== */
 .prose hr,
 .resource-preview hr,
 .editor-content-area hr {
@@ -254,10 +170,6 @@ input[type=range]::-webkit-slider-thumb {
   border: 0 !important;
   padding: 0 !important;
   background: transparent !important;
-  /* 兜底：不认识 lh 单位的老内核（按行高 1.75~1.85 取中值，近似一个行盒）。
-     ⚠️ 不能在这个规则里连着写两条 height（先 1.8em 再 1lh）—— 压缩器会把重复的
-     height 合并掉、只留最后一条，兜底就没了（线上产物里 1.8em 就是这么消失的）。
-     所以首选值放到下面 @supports 里单独写，两条都能活下来。 */
   height: 1.8em;
 }
 
@@ -266,11 +178,9 @@ input[type=range]::-webkit-slider-thumb {
   .prose hr,
   .resource-preview hr,
   .editor-content-area hr {
-    height: 1lh;   /* 首选：正好等于本元素的行高 = 一个行盒 */
+    height: 1lh;
   }
 }
-/* 真正画出来的那条线：落在自己这个行盒的垂直正中间。
-   颜色沿用 currentColor（和改动前 <hr> 的 border-top 取色完全一致，观感不变） */
 .prose hr::before,
 .resource-preview hr::before,
 .editor-content-area hr::before {
@@ -279,16 +189,12 @@ input[type=range]::-webkit-slider-thumb {
   left: 0;
   right: 0;
   top: 50%;
-  height: 1px;                    /* 给它一个实在的 1px 盒子 —— 高度为 0 的话下面的 translateY(-50%) 是空转 */
-  transform: translateY(-50%);    /* 于是这 1px 的**中心**正好压在行盒的 50% 处（不是上边、也不是下边） */
+  height: 1px;
+  transform: translateY(-50%);
   border-top: 1px solid currentColor;
   pointer-events: none;
 }
 
-/* ========================================================
-   表格：Obsidian 那种观感 —— 完整网格线 + 隔行底色 + 表头着色
-   （编辑器 .editor-content-area / 控制台预览 .resource-preview / 前台正文 .prose 三处统一）
-   ======================================================== */
 .prose table,
 .resource-preview table,
 .editor-content-area table {
@@ -297,7 +203,6 @@ input[type=range]::-webkit-slider-thumb {
   margin: 1.5rem 0;
 }
 
-/* 表头：染色 + 加粗。tiptap 的表格没有 <thead>，首行是 <tr><th>，所以两种都覆盖 */
 .prose thead th,
 .resource-preview thead th,
 .editor-content-area thead th,
@@ -316,11 +221,6 @@ input[type=range]::-webkit-slider-thumb {
   background-color: rgba(129, 140, 248, 0.16);
 }
 
-/* 隔行底色：从"第一条数据行"开始隔行染色。
-   预览端表头在 <thead>（不占 tbody 的行），编辑器的表头就在 tbody 第一行，
-   所以两种要分开写，否则两边会错开一行。 */
-/* ⚠️ 编辑器的容器同时挂着 .prose 和 .editor-content-area 两个类，
-   所以 prose 那条必须用 :not() 把编辑器排除掉，否则两套规则会叠加成"每行都染色"。 */
 .prose:not(.editor-content-area) tbody tr:nth-child(odd),
 .resource-preview tbody tr:nth-child(odd),
 .editor-content-area tbody tr:nth-child(even) {
@@ -332,7 +232,6 @@ input[type=range]::-webkit-slider-thumb {
   background-color: rgba(148, 163, 184, 0.08);
 }
 
-/* 单元格里的段落别把行撑高（编辑器里每个单元格内容是个 <p>，默认带着下边距） */
 .prose th p,
 .prose td p,
 .resource-preview th p,
@@ -341,27 +240,14 @@ input[type=range]::-webkit-slider-thumb {
 .editor-content-area td p {
   margin: 0 !important;
 }
-/* H4–H6：Markdown 里 #### 也很常见，编辑器/预览/前台统一给个像样的层级（比 H3 再小一档） */
-/* H4-H6: 均匀过渡, H6 只比正文大 1~2px (正文: 编辑器 1rem / 博客 0.95rem) */
 .prose h4, .resource-preview h4, .editor-content-area h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; }
 .prose h5, .resource-preview h5, .editor-content-area h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
 .prose h6, .resource-preview h6, .editor-content-area h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; }
 @media (min-width: 768px) {
-  /* ⚠️ 这里**只放大 .prose（博客文章正文）**，绝不能连编辑器/预览一起放大 ——
-     文章正文的 H3 是 1.5rem，跟着放大到 1.44rem 没毛病 ✓
-     但编辑器/预览的 H1-H3 是写死的 2.2 / 1.6 / **1.25rem**（见 RichTextEditor 和资源页的
-     .resource-preview 那两处），把 H4-H6 放大到 1.44/1.35/1.26 就会**比 H3 还大** ——
-     表现就是"3 级比 4 级小、4/5/6 级乱掉"✗ 所以这两套保持下面的基准值不动 ✓ */
-  /* 桌面正文是 1.15rem(18.4px), 所以 H6 = 1.26rem(20.2px), 依然只大 ~1.8px */
   .prose h4 { font-size: 1.44rem !important; }
   .prose h5 { font-size: 1.35rem !important; }
   .prose h6 { font-size: 1.26rem !important; }
 }
-/* ========================================================
-   表格：网格线（编辑器/预览/前台完全一致）+ 收紧"标题→表格"的空白
-   之前边框只写在资源页的 .resource-preview 里，文章页(.prose)没有，
-   所以预览里看不到表格线。
-   ======================================================== */
 html :is(.prose, .resource-preview, .editor-content-area) table {
   border-collapse: collapse;
   width: 100%;
@@ -372,14 +258,9 @@ html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
   padding: 0.6rem 0.9rem;
   vertical-align: top;
 }
-/* 紧跟标题的表格不再叠一层外边距（标题自己的 margin-bottom 已经给间距了） */
 html :is(.prose, .resource-preview, .editor-content-area) :is(h1, h2, h3, h4, h5, h6) + table {
   margin-top: 0.6rem !important;
 }
-/* ========================================================
-   Obsidian 风格的 Callout（标注块）
-   > [!note] 标题   /  > [!warning] 注意  ……
-   ======================================================== */
 .callout {
   --callout: 56, 189, 248;
   margin: 1.5rem 0;
@@ -389,7 +270,6 @@ html :is(.prose, .resource-preview, .editor-content-area) :is(h1, h2, h3, h4, h5
   border-radius: 0.75rem;
   background-color: rgba(var(--callout), 0.06);
 }
-/* 标题行：用"淡一点的边框色"铺底，整行通栏 */
 .callout-title {
   display: flex;
   align-items: center;
@@ -417,38 +297,23 @@ html :is(.prose, .resource-preview, .editor-content-area) :is(h1, h2, h3, h4, h5
 .callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary { --callout: 148, 163, 184; }
 .callout-todo { --callout: 56, 189, 248; }
 
-/* 大纲条目：不要留浏览器默认的黑色聚焦框（点完条目后那个方框很显眼；
-   当前读到的条目本来就有高亮色，够用了） */
 [data-toc-level]:focus,
 [data-toc-level]:focus-visible { outline: none !important; }
 
-/* ========================================================
-   预览界面不要那个一闪一闪的输入光标（caret）
-   文章正文 / 资源预览 / 杂谈卡片都是只读内容，点一下留个光标在那儿很碍眼。
-   真正的输入位置（编辑器、输入框、文本域）照旧显示光标。
-   ======================================================== */
 html { caret-color: transparent; }
 :is(input, textarea, select, [contenteditable="true"], [contenteditable=""], .editor-content-area, .ProseMirror) { caret-color: auto; }
 
-/* ========================================================
-   杂谈卡片里的正文预览（.chatter-preview）
-   卡片内容是服务端按详情页那套管线渲染出来的 HTML，但空间小：
-   · 引用块 / callout 左右留一点间距，盒子比卡片窄一点，不贴着卡片边缘
-   · 字号行距收一档，图/代码块限高，免得卡片被撑爆
-   ======================================================== */
 .chatter-preview > :first-child { margin-top: 0 !important; }
 .chatter-preview > :last-child { margin-bottom: 0 !important; }
 .chatter-preview :is(h1, h2, h3, h4, h5, h6) { font-size: 0.95rem !important; margin: 0.4rem 0 !important; line-height: 1.35 !important; }
 .chatter-preview p, .chatter-preview li { font-size: 0.85rem; line-height: 1.6; margin: 0.25rem 0; }
 .chatter-preview :is(ul, ol) { padding-left: 1.1rem; margin: 0.25rem 0; }
-/* 卡片窄：水平方向留 0.4rem 内缩 */
 .chatter-preview blockquote, .chatter-preview .callout { margin: 0.35rem 0.4rem !important; }
 .chatter-preview blockquote { padding: 0.25rem 0.55rem; }
 .chatter-preview .callout { border-radius: 0.6rem; }
 .chatter-preview .callout-title { padding: 0.3rem 0.55rem; font-size: 0.78rem; gap: 0.35rem; }
 .chatter-preview .callout-body { padding: 0.45rem 0.55rem; }
 .chatter-preview .callout-body p, .chatter-preview .callout-body li { font-style: normal; font-size: 0.8rem; }
-/* callout 是「格式块」：不能被卡片预览那层斜体（.italic）带跑 —— 正文里没写斜体就别斜 */
 .chatter-preview .callout,
 .chatter-preview .callout-title,
 .chatter-preview .callout-title-text,
@@ -457,12 +322,6 @@ html { caret-color: transparent; }
 .chatter-preview img { max-height: 7rem; width: auto; border-radius: 0.4rem; }
 .chatter-preview pre { max-height: 7rem; overflow: auto; font-size: 0.72rem; padding: 0.6rem; border-radius: 0.5rem; }
 .chatter-preview table { display: block; overflow-x: auto; font-size: 0.72rem; }
-/* ========================================================
-   表格横向滚动：列多 / 每列文字长时，不再撑破板块
-   （display:block + overflow-x:auto 是表格响应式的常规做法，
-     表格内部仍是正常表格布局，只是自己变成可横向滚动的容器）
-   ======================================================== */
-/* 滚动容器（由 components/TableScroll.tsx 套在表格外面；编辑器用 tiptap 自带的 .tableWrapper） */
 html .prose .table-scroll,
 html .resource-preview .table-scroll,
 html .editor-content-area .tableWrapper {
@@ -471,11 +330,9 @@ html .editor-content-area .tableWrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 
-  /* 手机上：横向滚动不传染给页面 —— 否则在屏幕边缘横拖会被当成「返回上一级」手势 */
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   touch-action: pan-x pan-y pinch-zoom;}
-/* 里面的表格按内容取自然宽度（列不被挤窄、文字不竖排），至少铺满容器 */
 html :is(.prose, .resource-preview) .table-scroll > table,
 html .editor-content-area .tableWrapper > table {
   width: max-content !important;
@@ -483,17 +340,14 @@ html .editor-content-area .tableWrapper > table {
   max-width: none !important;
   margin: 0 !important;
 }
-/* 没套容器时的兜底：仍然是普通表格，不会撑出卡片 */
 html :is(.prose, .resource-preview, .editor-content-area) table {
   display: table;
   width: 100% !important;
   max-width: 100% !important;
 }
-/* 单元格不换行，列保持自然宽度（表格整体该滚就滚） */
 html :is(.prose, .resource-preview, .editor-content-area) :is(th, td) {
   white-space: nowrap;
 }
-/* 表格滚动条：轨道给灰底、滑块用实心亮色，对比拉满（手机上也要看得清、够得着） */
 html :is(.prose, .resource-preview) .table-scroll::-webkit-scrollbar,
 html .editor-content-area .tableWrapper::-webkit-scrollbar {
   height: 10px;
@@ -527,44 +381,16 @@ html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
   html .editor-content-area .tableWrapper::-webkit-scrollbar { height: 12px; }
 }
 
-/* ========================================================
-   🚫 引用块（blockquote / Obsidian 标注块）默认**不要斜体**
-   Tailwind 的 prose 默认就写着 blockquote { font-style: italic }，
-   各页面历史上也各自写过一遍，这里统一兜一条（用 :is() 提特异性，
-   比 .prose blockquote 高，谁先谁后都压得住）✓
-   ⚠️ 只重置 blockquote **自己**：里面你手动写的 *斜体* / <em> 依旧是斜体 ✓
-   ======================================================== */
 html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) blockquote {
   font-style: normal !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   🔠 深色模式下粗体要「一眼看得出来」（用户 2026-10-24 反馈）
 
-   现象：深色下粗体和正文看着差不多粗，浅色模式反而还能看出一点 ✗
-   原因：深底浅字本来就涨墨，正文已经显得偏粗，700 拉不开差距。
-   解法：深色下正文容器里的粗体顶到 900（字体是可变字重 400–900，
-        都是真粗细，不是浏览器合成的假粗体）—— **只加粗，不改颜色** ✓
-   ⚠️ 绝对不能给粗体写死颜色（之前写过 color:#fff，2026-10-25 被用户否掉）：
-      手动画成紫色/彩色/链接色的粗体会被一并刷白，是灾难 ✗
-      颜色一律跟随所在位置（正文 / 链接 / 彩色 span）✓
-   ⚠️ 只作用在正文容器里的 <strong>/<b>：标题、按钮、界面文字都不碰 ✓
-   ═══════════════════════════════════════════════════════════════════ */
 .dark :is(.prose, .resource-preview, .chatter-preview, .editor-content-area, .moment-content) :is(strong, b) {
   font-weight: 900;
 }
 
-/* ============================================================
-   📱 正文里的长链接 / 长单词要能换行（手机上引用块被顶出边界 ✗）
 
-   现象：引用块里写了一整条 URL，手机上它不折行，直接捅出引用块右边 ✗
-   原因：URL 这类连续字符没有「可断点」，浏览器默认不会在单词中间断行 ✗
-   解法：overflow-wrap:anywhere —— 只有在「实在放不下」时才在词内断行 ✓
-         （不是 break-all 那种见缝就断 ✗ 正常文字一点不受影响 ✓）
-         word-break:break-word 是给老内核算的兜底 ✓
-   ⚠️ 这两条都是**继承属性** ✓ 写在容器上，里面所有 a / code / 引用块全都跟着生效 ✓
-   ⚠️ 只加断行规则，不改任何间距、字号、颜色 ✓
-   ============================================================ */
 .prose,
 .resource-preview,
 .chatter-preview,
@@ -573,7 +399,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   word-break: break-word;
 }
 
-/* 引用块再单独保一层：块本身也别被内部内容撑开 ✗ */
 .prose blockquote,
 .resource-preview blockquote,
 .chatter-preview blockquote {
@@ -582,26 +407,13 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   max-width: 100%;
 }
 
-/* ============================================================
-   📱 手机端：资源页那层横向滚动直接关掉（保险）
 
-   背景：资源页的 <main class="res-main"> 带着 overflow-x-auto ✓
-        那是给**大屏三栏并排**用的 ✓ 大屏时左右两栏放不下可以横向拖 ✓
-        但手机端左右两栏本来就是隐藏的 ✗ 这一层没有"值得滚过去"的东西 ✓
-        于是它唯一会被触发的情况就是「内容被顶宽了」✗
-        —— 比如正文里一条不折行的长 URL ✓ 一顶宽，整块就能左右滑 ✗（用户实测反馈）
-   所以：小屏直接禁掉 ✓ 大屏一行不动 ✓
-   ⚠️ 它和上面那两条 overflow-wrap 是**两层保险** ✓
-      一条治根（让长串能断行 ✓）一条兜底（万一还有别的宽元素，也滑不动 ✗）
-   ============================================================ */
 @media (max-width: 1023.98px) {
   .res-main {
     overflow-x: hidden !important;
   }
 }
 
-/* 🖼️ B站社交图标：用官方 favicon 的形状当遮罩，颜色 = 当前文字色（和同排其它图标完全一致，悬停自动跟随 ✓）
-   为什么用 mask 不用 <img>：img 无法用 currentColor，颜色会和别的图标对不上 ✗ */
 .bili-mask {
   display: inline-block;
   background-color: currentColor;
@@ -611,11 +423,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
 }
-/* ═══ ✍️ 下划线（用户 2026-10-22 要求）═══
-   ① 默认（"自动"）= 跟随主题：浅色用导航栏悬停那档 #6366F1，深色用 #818CF8
-      编辑器里手动设了颜色的，会有内联 	ext-decoration-color ✓ 内联优先 ✓ 自动覆盖不了 ✓
-   ② 线条比浏览器默认**略微上移**（text-underline-offset）并细一点 ✓ 跟参考图一致 ✓
-   ③ 正文里的**外链**在末尾单独渲染一个 " ↗" 标记 ✓ 它自己不带下划线 ✓ 也不改链接文字 ✓ */
 .prose u, .resource-preview u, .editor-content-area u {
   text-decoration-line: underline !important;
   text-decoration-color: #818CF8;
@@ -625,7 +432,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 .dark .prose u, .dark .resource-preview u, .dark .editor-content-area u {
   text-decoration-color: #6366F1;
 }
-/* 外链末尾的 ↗ 标记（只对 http/https 生效 ✓ 站内链接不加 ✓） */
 .prose a[href^="http"]:not(.repo-card)::after,
 .resource-preview a[href^="http"]:not(.repo-card)::after,
 .editor-content-area a[href^="http"]:not(.repo-card)::after {
@@ -637,16 +443,10 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   margin-left: 0.1em;
   white-space: nowrap;
 }
-/* ═══ ✍️ 下划线/链接 视觉收尾（用户 2026-10-22 要求）═══ */
-/* ① 下划线粗细按字号 25%（0.25em），贴着文本下沿 —— 观感接近导航栏那条粗条，且字号变大时会跟着变粗 ✓ */
 .prose u, .resource-preview u, .editor-content-area u {
   text-decoration-thickness: 0.25em !important;
   text-underline-offset: 0.08em !important;
 }
-/* ② 超链接：平时**虚线**、悬停**变实线并下移到两行文字的中间**（不再有背景变亮/变淡 ✗）
-   悬停下划线落在 0.5em：正文行高 1.75~1.8、字形升降部约 0.88/0.12（Noto Serif SC）→
-   文字下沿到下一行文字上沿这段空隙的中点，正好在基线下约 0.5em 处 ✓
-   （用户 2026-10-25：要"刚好在文本底部与下一行顶部之间的上下中间"，动画要非线性）*/
 .prose a[href^="http"]:not(.repo-card), .resource-preview a[href^="http"]:not(.repo-card), .editor-content-area a[href^="http"]:not(.repo-card) {
   text-decoration-line: underline !important;
   text-decoration-style: dashed !important;
@@ -655,11 +455,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   background: transparent !important;
   transition: text-underline-offset 0.22s cubic-bezier(.22,.61,.36,1) !important;
 }
-/* 🖱️ 悬停效果**只给真的有鼠标的设备**（用户 2026-10-22 要求）
-      手机/平板根本没有"悬停"这回事，干脆一条 :hover 规则都不给它 ✓
-      → 点完链接跳走再回来，自然不可能"卡在悬停态"✓（也就没有"取消悬停"这种事了 ✓）
-      `(hover: hover) and (pointer: fine)`：桌面鼠标、笔记本触摸板命中 ✓
-      触屏（手机/平板）、触屏上的手指输入不命中 ✓ */
 @media (hover: hover) and (pointer: fine) {
   .prose a[href^="http"]:not(.repo-card):hover, .resource-preview a[href^="http"]:not(.repo-card):hover, .editor-content-area a[href^="http"]:not(.repo-card):hover {
     text-decoration-style: solid !important;
@@ -667,21 +462,15 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
     background: transparent !important;
   }
 }
-/* ③ 箭头本身：原子行内盒，不参与父级下划线 ✓（保持无下划线、悬停也不变） */
 .prose a[href^="http"]::after, .resource-preview a[href^="http"]::after, .editor-content-area a[href^="http"]::after {
   text-decoration: none !important;
   background: transparent !important;
 }
-/* ④ 干掉链接身上残留的 border-bottom 实线（预览里出现"虚线 + 实线"双线的根因 ✗）
-      现在链接的下划线统一由 text-decoration 负责 ✓ */
 .prose a:not(.repo-card), .resource-preview a:not(.repo-card), .editor-content-area a:not(.repo-card),
 .prose a[href^="http"]:not(.repo-card), .resource-preview a[href^="http"]:not(.repo-card), .editor-content-area a[href^="http"]:not(.repo-card) {
   border-bottom: none !important;
   box-shadow: none !important;
 }
-/* ⑤ 彻底去掉链接悬停时那层"变亮的圆角背景"（!important 压过所有旧规则 ✓ 连圆角也归零，免得弧边 ✗）
-      ⚠️ 卡片的 a.repo-card 必须排除：它有自己一套设计（圆角/毛玻璃/悬停紫框），
-         被这里归零就会变成直角 + 没有悬停框 ✗（用户实测反馈）*/
 .prose a:not(.repo-card), .prose a:not(.repo-card):hover, .prose a:not(.repo-card):focus-visible,
 .resource-preview a:not(.repo-card), .resource-preview a:not(.repo-card):hover, .resource-preview a:not(.repo-card):focus-visible,
 .editor-content-area a:not(.repo-card), .editor-content-area a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):focus-visible {
@@ -692,15 +481,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   box-shadow: none !important;
   outline: none !important;
 }
-/* ⑥⑦ 原来的「压掉仓库卡片悬停装饰」两块规则已整块删除（用户 2026-10-22 明确要求）：
-      卡片是**独立设计**（样式在 components/RepoCard.tsx 的 CARD_STYLE 里，本身就带 !important），
-      那两块会把卡片自己的 edge 全都压成 0：
-        · border-radius: 0   → 16px 圆角变直角 ✗
-        · border: none       → 悬停时那圈紫色细边消失 ✗
-        · text-decoration-style/underline-offset → 卡片文字被画上一条虚线 ✗
-      现在正文链接规则统一用 :not(.repo-card) 绕开卡片 ✓ 卡片样式完全交回它自己 ✓ */
-/* ⑧ 所有超链接统一下划线样式（站内 + 站外都算 ✓）—— 之前只写了 a[href^="http"] ✗ 站内链接漏了 ✗
-      箭头仍然只给站外链接（站内是 router 瞬间切页，画箭头会误导 ✗）*/
 .prose a:not(.repo-card), .resource-preview a:not(.repo-card), .editor-content-area a:not(.repo-card) {
   text-decoration-line: underline !important;
   text-decoration-style: dashed !important;
@@ -712,7 +492,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   box-shadow: none !important;
   transition: text-underline-offset 0.22s cubic-bezier(.22,.61,.36,1) !important;
 }
-/* 悬停态：只在有鼠标的设备上生效 ✓（手机没有 hover，自然不会有"卡住"✓） */
 @media (hover: hover) and (pointer: fine) {
   .prose a:not(.repo-card):hover, .resource-preview a:not(.repo-card):hover, .editor-content-area a:not(.repo-card):hover {
     text-decoration-style: solid !important;
@@ -723,7 +502,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
     box-shadow: none !important;
   }
 }
-/* 键盘 Tab 的高亮不受影响 ✓（手机/平板上插键盘照样能用） */
 .prose a:not(.repo-card):focus-visible, .resource-preview a:not(.repo-card):focus-visible, .editor-content-area a:not(.repo-card):focus-visible {
   text-decoration-style: solid !important;
   text-underline-offset: 0.5em !important;
@@ -732,10 +510,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   border-radius: 0 !important;
   box-shadow: none !important;
 }
-/* ⑨ GitHub 风格徽章链接： [![alt](图片)](跳转)  渲染成**行内小图** ✓
-   · 徽章链接不要下划线/箭头/背景（它是图 ✓ 不是文字链接 ✓）
-   · 图片改成行内、按原始尺寸（最大高度受限 ✓ 不会像正文大图那样铺满 ✓）
-   · 一行可以放多个 ✓ 空格分隔 ✓ 按顺序左对齐 ✓ */
 .prose a:has(> img):not(.repo-card), .resource-preview a:has(> img):not(.repo-card), .editor-content-area a:has(> img):not(.repo-card) {
   display: inline-block !important;
   vertical-align: middle !important;
@@ -762,7 +536,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   box-shadow: none !important;
   vertical-align: middle !important;
 }
-/* 🏷️ 徽章预览行：只显示徽章本身（源码那行已经能看到链接了 ✓ 不用再画卡片/地址 ✗）*/
 .badge-preview-row {
   display: inline-flex;
   align-items: center;
@@ -773,10 +546,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
 .badge-preview-row img { height: 20px !important; width: auto !important; max-width: none !important; border-radius: 2px !important; display: inline-block !important; box-shadow: none !important; margin: 0 !important; }
 .badge-preview-tip { display: none !important; }
 
-/* 🧩 skillicons.dev 的技能图标条（[![My Skills](https://skillicons.dev/icons?i=…)](…)）
-      它一张图里塞了十几个图标 ✓ 按普通徽章 20/22px 太小 ✗ → 单独放大一倍 ✓
-      · 编辑器预览行：20px -> 40px ✓
-      · 正文/预览里的行内徽章：22px -> 44px ✓ */
 .badge-preview-row img[src*="skillicons.dev/icons?i="] {
   height: 40px !important;
   max-width: none !important;
@@ -789,8 +558,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   width: auto !important;
   max-width: none !important;
 }
-/* 🧩 skillicons 图标条（最终版 ✓ 覆盖前面所有规则 ✓ 放最后 = 生效）
-      关键：不设宽度上限 ✓ 高度写死 ✓ 图标再多也不会被压小 ✓ */
 .badge-preview-row img[src*="skillicons.dev/icons?i="] {
   height: 40px !important;
   min-height: 40px !important;
@@ -808,7 +575,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   max-height: none !important;
   object-fit: contain !important;
 }
-/* 包着它的 <a> 也不要限制宽度 ✓ */
 .prose a:has(img[src*="skillicons.dev/icons?i="]),
 .resource-preview a:has(img[src*="skillicons.dev/icons?i="]),
 .editor-content-area a:has(img[src*="skillicons.dev/icons?i="]) {
@@ -816,8 +582,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   width: auto !important;
   display: inline-block !important;
 }
-/* 🧩 skillicons 超宽处理：一张图无法换行 ✗ → 让**所在段落**横向滚动 ✓（只有超宽才出现滚动条 ✓）
-      桌面不超宽时完全看不出来 ✓ 手机上可以左右滑 ✓ */
 .prose p:has(img[src*="skillicons.dev/icons?i="]),
 .resource-preview p:has(img[src*="skillicons.dev/icons?i="]),
 .editor-content-area p:has(img[src*="skillicons.dev/icons?i="]) {
@@ -827,8 +591,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   padding-bottom: 4px;
   scrollbar-width: thin;
 }
-/* 🧩 skillicons 全站通杀版（不依赖 .prose/.resource-preview 这些容器名 ✓
-      之前带前缀的选择器在"关于"页没命中，所以看着没变化 ✗ */
 img[src*="skillicons.dev/icons?i="] {
   height: 44px !important;
   min-height: 44px !important;
@@ -837,20 +599,17 @@ img[src*="skillicons.dev/icons?i="] {
   max-width: none !important;
   object-fit: contain !important;
 }
-/* 所在段落允许横向滚动（超宽才出现 ✓） */
 p:has(img[src*="skillicons.dev/icons?i="]),
 div:has(> p > img[src*="skillicons.dev/icons?i="]) {
   overflow-x: auto !important;
   overflow-y: hidden !important;
   max-width: 100% !important;
 }
-/* 编辑器预览行仍固定 40px ✓ 且不受全局 44px 影响 */
 .badge-preview-row img[src*="skillicons.dev/icons?i="] {
   height: 40px !important;
   min-height: 40px !important;
   max-height: none !important;
 }
-/* 🧩 区分：多图标长条（src 里带逗号 ✓）放大；单图标（没有逗号 ✓）保持普通徽章大小 */
 img[src*="skillicons.dev/icons?i="][src*=","] {
   height: 44px !important;
   min-height: 44px !important;
@@ -864,7 +623,6 @@ img[src*="skillicons.dev/icons?i="]:not([src*=","]) {
   width: auto !important;
   max-width: none !important;
 }
-/* 🧩 多图标长条：等比例铺满正文宽度 ✓（SVG 放大不会模糊 ✓ 左右边距与正文一致 ✓）*/
 img[src*="skillicons.dev/icons?i="][src*=","] {
   width: 100% !important;
   max-width: 100% !important;
@@ -874,9 +632,6 @@ img[src*="skillicons.dev/icons?i="][src*=","] {
   display: block !important;
   object-fit: contain !important;
 }
-/* 铺满后不会再溢出，滚动条自然不出现 ✓（窄屏仍保留兜底 ✓）*/
-/* 🧩 关键修复：skillicons 长条的**外层 <a>** 必须先撑满整行 ✓
-      否则 <img> 的 width:100% 是相对"收缩到内容宽度"的 <a> 算的 ✗ 所以只占一半 ✗ */
 a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   display: block !important;
   width: 100% !important;
@@ -884,7 +639,6 @@ a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   margin: 6px 0 !important;
   padding: 0 !important;
 }
-/* 🧩 最高优先级版：html body 前缀 + !important，任何其它图片规则都压不过 ✓ */
 html body img[src*="skillicons.dev/icons?i="][src*=","] {
   width: 100% !important;
   max-width: 100% !important;
@@ -900,14 +654,6 @@ html body a:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   max-width: 100% !important;
 }
 
-/* 🧩 skillicons 图标条：上下间距统一 ✓（之前上面明显空一大截 ✗）
-   真凶不是 margin：正文里这一段是 `<p>‍<a>…</a></p>`，
-   那个零宽连接符（U+200D）是个**文字节点** ✓ 浏览器按 line-height 1.85 给它算了一整行空行 ≈34px ✗
-   而下面只有 <a> 的 6px + 4px 内边距 ✗ → 上面 40px、下面 10px，看着就"上头空、下头挤" ✗
-   解法：
-     · 所在段落 行高/字号归零 → 那行空行被收掉，高度=0 ✓（这一行里只有图 ✓ 不会影响任何文字 ✓）
-     · 上下 margin 明写同一个值（对称 ✓ 不再出现"只往上加"的间距 ✗）
-     · 图片自身 margin 清零 ✓ 外层 <a> 的 margin/padding 也清零 ✓ */
 html body p:has(img[src*="skillicons.dev/icons?i="][src*=","]) {
   margin: 0.9rem 0 !important;
   padding: 0 !important;
@@ -928,24 +674,8 @@ html body img[src*="skillicons.dev/icons?i="][src*=","] {
   vertical-align: top !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   🖱️ 链接悬停效果**只在有鼠标的设备上生效**（用户 2026-10-22 定稿）
 
-   决策：不再用"事后取消"那一套，直接**不给手机/平板悬停样式** ✓
-     · 悬停规则全部包在 @media (hover: hover) and (pointer: fine) 里（见文件上方 ② 与 ⑧）
-     · 手机没有 hover → 一条悬停规则都不加载 → 点完跳转回来不可能"卡住" ✓
-     · 各页面 <style> 里那几条老悬停规则（淡紫背景 + padding 位移）已经整段删掉了 ✓
-   下面保留的 .force-unhover 只是给"少数浏览器谎报自己支持 hover"兜底（靠点击事件压一下）✓
-   ═══════════════════════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════════════════════
-   🖱️ 触摸点击的**那一刻**就把悬停态按普通态画（配合 components/ClickUnhover.tsx）
 
-   和上面那条 @media (hover: none) 是**互补**的：
-     · @media 那条治「纯触屏设备」（浏览器报告 hover:none）✓
-     · 这条治「触摸屏 + 鼠标」的混合设备 ✗ （笔记本触屏、手机插鼠标、手写笔）
-       —— 这类设备浏览器报告 hover:hover，media query 不生效，只能靠点击事件当场压下去 ✓
-   JS 会在触摸点击链接时给 <html> 挂 .force-unhover，下次 pointerdown / pointermove 自动摘掉 ✓
-   ═══════════════════════════════════════════════════════════════════ */
 html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)) {
   background: transparent !important;
   background-color: transparent !important;
@@ -957,13 +687,7 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
   text-underline-offset: 0.18em !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   📝 说说卡片正文（Markdown 渲染后）的最小排版（用户 2026-10-22 要求）
 
-   背景：说说以前是纯文本，写了 `- 列表` 会被去掉减号 ✗
-        现在正文按 Markdown 渲染成 <ul>/<ol> ✓ 卡片空间小，间距/缩进都收得很紧 ✓
-   ⚠️ 链接/下划线/高亮/上下标这些走全局 .prose 那套规则（卡片里那层就带 .prose）✓
-   ═══════════════════════════════════════════════════════════════════ */
 .moment-content p { margin: 0 0 0.5rem; }
 .moment-content p:last-child { margin-bottom: 0; }
 .moment-content ul,
@@ -995,7 +719,6 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
   margin: 0.5rem 0;
   padding: 0.35rem 0 0.35rem 0.75rem;
   border-left: 3px solid rgba(99, 102, 241, 0.55);
-  /* 不压透明度：引用块里的字要和外面正文同色同亮度（用户 2026-10-24）*/
 }
 .moment-content table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
 .moment-content th,

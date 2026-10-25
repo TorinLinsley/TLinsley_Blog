@@ -17,56 +17,24 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-// 📊 表格（Markdown 表格粘贴 / 编辑 / 存回都要它）
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
-// 🖼️ 「手打 ![](图片链接) 自动插图」要用 tiptap 的输入规则（敲完 ) 立刻变图片 ✓）
 import { InputRule } from '@tiptap/core';
-// 🖼️ 图片插入/编辑按钮 + 可拖动的编辑窗口（描述 / 链接 / 确认 / ×）
 import ImageEditButton from './ImageEditButton';
 
-// 🌟 引入 Markdown 插件
 import { Markdown } from 'tiptap-markdown';
-// 📋 粘贴 Markdown 源码时**自己接管解析**：markdown-it 出 HTML，再交给 ProseMirror 自己的解析器建 slice。
-//    不这么做的话，tiptap-markdown 内部的 clipboardTextParser 会把引用块/列表拆平
-//    （表现：剪贴板里明明有 `>`，粘进来 `>` 没了、引用块和列表退化成普通段落）。
 import MarkdownIt from 'markdown-it';
 
-/** 只用于「粘贴 Markdown 源码」这一条路；表格/删除线等 GFM 语法默认就支持 */
-// ⚠️ html 必须是 true：粘贴的 <sup>/<sub>（以及 <br>、<u> 等行内 HTML）要**原样解析成真节点** ✓
-//    关着的话 markdown-it 会把标签当普通文字转义 ✗（粘贴 <sup>x</sup> 就变字面量了 ✗）
 const PASTE_MD = new MarkdownIt({ html: true, linkify: true, breaks: false });
 
-/* ═══════════ 📋 Markdown 源码 → ProseMirror Slice（粘贴用的那条路） ═══════════ */
 
-/** 文件头的 YAML：`---` 开头、`---` 结尾，且里面至少有一行 `key:` */
 const YAML_FRONTMATTER = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 
 function stripFrontmatter(raw: string): string {
   const text = raw.replace(/^\uFEFF/, '');
   const match = YAML_FRONTMATTER.exec(text);
-  // ⚠️ 必须确认里面是 YAML（有 key: 行）才丢。
-  //    否则一篇「正文第一行是 ---（分隔线）、后面又有一条 ---」的文章会被整段吃掉。
   return match && /^[A-Za-z_][\w-]*[ \t]*:/m.test(match[1]) ? text.slice(match[0].length) : text;
 }
 
-/**
- * 🚿 洗 markdown-it 输出里的排版空白（`<pre>` 里一个字都不动）。
- *
- * ① 纯空白文本节点 → 全删。这是「粘一整篇满屏空行」的**根因**：
- *    markdown-it 输出的 HTML 里每个 `</li>` 和 `<li>` 之间都有一个换行符，
- *    而 `preserveWhitespace: 'full'` 会把它当成**真正的文字**交给 ProseMirror；
- *    `<ul>`/`<ol>`/`<blockquote>` 这些容器的 content 是"只能装块"，装不下文字，
- *    PM 就地现造一个空段落 / 空列表项来安放它 —— 表现就是整篇都是多余空行。
- *    （实测 555 行的测试文件：旧管线 1432 个块里 794 个是这么来的空块，修完只剩 8 个
- *      —— 那 8 个是「不规则表格」里 markdown-it 补出来的空格子，本来就该是空的。）
- *
- * ② 块级元素**前后**的换行也要剪掉。markdown-it 是这么排嵌套列表的：
- *        <li>[x] 已完成\n<ul>…</ul></li>
- *    这个 \n 只是 JS 里的排版换行，但它在"文字后面"，会被当成软换行 →
- *    tiptap 的 schema 带 linebreakReplacement，于是变成真正的 <br>，
- *    表现就是"列表项和它的子列表之间凭空多一个空行"。
- *    所以：紧跟着块级元素的换行剪掉，段落**内部**的换行（软换行）留着。
- */
 function tidyPasteWhitespace(body: HTMLElement) {
   const BLOCK_TAGS = new Set(['P', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE', 'DIV', 'HR',
     'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
@@ -78,12 +46,11 @@ function tidyPasteWhitespace(body: HTMLElement) {
   for (let node = walker.nextNode(); node; node = walker.nextNode()) texts.push(node as Text);
 
   texts.forEach(text => {
-    if (text.parentElement?.closest('pre')) return;             // 代码块里的空行/缩进要留着
+    if (text.parentElement?.closest('pre')) return;
     const value = text.nodeValue || '';
     if (!/^[ \t\r\n]*$/.test(value)) {
       let next = value;
       if (/^[\r\n]/.test(next) && isBlock(text.previousSibling)) next = next.replace(/^[\r\n]+/, '');
-      // 父容器是列表项/单元格时，末尾的换行也不是软换行（后面没有块了）
       const atBlockEnd = isBlock(text.nextSibling) ||
         (!text.nextSibling && !!text.parentElement && ['LI', 'TD', 'TH'].includes(text.parentElement.tagName));
       if (/[\r\n]$/.test(next) && atBlockEnd) next = next.replace(/[\r\n]+$/, '');
@@ -94,12 +61,6 @@ function tidyPasteWhitespace(body: HTMLElement) {
   });
 }
 
-/**
- * ☑️ `- [ ]` / `- [x]` → tiptap 的 taskList + taskItem（markdown-it 默认只当普通文字）。
- *
- * taskItem 的 content 是 `paragraph+`（这里配了 nested，等于 `paragraph block*`），
- * 所以紧凑列表里的裸文字要先包一层 `<p>`；嵌套的子列表留在 `<p>` 外面。
- */
 function convertTaskLists(body: HTMLElement) {
   const doc = body.ownerDocument;
   const BLOCK_TAGS = new Set(['P', 'UL', 'OL', 'BLOCKQUOTE', 'PRE', 'TABLE', 'DIV', 'HR',
@@ -117,7 +78,6 @@ function convertTaskLists(body: HTMLElement) {
     li.setAttribute('data-checked', match[1].toLowerCase() === 'x' ? 'true' : 'false');
 
     if (holder === li) {
-      // 紧凑列表：文字直接挂在 <li> 上 → 把「开头的行内内容」包进一个 <p>
       const paragraph = doc.createElement('p');
       let node: ChildNode | null = li.firstChild;
       while (node) {
@@ -130,8 +90,6 @@ function convertTaskLists(body: HTMLElement) {
     }
   });
 
-  // ⚠️ 同一个列表里「任务项」和「普通项」混着放时，一个容器装不下两种内容，
-  //    ProseMirror 会丢东西。所以按类型拆成相邻的多个列表（任务项各自进 data-type="taskList" 的 <ul>）。
   body.querySelectorAll('ul, ol').forEach(list => {
     const items = Array.from(list.children).filter(el => el.tagName === 'LI') as HTMLElement[];
     if (!items.some(li => li.getAttribute('data-type') === 'taskItem')) return;
@@ -156,18 +114,6 @@ function convertTaskLists(body: HTMLElement) {
   });
 }
 
-/**
- * 🔢 把「紧挨着、中间什么都没有」的同类型列表合并回一个。
- *
- * 病根：markdown-it 偶尔会把**同一个**序号列表切成两段（比如 `1.` 和 `2)` 混用、
- * 或者列表中间混进了一个空块）→ 粘进来就是两个 <ol>，编号各从 1 开始 ✗
- * 用户看到的样子：1. / 1. / 2. 这种"莫名其妙的编号"（Obsidian 里写的好好的）。
- *
- * 只合并**语法上本来就是同一个**的那些：
- *   · 列表本身没有 start（= 从 1 开始）  → 合并
- *   · start 正好接在已往条目数后面（5. 接在 4 条后面）→ 合并 ✓
- *   · 其它情况（作者真的想重新从某个号开始）→ 不动 ✓
- */
 function mergeSiblingLists(body: HTMLElement) {
   body.querySelectorAll('ol, ul').forEach(list => {
     for (;;) {
@@ -188,15 +134,6 @@ function mergeSiblingLists(body: HTMLElement) {
   });
 }
 
-/**
- * Markdown 源码 → 可直接 replaceSelection 的 Slice。
- *
- * 顺序有讲究：先丢 frontmatter（不然会被渲染成「分隔线 + 一堆列表项」）→ 再渲染 →
- * 再洗 DOM（空白节点 / 任务列表）→ 最后交给 ProseMirror。
- * `preserveWhitespace` 只能给 `true`（= 保留空白、换行按空格处理），**绝不能给 `'full'`**：
- * `'full'` 就是上面说的空行灾难。代码块的缩进不受影响，因为 tiptap 自己的代码块
- * 解析规则里写死了 `preserveWhitespace: 'full'`（见 @tiptap/extension-code-block）。
- */
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const body = new window.DOMParser()
     .parseFromString(PASTE_MD.render(stripFrontmatter(raw)), 'text/html')
@@ -204,21 +141,6 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
   tidyPasteWhitespace(body);
   mergeSiblingLists(body);
   convertTaskLists(body);
-  /* ⌨️ 代码块：砍掉 markdown-it 在收尾前多输出的**那一个**换行 ✓
-   *
-   * 病根：按规范它会输出 `<pre><code>第一行\n第二行\n</code></pre>` ✗
-   *   最后那个 \n 是规范行为 ✓ 但交给 ProseMirror 后就变成代码块里多一个空行 ✗
-   *   → 表现：**每粘贴一次 Markdown 源码，每个代码块末尾都多一行空行** ✓（用户实测反馈 ✓）
-   *
-   * ⚠️⚠️ 为什么只能写在这条支路里 ✓：
-   *   上面那个 tidyPasteWhitespace 是**所有粘贴方式公用**的清洗器 ✗
-   *   上次图省事改在那里 → 把表格单元格的换行判定带偏 ✗ 表格被拆成裸文本 ✓（踩过的坑 ✓）
-   *   而 markdownToSlice 只服务「粘贴 Markdown 源码」这一条路 ✓ 影响面最小 ✓
-   *
-   * 为什么只砍**一个** ✓：作者若**有意**留了结尾空行 ✓ markdown-it 会输出 …\n\n ✓
-   *   砍一个还剩一个 ✓ 作者本意完整保留 ✓
-   * 为什么碰不到表格 ✓：只查 `<pre>` ✓ `<td>` / `<br>` / 列表一个字都不动 ✓✓
-   */
   body.querySelectorAll('pre').forEach(pre => {
     const walker = pre.ownerDocument.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
     let lastText: Text | null = null;
@@ -226,22 +148,13 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     const value = lastText?.nodeValue || '';
     if (lastText && value.endsWith('\n')) lastText.nodeValue = value.slice(0, -1);
   });
-  /* 🖼️ 粘贴里的 `![]()`（小括号里**没有**链接）：markdown-it 会给出 `<img src="">` ✗
-     这里把它**变回源码文字** `![描述]()` ✓ —— 用户要求："没有链接就直接粘成源码" ✓
-     （带合法图片后缀的链接完全不受影响 ✓ 那些照旧插成真图片 ✓）*/
   body.querySelectorAll('img').forEach((img) => {
     const src = (img.getAttribute('src') || '').trim();
-    if (src) return;                                   // 有链接 → 一个字不动 ✓
+    if (src) return;
     const alt = img.getAttribute('alt') || '';
     img.replaceWith(body.ownerDocument.createTextNode(`![${alt}]()`));
   });
 
-  /* 🧹 图片**上下多出来的空行**（用户实测："我只粘了一行，上下却多出两个空行" ✗）：
-     markdown-it 会给图片套一层 `<p>`，而编辑器里图片是**块级节点**、会被拆成独立段落
-     → 那个空 `<p>` 就留在图片上下 ✗
-     做法：① 把「只包着一张图的 <p>」拆掉（图片提出来 ✓）
-           ② 再把图片**紧邻的空段落**删掉 ✓
-     ⚠️ 只动图片上下，表格/列表/正文一个字不碰 ✓ */
   body.querySelectorAll('p').forEach((p) => {
     const kids = Array.from(p.childNodes).filter(
       (n) => !(n.nodeType === Node.TEXT_NODE && !(n.nodeValue || '').trim())
@@ -260,9 +173,6 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     if ((prev && prev.tagName === 'IMG') || (next && next.tagName === 'IMG')) p.remove();
   });
 
-  /* 🏷️ GitHub 徽章链接 [![alt](图片)](跳转)：
-     markdown 解析会变成 <a><img></a> ✗ 但编辑器里我们要**保留源码形态** ✓
-     → 把"整条 a 里只有一张 img"的还原成源码文字 ✓（用户 2026-10-22 要求）*/
   body.querySelectorAll('a').forEach((a) => {
     const kids = Array.from(a.childNodes).filter(
       (n) => !(n.nodeType === 3 && !(n.nodeValue || '').trim())
@@ -279,38 +189,14 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
   return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
 }
 
-/**
- * 📋 粘贴前先给「别处画出来的下划线」统一成编辑器认识的写法（用户 2026-10-22 要求）
- *
- * 为什么需要：下划线在 HTML 里有好几种写法，编辑器的下划线标记只认这三样
- *   ① `<u>` 标签
- *   ② `style` 里 `text-decoration` 含 `underline`
- *   ③ 颜色：`text-decoration-color` 或 `data-underline-color`
- * 而外部来源五花八门：
- *   · `<u>文字</u>`（大部分网页 / Notion / 飞书）                        → 本来就认 ✓
- *   · `<ins>文字</ins>`（老式编辑器 / Word 老版本）                       → ✗ 认不出来
- *   · `<span style="text-decoration-line: underline">`（新一点的写法）    → ✗ 属性名不是 text-decoration
- *   · `<span style="border-bottom: 1px solid rgb(…)">`（Google 文档）    → ✗ 压根没有 text-decoration
- *   · `<span style="text-decoration: underline">` 外面再套一层颜色 span   → 认 ✓ 但颜色要跟着走
- * 认不出来的结果：粘进来成了光秃秃的文字 ✗ 只能手动重画 ✗（用户实测反馈）
- *
- * 这里统一补齐（只补「下划线」这一件事，别的样式一个字不动 ✓）：
- *   · `<ins>` → `<u>`
- *   · `text-decoration-line: underline` → 补一条 `text-decoration: underline`
- *   · `border-bottom` 假装的下划线 → 换成真的 `text-decoration: underline`
- *   · 颜色：写了的（且不是 currentColor/inherit 这种"跟随文字色"）才带上 ✓
- *           没写的 = **自动下划线** ✓（`color` 留空，显示时走主题默认色 ✓）
- */
 function normalizePastedInlineHtml(html: string): string {
   if (!html || !/text-decoration|border-bottom|<ins\b/i.test(html)) return html;
   try {
     const doc = new window.DOMParser().parseFromString(html, 'text/html');
 
-    /** 「跟随文字颜色」的写法等同于没写颜色 → 算自动 ✓（否则 .md 里会存一句 currentColor ✗） */
     const isAutoColor = (c: string) =>
       !c.trim() || /^(currentcolor|inherit|unset|initial|revert|transparent)$/i.test(c.trim());
 
-    // ① <ins> → <u>（保留它自己的属性）
     doc.body.querySelectorAll('ins').forEach((ins) => {
       const u = doc.createElement('u');
       Array.from(ins.attributes).forEach((attr) => u.setAttribute(attr.name, attr.value));
@@ -318,7 +204,6 @@ function normalizePastedInlineHtml(html: string): string {
       ins.replaceWith(u);
     });
 
-    // ② 各种"下划线"写法统一成 text-decoration: underline（+ 真颜色）
     doc.body.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
       const st = el.style;
       const deco = `${st.textDecoration || ''} ${st.textDecorationLine || ''}`.toLowerCase();
@@ -329,19 +214,16 @@ function normalizePastedInlineHtml(html: string): string {
 
       if (!underlined && !byBorder) return;
 
-      /* 颜色：下划线自己的颜色优先；border-bottom 那套取边框颜色；都没有 = 自动 ✓ */
       const rawColor = underlined
         ? (st.textDecorationColor || '')
         : (st.borderBottomColor || '');
       const color = isAutoColor(rawColor) ? '' : rawColor.trim();
 
-      // 统一成「text-decoration: underline」，编辑器那条解析规则才认 ✓
       if (byBorder) el.style.borderBottom = 'none';
       el.style.textDecorationLine = 'underline';
       if (!st.textDecoration || !st.textDecoration.toLowerCase().includes('underline')) {
         el.style.setProperty('text-decoration', `${st.textDecoration || ''} underline`.trim());
       }
-      // 颜色：自动就把内联颜色去掉（交给主题），有颜色才留 ✓
       if (color) {
         el.style.textDecorationColor = color;
         el.setAttribute('data-underline-color', color);
@@ -353,28 +235,13 @@ function normalizePastedInlineHtml(html: string): string {
 
     return doc.body.innerHTML;
   } catch {
-    return html;   // 解析失败就原样交给 ProseMirror，绝不因为这点小事把粘贴搞坏
+    return html;
   }
 }
 
-// 🌟 引入满血版 C++ 语法高亮
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { createLowlight } from 'lowlight';
 
-/**
- * ⚡ 语法高亮**只注册工具栏里列出来的那些语言**（就是下面那份 CODE_LANGUAGES）。
- *
- * 原来这里用的是 lowlight 的 `all` —— 它会把 highlight.js **全部 384 种语言**的语法
- * 一起打进包里（1.5 MB 原始体积，占了整个编辑器 chunk 的绝大部分）。
- * 控制台的代码块语言是固定的那几个，多出来的 350 多种一个都用不到，
- * 但每次打开资源分享页/编辑器都要陪你下完 —— 这就是控制台感觉比前台慢的主因之一。
- *
- * 现在这份名单 25 种语言合计约 184 KB（≈ 原来的 1/8），着色效果**和以前一模一样**：
- * 下拉里能选的语言全都在（jsx/tsx 走 javascript/typescript 的别名，html 走 xml 的别名，
- * cmd/bat 走 dos 的别名），不在名单里的语言本来也只是纯文本显示。
- *
- * ⚠️ 以后往 CODE_LANGUAGES 里加语言，记得在这里也 import 一份，否则那个语言不会着色。
- */
 import bash from 'highlight.js/lib/languages/bash';
 import c from 'highlight.js/lib/languages/c';
 import cpp from 'highlight.js/lib/languages/cpp';
@@ -402,14 +269,12 @@ import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
 import yaml from 'highlight.js/lib/languages/yaml';
 
-// 复用手写体里那套复制按钮（pywebview 原生 / Clipboard API / execCommand 三层兜底都在里面）
 import { attachCodeFold, createCopyBar, FOLD_AFTER, prettyLang, copyToClipboard } from '../CodeCopy';
 import ThemedSelect from '../ThemedSelect';
 import LinkCardTool from './LinkCardTool';
 import { CalloutDecoration } from './CalloutDecoration';
 import { calloutDivsToBlockquotes } from './calloutBridge';
 
-// 📏 行号：代码块内部的行号靠 ProseMirror 的 widget decoration 实现
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { EditorView } from '@tiptap/pm/view';
@@ -426,9 +291,7 @@ import {
   Table as TableIcon, Trash2, Info, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, Copy, ArrowUpDown, Rows3, Columns3
 } from 'lucide-react';
 
-/* ═══════════════ 📊 表格操作（对标 Obsidian 的 Advanced Tables） ═══════════════ */
 
-/** 光标所在的表格（PM 位置 + 节点）；不在表格里返回 null */
 function findTableNode(editor: Editor): { pos: number; node: PMNode } | null {
   const { $from } = editor.state.selection;
   for (let depth = $from.depth; depth > 0; depth -= 1) {
@@ -438,7 +301,6 @@ function findTableNode(editor: Editor): { pos: number; node: PMNode } | null {
   return null;
 }
 
-/** 光标所在单元格的行列号（走 DOM，最直观也最稳） */
 function currentCellIndex(editor: Editor): { row: number; col: number } | null {
   try {
     const at = editor.view.domAtPos(editor.state.selection.from).node as Node;
@@ -458,23 +320,18 @@ function tableRows(node: PMNode): PMNode[] {
   return rows;
 }
 
-/** 用改好的行数组整体替换表格：不用做位置换算，最不容易出错 */
 function replaceTableRows(editor: Editor, pos: number, node: PMNode, rows: PMNode[]) {
   const next = node.copy(Fragment.fromArray(rows));
   const tr = editor.state.tr.replaceWith(pos, pos + node.nodeSize, next);
 
-  // ⚠️ 整表替换会把光标挤出表格，浮动工具条会因此收起来（用户就得重新点回表格）。
-  //    这里把光标放回表格里第一个可落点。
   try {
     tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(pos + 1, tr.doc.content.size)), 1));
   } catch {
-    /* 放不回去就算了，光标停在原地 */
   }
 
   editor.view.dispatch(tr);
 }
 
-/** 行上移 / 下移 */
 function moveTableRow(editor: Editor, dir: -1 | 1): boolean {
   const table = findTableNode(editor);
   const index = currentCellIndex(editor);
@@ -489,7 +346,6 @@ function moveTableRow(editor: Editor, dir: -1 | 1): boolean {
   return true;
 }
 
-/** 列左移 / 右移（每一行都换一次位置） */
 function moveTableColumn(editor: Editor, dir: -1 | 1): boolean {
   const table = findTableNode(editor);
   const index = currentCellIndex(editor);
@@ -513,7 +369,6 @@ function moveTableColumn(editor: Editor, dir: -1 | 1): boolean {
   return true;
 }
 
-/** 按光标所在列排序（第一行当表头，不参与排序） */
 function sortTableByColumn(editor: Editor, ascending: boolean): boolean {
   const table = findTableNode(editor);
   const index = currentCellIndex(editor);
@@ -536,7 +391,6 @@ function sortTableByColumn(editor: Editor, ascending: boolean): boolean {
   return true;
 }
 
-/** 导出成 CSV 文本（跟 Excel / 表格软件对接） */
 function tableToCsv(editor: Editor): string {
   try {
     const at = editor.view.domAtPos(editor.state.selection.from).node as Node;
@@ -558,7 +412,6 @@ function tableToCsv(editor: Editor): string {
   }
 }
 
-/** 📊 表格工具条：光标在表格里时出现在编辑器工具栏里（对标 Obsidian 的 Advanced Tables） */
 function TableToolsBar({ editor }: { editor: Editor }) {
   return (
     <div className="table-tools">
@@ -635,34 +488,19 @@ function TableToolsBar({ editor }: { editor: Editor }) {
 const lowlight = createLowlight({
   bash, c, cpp, csharp, css, diff, dockerfile, dos, go, ini, java, javascript, json,
   lua, markdown, matlab, nginx, php, powershell, python, rust, sql, typescript, xml, yaml,
-  // ⚠️ plaintext 必须注册：下面的 defaultLanguage 指着它。
-  //    没注册的话 lowlight 找不到这门语言，会退回**自动猜色** ——
-  //    表现就是"选了纯文本，代码块第一行却被染成绿色"（被猜成 HTML 的属性名了）。
   plaintext,
 });
 
-/** 内部用 plaintext 当兜底（避开 tiptap 的 highlightAuto 自动猜色），对外一律显示成"没选语言" */
 const normalizeLang = (raw: unknown): string => {
   const value = String(raw || '').trim();
   return value.toLowerCase() === 'plaintext' ? '' : value;
 };
 
-/** 代码块语言取出来给人看的样子（空 = 不标） */
 const codeBlockLangLabel = (node: { attrs: Record<string, unknown> }) =>
   prettyLang(String(node.attrs.language || ''));
 
-/**
- * 代码块 + 右上角复制按钮。
- *
- * 为什么不沿用前台那套「客户端扫 DOM 塞按钮」：编辑器是 ProseMirror 托管的
- * contenteditable，往里插 DOM 会被它当成文档内容解析掉（或者下一个 transaction
- * 直接清掉）。所以这里走正规的 NodeView —— 按钮是 NodeView 自己的 DOM，
- * 用 stopEvent 挡掉点击，用 ignoreMutation 告诉 ProseMirror「这块不关你的事」。
- */
 const CodeBlockWithCopy = CodeBlockLowlight.extend({
   addNodeView() {
-    // ⚠️ NodeView 不会自动带上 configure 里配的 HTMLAttributes（背景色那些），
-    //    必须自己合并，否则代码块会变成透明底 + 亮灰字，和预览长得不一样。
     const baseAttributes = {
       ...(((this.options as { HTMLAttributes?: Record<string, unknown> }).HTMLAttributes) || {}),
     };
@@ -683,22 +521,15 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
       if (merged.class) pre.className = String(merged.class);
 
       const code = document.createElement('code');
-      // 和预览一样给 code 挂上 language-xxx（前台复制按钮、着色工具都认这个）
       const initialLanguage = normalizeLang(current.attrs.language);
       if (initialLanguage) code.className = `language-${initialLanguage}`;
       pre.appendChild(code);
       wrap.appendChild(pre);
 
-      /* ---------- 右上角工具条：语言下拉 + 复制按钮 ---------- */
       const tools = document.createElement('div');
       tools.className = 'cc-tools';
       tools.setAttribute('contenteditable', 'false');
 
-      /**
-       * 每个代码块自己的语言下拉。
-       * 编辑器是所见即所得，围栏不显示、也没法"打 ```powershell"，
-       * 所以就靠这个下拉单独设置这一块的语法高亮（改完立刻高亮 + 落盘时写进围栏）。
-       */
       const picker = document.createElement('select');
       picker.className = 'cc-lang-pick';
       picker.title = '这个代码块的语法高亮语言（也会写进 Markdown 围栏）';
@@ -707,13 +538,11 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
       const fillPicker = (lang: string) => {
         picker.textContent = '';
 
-        // 「自定义…」放第一位（常用操作，别埋在最后）
         const custom = document.createElement('option');
         custom.value = CUSTOM_LANG_VALUE;
         custom.textContent = '自定义…';
         picker.appendChild(custom);
 
-        // 当前是自定义语言的话，把它紧跟在「自定义…」后面，一眼能看到、也能再选中
         if (lang && !CODE_LANGUAGES.some((item) => item.value === lang)) {
           const current = document.createElement('option');
           current.value = lang;
@@ -739,11 +568,9 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
             editor.view.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, language: value || null })
           );
         } catch {
-          /* 节点已经不在文档里了，忽略 */
         }
       };
 
-      /** 选了「自定义…」就把下拉就地换成输入框：预设之外的语言自己打 */
       const openCustomInput = () => {
         const input = document.createElement('input');
         input.type = 'text';
@@ -764,7 +591,6 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
         };
 
         input.addEventListener('keydown', (event) => {
-          // 别让按键跑到 ProseMirror 里（否则回车会在代码块里换行）
           event.stopPropagation();
           if (event.key === 'Enter') {
             event.preventDefault();
@@ -796,22 +622,12 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
       tools.appendChild(bar);
       wrap.appendChild(tools);
 
-      /**
-       * 📏 长代码块在编辑器里也能展开/收起，走的和前台**完全同一份**逻辑
-       * （attachCodeFold），所以按钮长相、折叠行数、渐变都一样。
-       * 行数是会变的（在代码块里打字、粘贴），所以交给 refresh() 自己装上/卸掉。
-       */
-      // 默认**收起**（跟前台一致）：超过 10 行的块一进来就是折起来的。
-      // 光标点进代码块会自动展开（看不见正在编辑的行更糟），所以不影响打字。
       const fold = attachCodeFold(wrap, pre, code, tools);
       const onFocusIn = () => fold.expand();
       code.addEventListener('focusin', onFocusIn);
 
       fillPicker(initialLanguage);
 
-      // ⚠️ 必须**延后一拍**再数行数：NodeView 刚创建时 code 还是空的
-      //    （ProseMirror 随后才把内容填进 contentDOM），当场数会得到 0 行 →
-      //    折叠/展开按钮不出现，非得在代码块里敲一下（触发 update）才冒出来。
       const settle = () => fold.refresh();
       const rafId = requestAnimationFrame(settle);
       const settleTimer = window.setTimeout(settle, 150);
@@ -819,19 +635,15 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
       return {
         dom: wrap,
         contentDOM: code,
-        /** NodeView 被拆掉时，把我们自己挂的监听也摘干净 */
         destroy: () => {
           code.removeEventListener('focusin', onFocusIn);
           cancelAnimationFrame(rafId);
           window.clearTimeout(settleTimer);
         },
-        /** 我们插的那一圈壳（工具条、折叠按钮、渐变）上的事件一律不给 ProseMirror，
-            否则点一下光标就跑了 / 下拉打不开；代码本体照常交给它 */
         stopEvent: (event) => {
           const target = event.target as Node;
           return wrap.contains(target) && !code.contains(target);
         },
-        /** 我们自己插的工具条变动别让它回写文档 */
         ignoreMutation: (mutation) => !code.contains(mutation.target as Node),
         update: (updated) => {
           if (updated.type !== current.type) return false;
@@ -850,7 +662,6 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
             tools.replaceChild(fresh, bar);
             bar = fresh;
           }
-          // 行数变了（打字/粘贴）→ 折叠按钮跟着装上或卸掉
           fold.refresh();
           return true;
         },
@@ -859,14 +670,8 @@ const CodeBlockWithCopy = CodeBlockLowlight.extend({
   },
 });
 
-/** 下拉里那一项「自定义…」的值（不是真的语言名） */
 const CUSTOM_LANG_VALUE = '__custom__';
 
-/**
- * 工具栏里代码块的语言候选。
- * value 就是最终写进围栏里的名字（```powershell），也是前台代码块复制按钮上显示的那个。
- * 想加语言往这里加一行就行。
- */
 const CODE_LANGUAGES: { value: string; label: string }[] = [
   { value: '', label: '纯文本' },
   { value: 'powershell', label: 'PowerShell' },
@@ -900,43 +705,17 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
   { value: 'matlab', label: 'MATLAB' },
 ];
 
-/**
- * 🖼️ 手打「Obsidian 式图片语法」用的正则：
- *     ![描述](链接)
- *
- * 认可两种链接（用户 2026-10-16 确认"图床链接可以没有后缀" ✓）：
- *   ![](https://i-blog.csdnimg.cn/direct/xxx.png)   → 有图片后缀 → 变真图片 ✓
- *   ![](https://img.remit.ee/i/GNTgujXcaJPp)        → **没后缀也认** ✓（他图床就是这样 ✓）
- *   ![]() / ![](abc) / ![](/resources/某篇)          → **原样留成源码文字** ✗ 不插 ✓
- *     （站内相对路径不自动插 ✓ —— 那种走工具栏「图片插入/编辑」窗口手动确认 ✓）
- * 描述可以为空 ✓（为空就不设 alt → 悬停没有提示 ✓）
- * ⚠️ 带空格的地址、前后有别的字的都不认（避免把普通文字误判成图片 ✓）
- */
 const IMG_MD_INPUT_RE = /!\[([^\]]*)\]\(\s*(https?:\/\/[^()\s]+)\s*\)$/i;
 
-/**
- * 🖼️ 把「光标所在段落刚好写成一个图片语法」的文字**换成真图片** ✓
- *
- * 为什么要有这个（不能只靠输入规则 ✗）：输入规则只在"打字"时触发 ✗
- *   · 先打 `![](` 再**粘贴**链接 → 输入规则不触发 ✗
- *   · 粘贴时手抖多带一个括号（`![]((https://…` ✗）→ 正则匹配不上 ✗
- * 所以这里在**每次内容变化**后（onUpdate ✓）都看一眼光标所在段落：
- *   段落以 `![描述](` 开头、以 `)` 结尾 ✓ 且里面能找到 `http(s)://` 链接 ✓ → 换成图片 ✓
- *   括号里多几个 `(` `)` 也认 ✓（从里面挑出 http(s) 链接就行 ✓）
- *   ⚠️ 站内相对路径（`/…`）**不在这里插** ✓ 那种走工具栏「图片插入/编辑」窗口手动确认 ✓
- *   ⚠️ 代码块 / 行内代码里一律不动 ✓
- */
 function convertImageMarkdown(editor: Editor) {
-  // ⏳ 中文输入法**组词中**（还没选字）→ 一律不动文档 ✓
-  //    否则你一按 Esc 取消组词，编辑器里的拼音字母会变成真实文字残留下来 ✗（2026-10 用户复现）
   if (editor.view.composing) return;
   const { state } = editor;
   const { selection } = state;
   if (!selection.empty) return;
 
   const { $from } = selection;
-  if ($from.parent.type.name !== 'paragraph') return;                 // 只在普通段落里 ✓
-  if ($from.parentOffset !== $from.parent.content.size) return;       // 光标在段落末尾才认 ✓
+  if ($from.parent.type.name !== 'paragraph') return;
+  if ($from.parentOffset !== $from.parent.content.size) return;
 
   const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
     !!marks?.some((m) => m.type.name === 'code');
@@ -946,14 +725,14 @@ function convertImageMarkdown(editor: Editor) {
   const m = /^!\[([^\]]*)\]\(([\s\S]*)\)$/.exec(text);
   if (!m) return;
 
-  const url = /https?:\/\/[^\s()]+/.exec(m[2])?.[0];                  // 括号里挑出链接 ✓
+  const url = /https?:\/\/[^\s()]+/.exec(m[2])?.[0];
   if (!url) return;
 
   const imageType = state.schema.nodes.image;
   if (!imageType) return;
 
   const attrs: { src: string; alt?: string } = { src: url };
-  if (m[1]) attrs.alt = m[1];                                        // 描述为空则不设 alt ✓
+  if (m[1]) attrs.alt = m[1];
 
   editor.view.dispatch(
     state.tr
@@ -962,25 +741,13 @@ function convertImageMarkdown(editor: Editor) {
   );
 }
 
-/**
- * 🔼🔽 手打 `<sup>文字</sup>` / `<sub>文字</sub>` → 敲完闭合标签**自动变成上标/下标**、标签消失 ✓
- *    （用户 2026-10-17 要求：所有位置都要支持，表格里也要 ✓）
- *
- *   · `<sup></sup>`（中间**没字**）→ **不转换** ✗ 也不加任何标记 ✓（保持原样，接着写就行 ✓）
- *   · 只在**段落末尾**触发（刚打完 `</sup>` ✓）；代码块 / 行内代码里一律不动 ✗
- *   · 转完就是普通的「上标/下标」标记 ✓ → 之后用工具栏那两个按钮照样能改/取消 ✓
- *   · 表格单元格里也有效 ✓（单元格里是段落 ✓ 走同一条路 ✓）
- */
 const SUP_SUB_INPUT_RE = /<(sup|sub)>([\s\S]+?)<\/\1>$/i;
 
 function convertSupSubTags(editor: Editor) {
-  // ⏳ 中文输入法**组词中**（还没选字）→ 一律不动文档 ✓
-  //    否则你一按 Esc 取消组词，编辑器里的拼音字母会变成真实文字残留下来 ✗（2026-10 用户复现）
   if (editor.view.composing) return;
   const { state } = editor;
   const { $from } = state.selection;
 
-  // 只在普通段落 / 表格单元格（也是段落）里做 ✓ 代码块不做 ✗
   if (!$from.parent.isTextblock || $from.parent.type.name === 'codeBlock') return;
 
   const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
@@ -988,24 +755,20 @@ function convertSupSubTags(editor: Editor) {
   if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return;
 
   const text = $from.parent.textContent;
-  // ⚠️ 每次新建带 g 的正则（模块级带 g 的残留 lastIndex ✗）
   const re = /<(sup|sub)>([\s\S]+?)<\/\1>/gi;
   const matches = Array.from(text.matchAll(re));
   if (!matches.length) return;
 
-  const base = $from.start();          // 段落内容在文档里的起点 ✓
+  const base = $from.start();
   let tr = state.tr;
 
-  // 从右往左替换 ✓（右边先换不会影响左边坐标 ✓）
   for (let i = matches.length - 1; i >= 0; i -= 1) {
     const m = matches[i];
     const s = m.index ?? 0;
     const e = s + m[0].length;
     const inner = m[2];
-    if (!inner.trim()) continue;                       // 中间没字 → 不转 ✓
+    if (!inner.trim()) continue;
 
-    // ⏳ 光标还在标签**内部**（正在写内容）→ 先别转 ✓
-    //    一旦光标离开这里（点到别处 / 换行 / 在标签外打字）→ 下一次 update 就转 ✓
     if ($from.parentOffset > s && $from.parentOffset < e) continue;
 
     const markType = state.schema.marks[m[1].toLowerCase() === 'sup' ? 'superscript' : 'subscript'];
@@ -1017,14 +780,6 @@ function convertSupSubTags(editor: Editor) {
   if (tr.docChanged) editor.view.dispatch(tr.scrollIntoView());
 }
 
-/**
- * ✍️ 带颜色的下划线（用户 2026-10-22 要求 ✓）
- *
- * · 有 color → 输出内联样式：`text-decoration-color` + 线条**略微上移**（text-underline-offset）+ 细一点
- * · 没 color（"自动"）→ 不输出任何内联样式 ✓ 颜色交给 CSS 按主题给 ✓
- *   浅色 = #6366F1（导航栏悬停那档）/ 深色 = #818CF8
- * · 存进 .md 是内联 HTML `<u style="…">` ✓（markdown 原生下划线带不了颜色 ✗ 这一点超出 markdown 是必要的 ✓）
- */
 const CustomUnderline = Underline.extend({
   addAttributes() {
     return {
@@ -1040,10 +795,6 @@ const CustomUnderline = Underline.extend({
     };
   },
 });
-/** 🏷️ 徽章语法 [![alt](图片)](跳转) 的"虚空预览行"（用户 2026-10-22 要求）
- *  · 编辑器里源码保持不动 ✓
- *  · 光标所在行的**下一行**渲染一条预览（widget ✓ 不占行号 ✓）
- *  · 只预览光标落进去的那一个徽章 ✓ 光标离开就消失 ✓ */
 const BADGE_PREVIEW_RE = /\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)/g;
 
 const BadgePreview = Extension.create({
@@ -1061,7 +812,7 @@ const BadgePreview = Extension.create({
             if (matches.length === 0) return null;
             const rel = $from.parentOffset;
             const hit = matches.find((m) => rel >= (m.index ?? 0) && rel <= (m.index ?? 0) + m[0].length);
-            if (!hit) return null;   // 光标必须真的落在某个徽章里才预览
+            if (!hit) return null;
             const alt = hit[1] || '';
             const src = hit[2] || '';
             const href = hit[3] || '';
@@ -1093,21 +844,9 @@ const CustomImage = Image.extend({
       width: {
         default: '100%',
         renderHTML: attributes => ({
-          // ⚠️ 上边距必须是 0：图片上面顶着的那点空白原来是 `margin: 2rem 0` 的**一半**，
-          //    看着就跟"凭空多了一个空行"一模一样（用户反馈："图片上面明明没有空行"）✗
-          //    下边距保持 2rem（图片和下面的正文之间该有的间距一个字没动 ✓）
           style: `width: ${attributes.width}; height: auto; display: block; margin: 0 0 2rem 0; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.15);`
         })
       },
-      /**
-       * 🖼️ 外链图片一律**不发送 Referer** ✓
-       *
-       * 为什么必须加（2026-10-16 实测 ✓）：
-       *   CSDN 那类图床有防盗链 —— 带站点 Referer 请求直接 403 ✗
-       *   实测同一个链接：**不带 Referer → 200 ✓ / 带你的博客 Referer → 403 ✗**
-       *   所以图片上挂 `referrerpolicy="no-referrer"`，浏览器就不发 Referer → 正常显示 ✓
-       *   （对允许外链的图床完全无影响 ✓）
-       */
       referrerpolicy: {
         default: 'no-referrer',
         parseHTML: () => 'no-referrer',
@@ -1116,15 +855,6 @@ const CustomImage = Image.extend({
     };
   },
 
-  /**
-   * ⌨️ 手打 `![描述](图片链接)` → 敲完 `)` **立刻变成真图片**（Obsidian 的行为 ✓ 用户 2026-10-16 要求）
-   *
-   * 规则：
-   *   · 链接必须是**带图片后缀的完整地址**（见 IMG_MD_INPUT_RE ✓ 带 ?参数也算 ✓）
-   *   · 描述为空 → **不设 alt** ✗（于是悬停不会有提示 ✓ 用户明确要求 ✓）
-   *   · 不合法（`![]()` / 半截地址 / 站内路径）→ 这个规则不匹配 → **原样留成源码文字** ✓
-   *   · ⚠️ **代码块 / 行内代码里不触发** ✗（否则写教程讲这个语法时它自己就插进去了 ✗）
-   */
   addInputRules() {
     return [
       new InputRule({
@@ -1132,15 +862,13 @@ const CustomImage = Image.extend({
         handler: ({ state, range, match, chain }) => {
           const { $from } = state.selection;
 
-          // 代码块里不触发 ✗
           if ($from.parent.type.name === 'codeBlock') return null;
-          // 行内代码里不触发 ✗（`![](...)` 写在反引号里讲语法时不该变图片 ✓）
           const inCode = (marks: readonly { type: { name: string } }[] | undefined) =>
             !!marks?.some((m) => m.type.name === 'code');
           if (inCode($from.marks()) || inCode(state.storedMarks ?? undefined)) return null;
 
           const attrs: { src: string; alt?: string } = { src: match[2] };
-          if (match[1]) attrs.alt = match[1];      // 描述为空 → 不写 alt ✓
+          if (match[1]) attrs.alt = match[1];
 
           chain().deleteRange(range).setImage(attrs).run();
           return undefined;
@@ -1157,19 +885,6 @@ const FontSize = Extension.create({
   addCommands() { return { setFontSize: (fontSize: string) => ({ chain }) => chain().setMark('textStyle', { fontSize }).run() }; },
 });
 
-// ═══════════════ ⏎ 引用块里按回车「出引用」 ═══════════════
-/**
- * 引用块里的**空行**上再按一次回车 → 直接跳出引用（和 Obsidian / Word 一样）。
- *
- * 以前：第一下回车在引用里生成一个空行，第二下回车**还是**在引用里再生成一个 ✗
- *       想出来只能手动按 Del 删掉那个空行 —— 又麻烦，而且那一行带着引用的内边距，
- *       看起来比正常空行"胖"一圈（用户："回车两下还残留着引用块，还得按 Del"）✗
- *
- * 现在：在空段落上按回车 = 把这一段**抬出引用** ✓ 两下回车就干净地在外面了 ✓
- *
- * 只处理「空的、且**直接**在 blockquote 里的段落」；其它情况一律 return false，
- * 交给默认回车行为（拆分段落）✓（priority 调高，保证抢在 StarterKit 的 Enter 前面）
- */
 const ExitQuoteOnEmptyEnter = Extension.create({
   name: 'exitQuoteOnEmptyEnter',
   priority: 1000,
@@ -1184,53 +899,33 @@ const ExitQuoteOnEmptyEnter = Extension.create({
         const para = $from.parent;
         if (para.type.name !== 'paragraph' || para.content.size !== 0) return false;
 
-        // 光标这一段必须直接在 blockquote 里（引用里再套列表的情况不插手）
         const depth = $from.depth;
         if (depth < 2) return false;
         if ($from.node(depth - 1).type.name !== 'blockquote') return false;
 
-        // 抬出去；抬不动就交回默认行为
         return this.editor.chain().lift('blockquote').run();
       },
     };
   },
 });
 
-// ═══════════════ 📏 行号 ═══════════════
-// 逻辑跟 Obsidian 一致：
-//   · 主行号按「书写行」编号 —— 一段/一个标题/一个列表项各算一行，
-//     段落太长自动折行时**不会**多给一个号（和 Obsidian 的软换行一样）。
-//   · 代码块按**内部真实行数**编号（Obsidian 也这样）：写了 4 行就占外面 4 个号，
-//     同时块内那套 1、2、3… 的编号照旧（两套编号并存）。
-// ProseMirror 插件活在 React 之外，所以开关放在这个共享对象里给它读。
 const lineNumberPrefs = { enabled: true };
 
-/**
- * 一行行号要量的目标。
- *   · node     —— 整块（段落/标题/分隔线/图片/表格行）：直接量它自己的行盒
- *   · caret    —— 段落里被硬换行 `<br>` 分出来的**后续**行：ProseMirror 里它还是同一个段落，
- *                 但 Obsidian 里那就是独立的一行（粘贴时 breaks:true 就是这么进来的），
- *                 所以也各占一个号；位置用插入符量，再按行高补回上下半个行距
- *   · codeLine —— 代码块内部的行：块里有几行就占外面几个号
- */
 type LineTarget =
   | { kind: 'node'; pos: number }
   | { kind: 'caret'; pos: number; nodePos: number }
   | { kind: 'codeLine'; prePos: number; line: number };
 
-/** 按 Markdown 的书写行收集位置：条目里的嵌套列表也会各自算一行 */
 const collectLineTargets = (parent: PMNode, base: number, out: LineTarget[]) => {
   parent.forEach((child, offset) => {
     const childPos = base + offset;
-    // 代码块要拆成「一行一个号」（Obsidian 行为）：块里有几行就占外面几个号
     if (child.type.name === 'codeBlock') {
       const lineCount = (child.textContent || '').split('\n').length;
       for (let i = 0; i < lineCount; i += 1) out.push({ kind: 'codeLine', prePos: childPos, line: i });
       return;
     }
     if (child.isTextblock) {
-      out.push({ kind: 'node', pos: childPos }); // 段落/标题：量它自己的行盒
-      // 段落内部的硬换行（`<br>`）之后的每一行也算一行（软换行不算，和以前一样）
+      out.push({ kind: 'node', pos: childPos });
       child.forEach((inline, inlineOffset) => {
         if (inline.type.name === 'hardBreak') {
           out.push({ kind: 'caret', pos: childPos + 1 + inlineOffset + 1, nodePos: childPos });
@@ -1238,27 +933,17 @@ const collectLineTargets = (parent: PMNode, base: number, out: LineTarget[]) => 
       });
       return;
     }
-    if (child.isLeaf) { out.push({ kind: 'node', pos: childPos }); return; } // 分隔线/图片这种整块，量它本身
-    // 表格：按"行"编号（每行一个），不要递归进单元格 —— 否则一行里每个单元格都冒一个编号、还压在边框上
+    if (child.isLeaf) { out.push({ kind: 'node', pos: childPos }); return; }
     if (child.type.name === 'table') {
       child.forEach((_row, rowOffset) => {
         out.push({ kind: 'node', pos: childPos + 1 + rowOffset });
       });
       return;
     }
-    collectLineTargets(child, childPos + 1, out);                           // 列表、引用继续往里走
+    collectLineTargets(child, childPos + 1, out);
   });
 };
 
-/**
- * 量一行的行盒（top/bottom，视口坐标）。
- *
- * ⚠️ 以前这里是 `view.coordsAtPos(段落起点)` —— 拿回来的是**插入符矩形**（高 23px），
- *    而段落的行盒是 26px（prose-lg 的 1.75 行高）。两个数都不是一回事，于是行号
- *    每行只往下走 23px、正文走 26px —— 攒到二三十行就整片错位 ✗
- *    （线上还叠加了 .line-no 的 position:absolute 没生效，数字干脆变成文档流堆叠）
- * 现在：整块一律量 DOM 节点的行盒，只有 `<br>` 分出来的行才退回插入符 + 行距补偿。
- */
 const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom: number } | null => {
   if (t.kind === 'codeLine') {
     const pre = view.nodeDOM(t.prePos) as HTMLElement | null;
@@ -1267,24 +952,9 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
     const cs = getComputedStyle(code);
     const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5 || 20;
 
-    // 首选：直接量块内那个行号 widget（.code-line-no 是零宽 + vertical-align:top，
-    // 它的 top 就是本行行盒的顶边）—— 跟里面那套编号同一个基准，两套自然对齐。
-    // ⚠️ 以前是 `code.getBoundingClientRect().top + line * 行高`：
-    //    <code> 是 inline 元素，它 rect 的顶边是**字形区域**的顶边、比行盒顶边低半个行距，
-    //    于是外面那套编号整体比块内那套低一截 —— 就是"编辑器里外两套行号对不上"的来源。
-    // ⛔ 收起的代码块：只给前 FOLD_AFTER 行编号。
-    //    规则和预览里那条 CSS 严格对齐 ——
-    //      `.cc-wrap[data-cc-fold="closed"] > .cc-lines > span:nth-child(n + 11) { display: none; }`
-    //    预览露 10 行就标 10 个号，编辑器必须一样。
-    //    被折起来的行**不画号**，但它们**照样占文档行数**，所以紧跟代码块的那一行会接着往下数
-    //    （例：30 行的代码块收起后只画第 1~10 号，块后面第一行正文就是第 31 号）。
     const foldWrap = pre?.closest('.cc-wrap') as HTMLElement | null;
     if (foldWrap?.dataset.ccFold === 'closed' && t.line >= FOLD_AFTER) return null;
 
-    // 再补一道位置兜底（折叠属性还没落上的那一瞬间）：被 pre 裁到下边界之外的行也不画。
-    //    `.code-line-no` 只是被 max-height + overflow:hidden **裁掉显示**了，位置还在往下排，
-    //    照原样画，这些号就会跑出代码块、压到下面那段内容上，和它自己的行号叠成一团。
-    //    pre 的 rect 是 max-height 生效之后的实际高度，拿它当可见下边界最准。
     const preRect = pre?.getBoundingClientRect();
     const visibleBottom = preRect && preRect.height ? preRect.bottom : Number.POSITIVE_INFINITY;
 
@@ -1306,13 +976,11 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
     const el = view.nodeDOM(t.pos) as HTMLElement | null;
     const r = el?.getBoundingClientRect?.();
     if (!r || !r.height) return null;
-    // 文本块只取**第一行**那一行的高度：软换行不多给号，所以行号就贴在第一行上
     const lh = parseFloat(getComputedStyle(el as HTMLElement).lineHeight);
     const h = Number.isFinite(lh) && lh > 0 && lh < r.height ? lh : r.height;
     return { top: r.top, bottom: r.top + h };
   }
 
-  // caret：段落里 <br> 之后那一行
   const c = view.coordsAtPos(t.pos);
   const nodeEl = view.nodeDOM(t.nodePos) as HTMLElement | null;
   const lh = nodeEl ? parseFloat(getComputedStyle(nodeEl).lineHeight) : NaN;
@@ -1321,13 +989,9 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
   return { top: c.top - pad, bottom: c.bottom + pad };
 };
 
-/** 代码块内部行号：每行开头塞一个零宽 widget，序号由 CSS 的 attr() 显示 */
 const CodeLineNumbers = Extension.create({
   name: 'codeLineNumbers',
   addProseMirrorPlugins() {
-    // 缓存上一次的结果：文档对象没变（ProseMirror 的 doc 是不可变的，没改动时身份不变）
-    // 就原样返回同一个 DecorationSet，避免每敲一个字都把 widget 的 DOM 重建一遍 ——
-    // 那种重建正好会打断输入法组合。
     let cachedDoc: unknown = null;
     let cachedSet: DecorationSet | null = null;
 
@@ -1363,7 +1027,7 @@ const CodeLineNumbers = Extension.create({
                 );
                 offset += lines[i].length + 1;
               }
-              return false; // 代码块内部不用再往下遍历
+              return false;
             });
             const set = DecorationSet.create(state.doc, widgets);
             cachedDoc = state.doc;
@@ -1376,30 +1040,24 @@ const CodeLineNumbers = Extension.create({
   },
 });
 
-// 🌟 终极修复：彻底废弃 absolute 下拉框，升级为 Fixed 居中模态框 (Modal)！
-// 这样就能 100% 逃脱父级容器的 overflow 限制，绝对不可能再被遮挡！
-/** 🖍️ 「下划线色」控制器：和字体色那个同款结构 —— [自动] + 最近 3 色 + 内部小按钮展开完整面板 ✓
- *   · 只在**有框选**时生效 ✓（没框选点了不改 ✓ 用户要求 ✓）
- *   · 完整面板复用 CustomColorPicker ✓（固定居中浮层、点空白处关闭、手机自适应 ✓）
- *   · 最近 3 色存 localStorage ✓ 和字体色那边同一思路 ✓ */
 function UnderlineColorButton({ editor }: { editor: Editor | null }) {
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>(['#818CF8', '#EC4899', '#10B981']);
 
   useEffect(() => {
-    try { const raw = localStorage.getItem('underline-recent'); if (raw) setRecent((JSON.parse(raw) as string[]).slice(0, 3)); } catch { /* ignore */ }
+    try { const raw = localStorage.getItem('underline-recent'); if (raw) setRecent((JSON.parse(raw) as string[]).slice(0, 3)); } catch {  }
   }, []);
 
   const current = (editor?.getAttributes('underline')?.color as string | undefined) || '';
   const canApply = !!editor && !editor.state.selection.empty;
 
   const apply = (c: string | null) => {
-    if (!editor || editor.state.selection.empty) return;   // 没框选 → 什么都不改 ✓
-    editor.chain().focus().setMark('underline', { color: c }).run();   // setMark：框选的文字没有下划线也会**自动加上** ✓ 且只作用于选区 ✓
+    if (!editor || editor.state.selection.empty) return;
+    editor.chain().focus().setMark('underline', { color: c }).run();
     if (c) {
       setRecent((prev) => {
         const next = [c, ...prev.filter((x) => x !== c)].slice(0, 3);
-        try { localStorage.setItem('underline-recent', JSON.stringify(next)); } catch { /* ignore */ }
+        try { localStorage.setItem('underline-recent', JSON.stringify(next)); } catch {  }
         return next;
       });
     }
@@ -1435,10 +1093,8 @@ const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onC
   const [hex, setHex] = useState(activeColor);
   return (
     <>
-      {/* 带有毛玻璃模糊效果的全屏遮罩 */}
       <div className="fixed inset-0 z-[9990] bg-slate-900/20 dark:bg-black/40 backdrop-blur-sm transition-all" onClick={onClose} />
 
-      {/* 永远居中显示的调色板面板 */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 max-h-[88vh] overflow-y-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[32px] p-6 shadow-2xl border border-white/40 dark:border-white/10 z-[9999] animate-in fade-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-5">
           <div className="flex justify-between items-center">
@@ -1484,13 +1140,6 @@ const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onC
   );
 };
 
-/**
- * 打开外部链接。
- *
- * 控制台是 pywebview 窗口，优先交给 Python 用**系统默认浏览器**打开：
- * 既不会把控制台这个窗口自己导航走，也不会在 WebView 里弹出一个功能残缺的子窗口。
- * 普通浏览器里（比如开发时直接开页面）就退回 window.open 新标签页。
- */
 const openExternal = (href: string) => {
   try {
     const api = (window as unknown as { pywebview?: { api?: { open_external?: (u: string) => unknown } } }).pywebview?.api;
@@ -1498,10 +1147,10 @@ const openExternal = (href: string) => {
       api.open_external(href);
       return;
     }
-  } catch { /* 没接上就落到浏览器方案 */ }
+  } catch {  }
   try {
     window.open(href, '_blank', 'noopener,noreferrer');
-  } catch { /* 打不开就算了，不要影响编辑 */ }
+  } catch {  }
 };
 
 export interface RichTextEditorHandle {
@@ -1528,62 +1177,24 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   const editor = useEditor({
     extensions: [
-      // ⏎ 引用块里的空行上按回车 = 跳出引用（要抢在 StarterKit 的 Enter 前面，所以放第一个 ✓）
       ExitQuoteOnEmptyEnter,
-      /**
-       * 🌟 粘贴 Markdown 时按 Markdown 解析。
-       *
-       * 之前只 import 了这个扩展却没启用，而且 tiptap-markdown 的
-       * transformPastedText 默认是 false —— 所以从 Obsidian 全选复制过来的内容，
-       * `# 标题` 只会变成一行普通文字、`- 列表` 也不会成列表。
-       * 现在打开它：标题/列表/引用/围栏代码块都能正确还原。
-       */
       Markdown.configure({
         transformPastedText: true,
-        // 从编辑器复制走时不做 Markdown 化，粘到别处仍是原来的富文本/纯文本行为
         transformCopiedText: false,
-        // 粘贴内容里的裸 HTML 不解析（安全）
         html: false,
         tightLists: true,
         linkify: true,
-        /**
-         * ⚠️ breaks 必须是 **true**：粘贴 Markdown 时，**单个换行**要变成真正的换行。
-         *
-         * 以前是 false —— markdown-it 会把段落里的单个换行当空格（软换行）✗，
-         * 于是从 Obsidian 复制进来的 `> 第一行 ↵ 第二行` 会被**并成一行** ✗
-         * （用户："我直接复制粘贴文章内容"——那这条路必须和 Obsidian 一样 ✓）
-         * 控制台预览走 nl2br、前端走 remarkHardBreaks，两边都是"每个回车都换行"，
-         * 这里改成 true 之后三边终于一致 ✓
-         */
         breaks: true,
       }),
       StarterKit.configure({
-        // ⚠️ 别限制成 [1,2,3]：Markdown 里 #### 很常见（Obsidian 笔记尤其），
-        //    限了之后粘贴/打开时 <h4> 不在 schema 里，会被拍平成普通段落，
-        //    表现就是"我明明写了 # 怎么变成纯文本了"。
         heading: { levels: [1, 2, 3, 4, 5, 6] },
         codeBlock: false,
-        // ⚠️ StarterKit v3 自带 Link 和 Underline，这里必须关掉自带的，统一用下面单独配置的那两个。
-        // 否则会有两套同名的 Link 插件（控制台里一直有那条 "Duplicate extension names" 警告）：
-        // 自带那套 openOnClick 默认是 true，单击链接就直接 window.open 开走了 ——
-        // 单独配的那份 openOnClick: false 根本管不住它。
         link: false,
         underline: false,
-        /**
-         * ⚠️ StarterKit v3 默认开着 TrailingNode：只要文档**最后一个块不是段落**，
-         *    它就自动在末尾补一个空段落。于是「把最后一行设成标题」就会当场多出一行空行，
-         *    而且光标会被映射进那个新空段落（看着就是"下一行被选中"）；
-         *    再对着这行新空行按一次标题，又补一行 —— 一直套娃。
-         *    标题后面不需要这个补位（想接着写按回车就行），这里禁掉。
-         *    代码块 / 表格 / 图片后面的补位保留，否则最后放个表格就没地方落光标了。
-         */
         trailingNode: { notAfter: ['heading'] },
       }),
       CodeBlockWithCopy.configure({
         lowlight,
-        // ⚠️ 这里以前是 defaultLanguage: 'cpp' —— 会给每个代码块偷偷写死 C++，
-        // 保存成 ```cpp 之后前台复制按钮就会标着 C++（哪怕里面是 PowerShell）。
-        // 现在默认不带语言，由工具栏的语言选择器或粘贴的围栏决定。
         defaultLanguage: 'plaintext',
         HTMLAttributes: {
           class: 'bg-[#282c34] text-[#abb2bf] p-6 rounded-[1.5rem] font-mono my-6 overflow-x-auto shadow-inner'
@@ -1592,7 +1203,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       CustomUnderline, Subscript, Superscript, TextStyle, Color, FontSize, CustomImage, BadgePreview,
       Link.configure({
         openOnClick: false,
-        // 直接手打 URL 时的自动识别：默认是 'http'，站点上 https 后会造成混合内容告警，统一用 https
         defaultProtocol: 'https',
         HTMLAttributes: { class: 'text-indigo-500 underline cursor-pointer font-bold' },
       }),
@@ -1600,12 +1210,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       Highlight.configure({ multicolor: true }),
       TaskList.configure({ HTMLAttributes: { class: 'not-prose space-y-3' } }),
       TaskItem.configure({ nested: true }),
-      /**
-       * 📊 表格。
-       * 预览端一直支持表格（python-markdown 的 tables 扩展 / 前台的 remark-gfm），
-       * 但编辑器之前没有表格节点，粘进来的 <table> 无处安放会被拍平成一行文字，
-       * 保存时表格就没了。装上这个才形成闭环：粘 Markdown 表格 → 真表格 → 存回 Markdown 表格。
-       */
       Table.configure({ resizable: false, HTMLAttributes: { class: 'editor-table' } }),
       TableRow,
       TableHeader,
@@ -1613,29 +1217,17 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       CodeLineNumbers,
       CalloutDecoration,
     ],
-    // ⚠️ 初始内容留空，交给下面的 effect 灌（Markdown 扩展会把 content 字符串按 Markdown 解析，
-    //    文章存的是 HTML，直接塞进来会先渲染出一堆字面标签再被覆盖）。
     content: '',
     immediatelyRender: false,
     onUpdate: ({ editor: ed }) => {
-      // ⏳ 中文输入法**组词期间一律不动**：连 onChange 都不发 ✓
-      //    为什么：onChange 会让父组件 setState 重渲染 ✗ 组词被打断 ✗ →
-      //    浏览器/输入法就把半截拼音"提交"成正文 ✓（用户实测：下划线一消失，拼音就留在文档里 ✗）
       if (ed.view.composing) return;
-      // 🖼️ 每次内容一变就看一眼：光标那一段是不是刚好写成了图片语法（打字 / 粘贴都覆盖 ✓）
       convertImageMarkdown(ed);
-      // 🔼🔽 同理：光标那段是不是刚好打完 <sup>…</sup> / <sub>…</sub>（敲完闭合标签就变上下标 ✓）
       convertSupSubTags(ed);
       if (onChange) onChange();
     },
     onTransaction: ({ editor: ed }) => {
-      // ⚠️ 输入法正在组合（拼音还没上屏）时**不要**触发 React 重渲染。
-      // 组合期间动到编辑器，浏览器会把还没上屏的拼音当成普通文字提交，
-      // 表现就是「打着打着前面多出来几个拼音字母」。
-      // 组合结束时会再走一次 transaction，那时再刷新工具栏状态即可。
       if (ed.view.composing) return;
 
-      // 代码块里不该带文字颜色/高亮：清掉待输入格式，否则纯文本代码块里打字会带上颜色
       if (ed.isActive('codeBlock') && (ed.state.storedMarks?.length ?? 0) > 0) {
         ed.view.dispatch(ed.state.tr.setStoredMarks([]));
       }
@@ -1644,45 +1236,15 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     },
     editorProps: {
       attributes: { class: 'prose prose-slate dark:prose-invert prose-lg max-w-none w-full focus:outline-none min-h-full pb-60 font-serif leading-relaxed px-4 editor-content-area', spellcheck: 'false' },
-      /**
-       * 🎨 粘贴的 HTML 先过一遍「下划线归一化」：
-       *    `<ins>` → `<u>`；Google 文档那种 `border-bottom` 假装下划线的 → 补成真 text-decoration + 颜色。
-       *    不这么做的话，从网页/文档复制过来的下划线粘进编辑器就认不出来（颜色还会丢）✗
-       */
       transformPastedHTML: (html: string) => normalizePastedInlineHtml(html),
-      /**
-       * 粘贴处理，两件事：
-       *
-       * ① 整段恰好是一个 ```围栏 → 直接建成带语言的代码块（见下）。
-       * ② 看起来是 Markdown 源码 → 强制按 Markdown 解析。
-       *    为什么需要②：tiptap-markdown 的 clipboardTextParser 只在剪贴板里**没有 HTML**
-       *    时才解析 Markdown，而 Obsidian 这类软件复制时 HTML 和纯文本是一起给的，
-       *    结果就是源码被当成普通文字。这里在「有围栏、或至少两种 Markdown 特征、
-       *    且 HTML 里没有真正的富内容」时，主动走一次 Markdown 解析。
-       *    从网页复制富文本（有 h1/ul/img/a 那些）仍然走默认的 HTML 解析，不会退化。
-       */
       handlePaste(view, event) {
         const clipboard = event.clipboardData;
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
-        /* 🎨 剪贴板里带着「下划线 / 高亮 / 上下标 / 行内样式」的富文本时，一律交给默认的 HTML 解析 ✓
-         *
-         * 为什么：下面那条「Markdown 源码」支路只吃**纯文本** ✗
-         *   而彩色下划线、颜色、高亮、上下标在纯文本里根本表达不出来 ✗
-         *   → 以前从网页 / 控制台别处复制一段带彩色下划线的字，粘进来会被当成 Markdown 源码走
-         *     纯文本那条路，格式当场全掉 ✗（用户实测反馈："下划线会消失，还得手动重画"✗）
-         * 剪贴板里既然有富文本，就用富文本 ✓ 只有**纯文本**才走 Markdown 源码那条路 ✓
-         */
         const clipboardHtml = clipboard?.getData('text/html') || '';
         if (/<(u|ins|mark|sub|sup)\b|text-decoration\s*:|border-bottom\s*:/i.test(clipboardHtml)) {
           return false;
         }
-        /* 📋 「先把 ![]( ) 打好，再把链接粘进小括号里」也要立刻变图片 ✓（用户 2026-10-16 实测反馈）
-         *    为什么单独处理：输入规则只在**打字**时触发 ✗ 粘贴不触发 ✗
-         *    判定：粘进来的东西**本身就是一个 http(s) 链接** ✓，而且**光标所在那一段**拼起来
-         *          正好是 `![描述](链接)` ✓ → 直接把这一段换成图片块 ✓（和工具栏插图一个效果 ✓）
-         *    ⚠️ 代码块里不处理 ✗、行内代码里不处理 ✗
-         */
         const pasted = raw.trim();
         if (/^https?:\/\/\S+$/i.test(pasted)) {
           const { state } = view;
@@ -1707,11 +1269,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           }
         }
 
-        // ① 整段就是一个围栏
         const fenced = raw.match(/^\s*```([^\n`]*)\r?\n([\s\S]*?)\r?\n?```\s*$/);
         if (fenced) {
           const language = (fenced[1] || '').trim().toLowerCase();
-          // 末尾空行一起吃掉，免得代码块被撑出一大截空白
           const body = fenced[2].replace(/[\s\u00a0]+$/, '');
           const codeBlockType = view.state.schema.nodes.codeBlock;
           if (!codeBlockType) return false;
@@ -1726,45 +1286,18 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           return true;
         }
 
-        // ② Markdown 源码（源码粘贴即可用，不用手动改格式）
         const hasFence = /^ {0,3}(```|~~~)/m.test(raw);
-        /**
-         * ⚠️ 每一类特征都**允许行首先有若干层 `> `**。
-         * 因为 Obsidian 的 callout 长这样：
-         *     > [!note] 计算方法
-         *     > 1. CIDR表示法 /N
-         * 之前只认「行首就是列表标记」，这种内容连一个特征都数不到。
-         *
-         * ✅ 判定门槛：**只要命中任意一条**（signals >= 1）就按 Markdown 解析，
-         *    不再要求"至少两个特征"—— 只要文本里出现过 Markdown 语法符号就识别。
-         */
         const signals =
-          (/^ {0,3}(?:> ?)*#{1,6}\s+\S/m.test(raw) ? 1 : 0) +           // 标题 #
-          (/^ {0,3}(?:> ?)*(?:[-*+]|\d+\.)\s+\S/m.test(raw) ? 1 : 0) +   // 列表 - * + 1.
-          (/^ {0,3}>/m.test(raw) ? 1 : 0) +                              // 引用 >
-          (/^ {0,3}(?:> ?)*\[!\w+\]/m.test(raw) ? 1 : 0) +               // callout [!note]
-          (/^ {0,3}(?:[-*_]\s*){3,}$/m.test(raw) ? 1 : 0) +              // 分隔线 --- *** ___
-          (/`[^`\n]+`/.test(raw) ? 1 : 0) +                              // 行内代码 `x`
-          (/(\*\*|__)[^\n]+?\1/.test(raw) ? 1 : 0) +                     // 粗体 **x**
-          (/~~[^\n]+?~~/.test(raw) ? 1 : 0) +                            // 删除线 ~~x~~
-          (/!?\[[^\]\n]*\]\([^)\n]+\)/.test(raw) ? 1 : 0) +              // 链接 / 图片
-          (/^ {0,3}\|.*\|/m.test(raw) ? 1 : 0);                          // 表格 | a | b |
-        /**
-         * ✅ 按需求：**只要文本里出现任意 Markdown 语法符号，就一律按 Markdown 解析**。
-         *    （不再要求"剪贴板里没有富 HTML" —— 很多编辑器复制时会同时给一份残缺的 HTML，
-         *     那份 HTML 里的引用块/列表结构反而是坏的，照着它粘才出问题。）
-         *
-         * 这里**自己解析**，不走 tiptap-markdown 的 clipboardTextParser：
-         *   markdown-it 出 HTML  →  ProseMirror 自己的 DOMParser 建 slice（闭合的）
-         * 这样引用块、列表、表格都是真正的节点，不会被拆平。
-         */
-        /**
-         * ⌨️ 纯文本里带着行内 HTML（`<u …>` / `<span style>` / `<sup>` …）时也按 Markdown 解析：
-         *    tiptap-markdown 自带的解析器是 `html: false` ✗ 会把标签**转义成文字**（下划线当场没了 ✗）
-         *    而这条支路用的是 PASTE_MD（`html: true` ✓），标签会被还原成真节点 ✓
-         *    ⚠️ 只在「剪贴板里没有富文本」时才接管 ✓；代码块里不接管 ✓
-         *       （不然粘一段 HTML 源码进来会变成渲染结果 ✗）
-         */
+          (/^ {0,3}(?:> ?)*#{1,6}\s+\S/m.test(raw) ? 1 : 0) +
+          (/^ {0,3}(?:> ?)*(?:[-*+]|\d+\.)\s+\S/m.test(raw) ? 1 : 0) +
+          (/^ {0,3}>/m.test(raw) ? 1 : 0) +
+          (/^ {0,3}(?:> ?)*\[!\w+\]/m.test(raw) ? 1 : 0) +
+          (/^ {0,3}(?:[-*_]\s*){3,}$/m.test(raw) ? 1 : 0) +
+          (/`[^`\n]+`/.test(raw) ? 1 : 0) +
+          (/(\*\*|__)[^\n]+?\1/.test(raw) ? 1 : 0) +
+          (/~~[^\n]+?~~/.test(raw) ? 1 : 0) +
+          (/!?\[[^\]\n]*\]\([^)\n]+\)/.test(raw) ? 1 : 0) +
+          (/^ {0,3}\|.*\|/m.test(raw) ? 1 : 0);
         const inCodeBlock = view.state.selection.$from.parent.type.name === 'codeBlock';
         const inlineHtmlInText = !inCodeBlock
           && !clipboardHtml.trim()
@@ -1774,7 +1307,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           return true;
         }
 
-        // 文本里没有任何 Markdown 语法符号 → 交给默认的 HTML / 纯文本粘贴
         return false;
       },
     },
@@ -1785,11 +1317,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       if (editor) {
         editor.chain().focus().setImage({ src: url }).run();
 
-        /* 🖼️ 图片上面那个空段落：ProseMirror 插入块级图片时，会在图片前面留下**插入前光标所在的那个空段落**
-         *    （你按过回车换到下一行再插图，那一行就留在了图片上面）——
-         *    它在编辑器里就是图片上面多出来的一行空行，落盘也会变成空行标记 ✗
-         *    这里插完立刻检查一下：图片前面紧挨着的是**空段落**就删掉它（有内容的段落、别的节点一律不动 ✓）
-         */
         try {
           const { state } = editor;
           const from = state.selection.from;
@@ -1803,7 +1330,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
             }
           }
         } catch {
-          /* 位置算不出来就按原样保留，不影响插图本身 */
         }
 
         if (onChange) onChange();
@@ -1818,7 +1344,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
       html = html.replace(/\s*language-plaintext\b/g, '');
 
-      // 代码块末尾的空行（复制粘贴最容易带进来，编辑区里看着就是一大坨空白）统一清掉
       html = html.replace(
         /(<pre\b[^>]*>\s*<code\b[^>]*>)([\s\S]*?)(<\/code>\s*<\/pre>)/gi,
         (_m, open: string, body: string, close: string) => open + body.replace(/[\s\u00a0]+$/, '') + close
@@ -1830,50 +1355,21 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   useEffect(() => {
     if (!editor) return;
-    // 🌟 注意：initialContent 为空字符串时也必须同步！
-    // 否则从「有内容的文章」切到「空文章」时，编辑器会继续显示上一篇的内容。
-    const next = badgeHtmlToSource(initialContent ?? '');   // 🏷️ 徽章链接还原成源码文字 ✓
+    const next = badgeHtmlToSource(initialContent ?? '');
     if (loadedContentRef.current !== next) {
       const safeContent = next
         .replace(/~~([\s\S]*?)~~/g, '<s>$1</s>')
-        // 代码块末尾的换行在编辑器里会多显示成一行空行（预览里不会），进来时统一去掉，
-        // 保证「编辑时看到的 = 发出去的」
         .replace(
           /(<pre\b[^>]*>\s*<code\b[^>]*>)([\s\S]*?)(<\/code>\s*<\/pre>)/gi,
           (_m, open: string, body: string, close: string) => open + body.replace(/[\s\u00a0]+$/, '') + close
         );
 
-      /**
-       * ⚠️ 这里**不能**用 editor.commands.setContent(html字符串)。
-       *
-       * 启用 Markdown 扩展（为了粘贴 Markdown 源码）之后，tiptap-markdown 会劫持 setContent，
-       * 把字符串参数一律按 Markdown 解析；而文章存的是 HTML，且我们把 html 选项关着，
-       * 结果整篇文章会变成一堆字面的 <p> 标签 —— 也就是「点开编辑全乱了」。
-       *
-       * 所以这里自己解析成文档再灌进去，绕开那个补丁（语义和 setContent(..., false) 一致：
-       * 不触发 onUpdate，不写进撤销历史）。
-       */
       const dom = new window.DOMParser().parseFromString(safeContent, 'text/html');
-      /**
-       * 🧹 灌进编辑器之前，先把「图片上下那些空段落 / 块与块之间的纯空白」清掉。
-       *
-       * 病根（两条，都表现为"图片上面多一行、行号栏还给它一个号"✗）：
-       *   ① 后端 HTML 里块与块之间带着排版换行（`</ol>\n<img>`）。ProseMirror 的
-       *      DOMParser 会把这团空白当**内容**，就地造一个空段落 —— 行号栏给它编号，
-       *      看着就是图片上面多了一个空行 ✗
-       *   ② 草稿箱 JSON 里存的是**编辑器 HTML 快照**，图片是裸 `<img>`，它上面那个
-       *      空 `<p>` 在服务端那条 `<p><img></p>` 规则里认不到 → 一直躺在快照里 ✗
-       *      于是"删掉→暂存→重新打开又有了"（用户 2026-10-25 反馈 ✗）
-       *
-       * ⚠️ 只清「纯空白 / 只含 <br>、且紧贴图片」的空段落，以及块级元素之间的纯空白文本；
-       *    段落内部的行内空白、代码块里的内容一个字都不动 ✓
-       */
       const BLOCKS = new Set(['P', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE', 'DIV', 'HR',
         'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'IMG', 'FIGURE', 'SECTION', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
       const isBlockEl = (n: Node | null) =>
         !!n && n.nodeType === Node.ELEMENT_NODE && BLOCKS.has((n as Element).tagName.toUpperCase());
 
-      // ① 块与块之间的纯空白文本节点 → 删（不删就会变成一个空段落）
       {
         const walker = dom.createTreeWalker(dom.body, NodeFilter.SHOW_TEXT);
         const texts: Text[] = [];
@@ -1885,42 +1381,24 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         });
       }
 
-      // ② 紧贴图片的空段落（草稿快照里那行删不掉、也存不掉的空行）
       const holdsImg = (n: Element | null) =>
         !!n && (n.tagName.toUpperCase() === 'IMG' || !!n.querySelector('img'));
       Array.from(dom.body.querySelectorAll('p')).forEach((p) => {
         if (p.querySelector('img')) return;
-        if ((p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;  // 有字 → 不动
-        if (!p.querySelector('br') && p.childElementCount > 0) return;                          // 别的行内元素 → 不动
+        if ((p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;
+        if (!p.querySelector('br') && p.childElementCount > 0) return;
         if (holdsImg(p.nextElementSibling) || holdsImg(p.previousElementSibling)) p.remove();
       });
 
-      /**
-       * 🧩 callout 的 div 壳要还原成引用块再灌进去。
-       *    后端给的 HTML 里 callout 是 <div class="callout"><div class="callout-title">…</div>…</div>，
-       *    而 schema 里没有 div —— 不还原的话编辑器会把两层 div 拆掉、callout 散成一堆普通段落
-       *    （预览里却是个整整齐齐的框，两边对不上），一保存 callout 还会彻底丢掉 ✗
-       */
       calloutDivsToBlockquotes(dom.body);
-      // ⚠️ 这里**不要**用 preserveWhitespace: 'full' —— 那会把块与块之间的换行也当内容保留，
-      //    每个空隙都变成一个空段落（表现就是"每段之间凭空多出空行"）。
-      //    tiptap 默认加载用的就是空 parseOptions，跟着它来。
       const parsed = PMDOMParser.fromSchema(editor.schema).parse(dom.body);
-      /**
-       * 🧹 文档层再补一刀：**紧贴图片的空段落直接丢**。
-       *    不管它是从后端 HTML 的排版换行、草稿箱快照、还是解析器自己"造"出来的 ——
-       *    Markdown 里「列表/段落 → 空行 → 图片」那个空行只是语法分隔，
-       *    编辑器里不该多出一个空段落，行号栏更不该给它一个号 ✗
-       *    （用户 2026-10-25：删掉、暂存、刷新，图片上面那行还是回来）
-       * ⚠️ 只丢「空段落 + 邻居是图片节点」，别的空段落（作者真的按了两下回车）一律保留 ✓
-       */
       const order: PMNode[] = [];
       parsed.content.forEach((node) => order.push(node));
       const drop = new Set<number>();
       order.forEach((node, i) => {
         if (node.type.name !== 'paragraph') return;
         if ((node.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;
-        if (node.content.size > 1) return;                 // 段落里有多个行内节点 → 不是空行，不动
+        if (node.content.size > 1) return;
         if (order[i - 1]?.type.name === 'image' || order[i + 1]?.type.name === 'image') drop.add(i);
       });
       const cleaned = drop.size
@@ -1937,7 +1415,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     }
   }, [editor, initialContent]);
 
-  // 🔗 超链接弹窗：贴着「光标所在那一行的上方」出现（和删除确认气泡一个路子）
   const linkBoxRef = useRef<HTMLDivElement>(null);
   const [linkDialog, setLinkDialog] = useState<{ url: string; x: number; y: number; above: boolean } | null>(null);
 
@@ -1951,37 +1428,21 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       const start = editor.view.coordsAtPos(from);
       const end = editor.view.coordsAtPos(to);
       x = Math.min(start.left, end.left);
-      y = start.top; // 光标那一行的上沿
+      y = start.top;
     } catch {
-      /* 拿不到坐标就退到屏幕中间 */
     }
     setLinkDialog({ url: previousUrl, x, y, above: y > 200 });
   };
 
-  /**
-   * ⌨️ 快捷键总表（对齐 Obsidian 习惯；tiptap 自带的不重复绑）
-   *   自带：Ctrl+B/I/U 加粗斜体下划线 · Ctrl+Z / Ctrl+Shift+Z 撤销重做
-   *   文本：Ctrl+\ 引用 · Ctrl+/ 代码块 · Ctrl+E 行内代码 · Ctrl+. 上标 · Ctrl+, 下标
-   *         Ctrl+Shift+7/8/9 有序/无序/任务列表 · Ctrl+Shift+X 删除线 · Ctrl+Shift+H 高亮
-   *         Ctrl+Shift+Backspace 清除格式 · Ctrl+L 链接
-   *   对齐：Ctrl+Alt+L / C / R 左 / 中 / 右       颜色：Ctrl+Alt+0 自动颜色
-   *   标题：Ctrl+Alt+1 ~ 6 一~六级标题（原来 1/2 被表格排序抢了，已还回来）
-   *   插入：Ctrl+Alt+I 图片 · Ctrl+Shift+T 表格     行号：Ctrl+Alt+N 显示/隐藏
-   *   表格：Ctrl+Alt+↑/↓ 本行上移下移 · Ctrl+Alt+←/→ 本列左右移
-   *         Ctrl+Alt+Shift+↑/↓ 上下插入行 · Ctrl+Alt+Shift+←/→ 左右插入列
-   *         Ctrl+Alt+Backspace 删行 · Ctrl+Alt+Delete 删列 · Ctrl+Alt+Shift+Delete 删表
-   *         Ctrl+Alt+1 / 2（光标在表格里时）按本列升/降序 · Ctrl+Alt+H 表头行开关 · Ctrl+Alt+K 复制 CSV
-   */
   useEffect(() => {
     if (!editor) return;
 
     const onShortcut = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey)) return;
-      if (!editor.isFocused) return; // 在标题/弹窗输入框里打字时不抢按键
+      if (!editor.isFocused) return;
 
       const key = event.key;
       const lower = key.toLowerCase();
-      // 数字键：优先看物理按键（event.code），免得某些键盘布局下 Ctrl+Alt+数字 的 key 不是数字
       const digit = /^[1-6]$/.test(key) ? key : (/^Digit([1-6])$/.exec(event.code)?.[1] ?? '');
       const alt = event.altKey;
       const shift = event.shiftKey;
@@ -2003,8 +1464,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         else if (key === 'Backspace') chain().deleteRow().run();
         else if (key === 'Delete') chain().deleteColumn().run();
         else if (digit) {
-          // ⌨️ Ctrl+Alt+1~6 = 一~六级标题（tiptap 原生就这样绑的，之前被下面的表格排序抢走了 1/2）
-          //    只有光标在表格里时，1 / 2 才让给「本列升 / 降序」
           const level = Number(digit) as 1 | 2 | 3 | 4 | 5 | 6;
           if (editor.isActive('table') && (level === 1 || level === 2)) {
             sortTableByColumn(editor, level === 1);
@@ -2056,10 +1515,8 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
     window.addEventListener('keydown', onShortcut, true);
     return () => window.removeEventListener('keydown', onShortcut, true);
-    // onOpenImageTool / setShowLineNumbers 在下面才声明，这里不放依赖数组（两者都稳定）
   }, [editor, onChange]);
 
-  // Ctrl / Cmd + K：打开链接弹窗（Ctrl+L/E/R 让给左/中/右对齐了）
   useEffect(() => {
     if (!editor) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -2075,7 +1532,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
-  // 点别处收起弹窗
   useEffect(() => {
     if (!linkDialog) return;
     const onDown = (e: MouseEvent) => {
@@ -2086,65 +1542,48 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     return () => window.removeEventListener('mousedown', onDown, true);
   }, [linkDialog]);
 
-  /**
-   * 🔗 编辑器里的超链接：**单击只放光标，按住 Ctrl（或 Mac 的 ⌘）点击才打开**。
-   *
-   * 光把 tiptap 的 openOnClick 设成 false 是不够的 —— 那只表示「tiptap 不主动去
-   * window.open」，它并没有 preventDefault，浏览器对 <a> 的默认跳转照样发生，
-   * 于是写着写着一不小心点到链接就跳走了。
-   * 这里在捕获阶段拦掉默认行为；只有按住 Ctrl 时才真的打开。
-   * 预览模式渲染的是普通 <a>（不在编辑器里），单击跳转不受影响。
-   */
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
     const onClick = (e: MouseEvent) => {
-      if (e.button !== 0) return; // 只管左键
+      if (e.button !== 0) return;
       const anchor = (e.target as HTMLElement | null)?.closest?.('a');
       if (!anchor || !dom.contains(anchor)) return;
       const href = anchor.getAttribute('href');
       if (!href) return;
 
-      // 一律先掐掉浏览器的默认跳转；放不放光标交给 ProseMirror 自己处理
       e.preventDefault();
 
       if (e.ctrlKey || e.metaKey) {
         openExternal(href);
       }
     };
-    // 捕获阶段：抢在浏览器执行默认行为之前
     dom.addEventListener('click', onClick, true);
     return () => dom.removeEventListener('click', onClick, true);
   }, [editor]);
 
-  // ═══════════════ 📏 行号：主行号量测 ═══════════════
-  // 主行号不用 CSS 计数器，因为列表项缩进后列就对不齐了；这里直接量每一行的位置，
-  // 统一画在左边固定的一列上（跟 Obsidian 的行号栏一样是一条直线）。
   const [showLineNumbers, setShowLineNumbers] = useState(true);
-  /** 工具栏那份语言控件选了「自定义…」时，这里存着正在输入的内容（null = 显示下拉） */
   const [customLangDraft, setCustomLangDraft] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [gutterLines, setGutterLines] = useState<{ n: number; y: number; h: number }[]>([]);
   const [gutterX, setGutterX] = useState(50);
   const rafRef = useRef(0);
 
-  // 记住开关（Obsidian 也是把它当一个设置项）
   useEffect(() => {
     try {
       const saved = localStorage.getItem('editor-line-numbers');
       if (saved !== null) setShowLineNumbers(saved === '1');
-    } catch { /* 无痕模式读不到就算了 */ }
+    } catch {  }
   }, []);
 
   const measureGutter = useCallback(() => {
     const view = editor?.view;
     const scroller = scrollRef.current;
     const dom = view?.dom as HTMLElement | undefined;
-    // 预览态编辑器是 display:none，这时候量出来全是 0，直接跳过（切回编辑时 ResizeObserver 会再叫一次）
     if (!view || !scroller || !dom || !dom.clientWidth || !showLineNumbers) return;
 
     const scrollerRect = scroller.getBoundingClientRect();
-    const originY = scrollerRect.top - scroller.scrollTop; // 滚动内容的坐标原点
+    const originY = scrollerRect.top - scroller.scrollTop;
 
     const targets: LineTarget[] = [];
     collectLineTargets(editor.state.doc, 0, targets);
@@ -2154,13 +1593,8 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       let box: { top: number; bottom: number } | null = null;
       try {
         box = measureLineBox(view, t);
-      } catch { /* 量不到的行就跳过，不影响其它行 */ }
+      } catch {  }
       if (!box) return;
-      // 🔢 序号必须用 targets 的下标 i+1（= 这一行在**文档里的真实行号**），
-      //    不能用"已画出的条数"。代码块收起时，被折起来的那些行不画（measureLineBox 返回 null），
-      //    但它们**照样占文档的行数** —— 所以紧接着代码块的那一行，编号要接着往下走。
-      //    例：代码块 30 行，收起只显示 10 个号（第 1~10 行），块后面第一行正文就该是第 31 号。
-      //    h 是为了让行号和这一行的行盒一样高，字号小一点也能和正文对上基线
       next.push({ n: i + 1, y: Math.round(box.top - originY), h: Math.max(14, Math.round(box.bottom - box.top)) });
     });
 
@@ -2168,7 +1602,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       prev.length === next.length && prev.every((p, i) => p.y === next[i].y && p.h === next[i].h && p.n === next[i].n) ? prev : next
     );
 
-    // 数字右边缘 = 正文左边缘再往左 14px（固定一列，不跟着引用块/列表的缩进跑）
     const textLeft = dom.getBoundingClientRect().left + (parseFloat(getComputedStyle(dom).paddingLeft) || 0);
     const x = Math.round(textLeft - scrollerRect.left - 14);
     setGutterX((prev) => (prev === x ? prev : x));
@@ -2179,9 +1612,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; measureGutter(); });
   }, [measureGutter]);
 
-  // 每次编辑都重新量（用 rAF 合并，不会每敲一个字就同步布局一次）
-  // ⚠️ 输入法组合期间跳过：这时候既要读布局、又要 setState 触发重渲染，
-  //    都可能打断组合导致拼音被当成普通文字留下。组合结束再补量一次。
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
@@ -2198,7 +1628,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     };
   }, [editor, scheduleMeasure]);
 
-  // 尺寸变化 / 字体加载完 / 从预览切回编辑 → 重量
   useEffect(() => {
     if (!editor) return;
     scheduleMeasure();
@@ -2212,13 +1641,11 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     return () => { ro.disconnect(); window.removeEventListener('resize', scheduleMeasure); };
   }, [editor, scheduleMeasure]);
 
-  // 开关变化：通知代码块 widget 重新生成，并重量左侧行号
   useEffect(() => {
     lineNumberPrefs.enabled = showLineNumbers;
-    try { localStorage.setItem('editor-line-numbers', showLineNumbers ? '1' : '0'); } catch { /* 忽略 */ }
+    try { localStorage.setItem('editor-line-numbers', showLineNumbers ? '1' : '0'); } catch {  }
     if (editor) {
       editor.view.dispatch(editor.state.tr.setMeta('lineNumbers', showLineNumbers));
-      // 供 CSS 判断：关掉行号时收掉代码块左边的行号槽，跟预览保持一致
       editor.view.dom.setAttribute('data-code-linenumbers', showLineNumbers ? 'on' : 'off');
     }
     scheduleMeasure();
@@ -2230,13 +1657,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   const currentFontSize = editor.getAttributes('textStyle').fontSize || "default";
 
-  /**
-   * 🎯 字号下拉显示的是**光标所在位置的当前字号**，不是干巴巴一个"字号"两个字。
-   *
-   *  · 这段文字用工具栏显式设过字号 → 直接显示那个值（如 20px）✓
-   *  · 没设过（正文 / 标题这种走 CSS 的）→ 把光标那一段的 `computed font-size` 读出来，
-   *    于是标题会显示 35px / 26px / 20px，正文显示 16px ✓ 一眼就知道现在是多大
-   */
   const FONT_SIZE_OPTIONS = ['14px', '16px', '18px', '20px', '24px', '32px', '48px'];
   const cursorFontSize = (() => {
     try {
@@ -2250,13 +1670,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       return '';
     }
   })();
-  /** 显式设过就用它，否则用光标处的实际字号 */
   const explicitFontSize = currentFontSize !== 'default' ? currentFontSize : '';
   const fontSizeLabel = explicitFontSize || cursorFontSize || '字号';
-  /** 给下拉框的 value：能对上选项就对上（好把当前项高亮出来），对不上就谁都不高亮 */
   const fontSizeValue = explicitFontSize || (FONT_SIZE_OPTIONS.includes(cursorFontSize) ? cursorFontSize : '__cursor__');
 
-  /** 工具栏自定义语言：输入框回车/失焦时套用到当前代码块 */
   const applyToolbarLanguage = (value: string) => {
     const language = value.trim().toLowerCase();
     editor.chain().focus().updateAttributes('codeBlock', { language: language || null }).run();
@@ -2264,7 +1681,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     if (onChange) onChange();
   };
 
-  /** 工具栏那份语言下拉的选项：自定义排第一，当前若是自定义语言就紧随其后 */
   const activeCodeLanguage = editor.isActive('codeBlock')
     ? normalizeLang(editor.getAttributes('codeBlock').language)
     : '';
@@ -2278,11 +1694,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       editor.chain().focus().unsetLink().run();
       return;
     }
-    // 用项目自己的弹窗（不再是浏览器原生 prompt）
     openLinkDialog();
   };
 
-  /** 应用弹窗里填的链接 */
   const applyLink = () => {
     if (!linkDialog) return;
     const url = linkDialog.url.trim();
@@ -2291,16 +1705,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
-    /**
-     * 链接地址补全规则（⚠️ 这里错过一次，别再简化）：
-     *   · 已经有协议（http: / https: / mailto: / tel: …）→ 原样保留
-     *   · **站内相对路径**（`/posts/x`、`./x`、`../x`、`#锚点`）→ 原样保留！
-     *     之前是无脑补 `https://`，把 `/posts/x` 拼成了 `https:///posts/x`，
-     *     浏览器再把三斜杠规范化成 //，结果 `posts` 变成主机名 →
-     *     点进去直接跑到 `https://posts/xxx` 这种打不开的地址（实测复现过）。
-     *   · 忘了写开头斜杠的站内路径（`posts/x`）→ 补一根斜杠变成 `/posts/x`
-     *   · 只写了个裸域名（example.com / localhost:3000）→ 才补 `https://`
-     */
     const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
     const isSiteRelative = /^(\/|\.\.?\/|#)/.test(url);
     const firstSegment = url.split('/')[0];
@@ -2311,8 +1715,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     editor.chain().focus().extendMarkRange('link').setLink({ href: safeUrl }).run();
   };
 
-  // 所有工具栏按钮统一走这里：title 同时当作自定义气泡（data-tip）和无障碍标签，
-  // 原生 title 要等一秒才出来、还会被面板的 overflow:hidden 裁掉，所以用自己画的。
   const Btn = ({ onClick, active, children, title }: any) => (
     <button
       onClick={onClick}
@@ -2328,12 +1730,11 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-transparent relative">
-      {/* ✍️ 编辑器正文区的样式（h1~h6 字号、引用块、pre、行号 .line-no …）现在在
-          app/globals.css 里 —— 之前写成内联 <style dangerouslySetInnerHTML> 时，
-          线上渲染成了 <style>false</style>，整段 CSS 一条都没生效（行号错位、字号乱）。 */}
+      {
+}
 
-      {/* 📱 手机上标题区收一收（原来 px-12 pt-14 + text-5xl 光标题就吃掉一百多 px），
-          省下来的高度全给正文 —— 键盘一弹出来，正文能多看三四行 */}
+      {
+}
       <div className="shrink-0 px-12 pt-14 pb-4 max-lg:px-4 max-lg:pt-5 max-lg:pb-2 flex items-center gap-4">
         <input
           type="text"
@@ -2353,15 +1754,15 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         )}
       </div>
 
-      {/* 📱 手机端**整体缩小**（按钮内边距 / 栏内边距 / 间隔一起收一档），一屏能同时塞下工具栏和更多正文。
-          ⚠️ 不要改成"一行 + 横向滚动"：那样要滑来滑去找按钮，反而更慢。 */}
+      {
+}
       <div className="shrink-0 px-8 py-2.5 border-y border-white/20 dark:border-white/10 flex flex-wrap items-center gap-1.5 bg-white/10 dark:bg-black/20 backdrop-blur-md z-50 max-lg:px-2 max-lg:py-1 max-lg:gap-1">
         <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().undo().run()} title="撤销 (Ctrl+Z)"><Undo2 size={16}/></Btn><Btn onClick={() => editor.chain().focus().redo().run()} title="重做 (Ctrl+Shift+Z)"><Redo2 size={16}/></Btn><Btn onClick={() => editor.chain().focus().unsetAllMarks().run()} title="清除格式（Ctrl+Shift+Backspace）"><RemoveFormatting size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
 
         <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-xl px-2">
-          {/* 🎛️ 用主题化下拉，不用原生 <select>：原生那个弹出列表是白底 + 浅色字，深色模式看不清 ✗
-              显示的是**光标处当前字号**（没设过字号就按标题/正文的实际 CSS 大小算）✓ */}
+          {
+}
           <ThemedSelect
             value={fontSizeValue}
             label={fontSizeLabel}
@@ -2389,7 +1790,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} title="三级标题 (###)">
             <div className="flex items-center gap-1 font-black"><Heading3 size={16}/><span className="text-[10px] opacity-60 max-lg:hidden">###</span></div>
           </Btn>
-          {/* H4–H6：Markdown 里 #### 很常见，层级支持到 6 级 */}
           {[4, 5, 6].map((level) => (
             <Btn
               key={level}
@@ -2409,8 +1809,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="下划线 (Ctrl+U)"><UnderlineIcon size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="删除线 (Ctrl+Shift+X)"><Strikethrough size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
-          {/* 📊 一键插入 1×1 表格（相当于 Obsidian Advanced Tables 的 Create table），行/列自己后面加 */}
-          {/* 💡 插入 Obsidian 风格标注块（callout）：写成引用 + [!类型] 标记，前台/预览渲染成带图标的框 */}
           <Btn
             onClick={() =>
               editor
@@ -2438,8 +1836,8 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           >
             <TableIcon size={16}/>
           </Btn>
-          {/* 光标在代码块里时才出现：显示并修改这个代码块的语言
-              （每个代码块右上角还有一份一样的控件，就近改更方便） */}
+          {
+}
           {editor.isActive('codeBlock') && (
             customLangDraft !== null ? (
               <input
@@ -2487,24 +1885,22 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleSubscript().run()} active={editor.isActive('subscript')} title="下标（Ctrl+,）"><SubIcon size={16}/></Btn>
           <Btn onClick={toggleLink} active={editor.isActive('link')} title="插入 / 编辑链接 (Ctrl+K)"><Link2 size={16}/></Btn>
           <Btn onClick={onOpenImageTool} title="插入图片（Ctrl+Alt+I）"><ImageIcon size={16} className="text-indigo-500"/></Btn>
-          {/* 🖼️ 图片插入 / 编辑：点一下图片（等于选中它那行）再点这个 → 窗口里改描述和链接 ✓
-              没选中图片时点它 → 填链接插入新图 ✓（支持站内路径 /… ✓）*/}
+          {
+}
           <ImageEditButton editor={editor} />
         </div>
 
         {editor.isActive('image') && <div className="flex items-center gap-1 ml-4 bg-indigo-500/10 p-1 px-3 rounded-2xl border border-indigo-500/20 border-dashed animate-in slide-in-from-left">{['25%', '50%', '75%', '100%'].map(s => <button key={s} onClick={() => editor.chain().focus().updateAttributes('image', { width: s }).run()} title={"图片宽度 " + s} data-tip={"图片宽度 " + s} className="px-2 py-1 text-[9px] font-bold hover:bg-white rounded-lg transition-all">{s}</button>)}</div>}
         <div className="flex-1" />
 
-        {/* 📊 光标在表格里时，表格工具条就地出现在工具栏右侧（对标 Obsidian 的 Advanced Tables） */}
         {editor.isActive('table') && <TableToolsBar editor={editor} />}
 
         <div className="flex items-center gap-4">
           <UnderlineColorButton editor={editor} />
           <div className="relative">
             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 px-3 rounded-2xl border border-white/10 shadow-inner">
-              {/* 🎨 这个调色板图标可以点：把文字颜色恢复成「自动」（跟随主题色）。
-                  unsetColor 只清掉颜色属性，字号/粗体之类的格式都会保留。
-                  （背景底色那边不加，按需求保持原样） */}
+              {
+}
               <button
                 type="button"
                 onClick={() => editor.chain().focus().unsetColor().run()}
@@ -2536,12 +1932,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         </div>
       </div>
 
-      {/* 将弹窗从 Toolbar 结构中抽离出来，独立于 Flex 布局之外！ */}
       {showTextPicker && <CustomColorPicker activeColor="#6366F1" recentColors={textColors} onClose={() => setShowTextPicker(false)} onSelect={(c: string) => editor.chain().focus().setColor(c).run()} onConfirm={(c: string) => { if(!textColors.includes(c)) setTextColors(p => [c, ...p].slice(0, 6)); setShowTextPicker(false); }} />}
       {showHighlightPicker && <CustomColorPicker activeColor="#FEF08A" recentColors={highlightColors} onClose={() => setShowHighlightPicker(false)} onSelect={(c: string) => editor.chain().focus().setHighlight({ color: c }).run()} onConfirm={(c: string) => { if(!highlightColors.includes(c)) setHighlightColors(p => [c, ...p].slice(0, 6)); setShowHighlightPicker(false); }} />}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto pt-8 pb-12 pl-1 pr-12 custom-scrollbar relative">
-        {/* 📏 主行号：跟着内容一起滚，所以放在滚动容器里 */}
         {showLineNumbers && gutterLines.length > 0 && (
           <div data-line-gutter aria-hidden="true" className="absolute inset-0 pointer-events-none select-none" style={{ zIndex: 5 }}>
             {gutterLines.map((l) => (
@@ -2559,14 +1953,11 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         <EditorContent editor={editor} />
       </div>
 
-      {/* 📊 表格工具条已经挪到编辑器工具栏里（光标在表格里时出现），不再悬浮 */}
 
-      {/* 🔗 光标在 GitHub/Gitee 的仓库或主页链接里时，旁边浮出「卡片 / 编辑」胶囊，
-          点「卡片」在链接下方浮出卡片（点卡片=新标签页跳转）。
-          它挂在 body 下、**不占文档流**，所以左侧行号一行都不用改 —— 详见该组件顶部说明。 */}
+      {
+}
       <LinkCardTool editor={editor} onEditLink={openLinkDialog} />
 
-      {/* 🔗 超链接弹窗：贴着光标所在那一行的上方出现（上方放不下就翻到下方） */}
       {linkDialog && typeof document !== 'undefined' && createPortal(
         <motion.div
           ref={linkBoxRef}
@@ -2623,4 +2014,3 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
 RichTextEditor.displayName = 'RichTextEditor';
 export default RichTextEditor;
-

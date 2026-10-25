@@ -4,17 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { getApiBase } from '../lib/apiBase';
 
-/**
- * 🧳 「游客昵称」发布框（**不用 GitHub、不用数据库、不用登录**）。
- *
- * ⚠️ 这里**只有发布框，没有列表** ✓ —— 列表由外层 `Comments.tsx` 统一渲染，
- *    两种发布方式看到的是同一份列表（GitHub 那些评论也在一起）✓
- *
- * 评论数据存在博客项目里（`<blogPath>/data/comments/*.json`），控制台和博客在同一台
- * 机器上，所以后端直接读写同一批文件 —— 控制台看到的和前台**是同一批评论** ✓
- *
- * 管理删除：列表里本站的评论右上角 ✕（需要设 COMMENTS_ADMIN_KEY；后端没设就隐藏）
- */
 
 type CommentItem = {
   id: string;
@@ -31,15 +20,9 @@ export default function GuestComments({
   onPosted,
 }: {
   page?: string;
-  /** 发成功之后把这条评论交给外层，立刻补进列表 ✓ */
   onPosted?: (c: CommentItem) => void;
 } = {}) {
   const pathname = usePathname();
-  /**
-   * 评论按"页面标识"归档：默认用当前路由 pathname ✓
-   * 说说、灵境那种不是路由一页一个的，就把自己的 id 传进来 ✓
-   * —— 全站共用这一套组件，**哪个界面都能游客评论** ✓
-   */
   const currentPage = page || pathname;
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
@@ -51,7 +34,6 @@ export default function GuestComments({
     try {
       setName(localStorage.getItem('commentNickname') || '');
     } catch {
-      /* 隐私模式下 localStorage 可能不可用，忽略 */
     }
   }, []);
 
@@ -81,7 +63,6 @@ export default function GuestComments({
         try {
           localStorage.setItem('commentNickname', name.trim());
         } catch {
-          /* ignore */
         }
       }
     } catch {
@@ -113,7 +94,6 @@ export default function GuestComments({
           />
         </div>
 
-        {/* 🍯 蜜罐：正常用户看不见也不会填，填了就是机器人 */}
         <input ref={trapRef} type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
 
         <div className="flex items-center justify-between gap-3 mt-3">

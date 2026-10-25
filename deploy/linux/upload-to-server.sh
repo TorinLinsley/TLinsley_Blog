@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-#
-# 在**虚拟机**上执行：把改好的博客前台同步到正式服务器，并让服务器按需重建。
-#
-#   bash upload-to-server.sh              # 全量同步（含 public/uploads，rsync 只传变化的部分）
-#   bash upload-to-server.sh --dry-run    # 只看看会传哪些，不动服务器
-#   FORCE_BUILD=1 bash upload-to-server.sh  # 强制重建（改了构建相关的东西但指纹没变时用）
-#
-# 前提：
-#   1) 虚拟机的公钥已经放到服务器上（ssh-copy-id 一次即可）
-#   2) server.env 填好了（照 server.env.example 复制）
 
 set -euo pipefail
 

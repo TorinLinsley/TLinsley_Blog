@@ -1,6 +1,6 @@
 import 'katex/dist/katex.min.css';
 import type { Metadata, Viewport } from "next";
-import "./noto-serif-sc.css";   // ⬅️ 自托管的思源宋体（Noto Serif SC），见下方说明
+import "./noto-serif-sc.css";
 import "./globals.css";
 import { ThemeProvider } from "../components/ThemeProvider";
 import BackgroundEffects from "../components/BackgroundEffects";
@@ -30,23 +30,7 @@ import Navbar from '../components/Navbar';
 import NavSwitchDim from '../components/NavSwitchDim';
 import BackToTop from '../components/BackToTop';
 
-/**
- * 🈶 字体改成**本地自托管**了，不再用 next/font/google。
- *
- * 为什么：next/font/google 在**每次 build** 时都会去 fonts.gstatic.com 拉
- * Noto Serif SC 的 101 个 unicode-range 分片 —— 服务器网络抖一下，构建就报
- * "next/font/google queries have exactly one entry" 然后整包构建失败 ✗（反复踩）
- *
- * 现在：分片已经下到 `public/fonts/noto-serif-sc/`，@font-face 写在
- * `app/noto-serif-sc.css`（脚本 `scripts/fetch_noto_serif.mjs` 生成，想更新字体重跑即可）。
- * build 完全不联网 ✓ unicode-range 原样保留 → 浏览器还是只下用到的分片，加载速度不变 ✓
- * （Geist / Geist Mono 本来就没被任何样式引用，一并没有了 ✓）
- */
 
-/* 📱 手机键盘弹出时让「可视区域真的变矮」，而不是盖在页面上。
-   浏览器默认是"盖住"：布局视口不变，为了把光标露出来会把整页往上顶，
-   于是编辑器工具栏就被顶出屏幕外了（连 100dvh 都不会跟着缩）。
-   加上这条之后 dvh 会随键盘收缩 → 编辑区跟着缩 → 工具栏始终留在可视区里。 */
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -62,10 +46,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {/* 启动画面已移除：不再有过场遮罩，页面直接显示 */}
-        {/* 🚀 首屏那张背景图提前预加载（和博客前台 layout.tsx 同一套写法）：
-            CSS 里的 background 图浏览器发现得晚，预加载能让它从 HTML 一起开始下，
-            首屏更快；换图不用改这里，自动跟着 bgImages[0] 走 */}
+        {
+}
         {!siteConfig.useGradient && siteConfig.bgImages?.[0] && (
           <link rel="preload" as="image" href={siteConfig.bgImages[0]} />
         )}
@@ -75,8 +57,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider>
           <OperationProvider>
             <ToastProvider>
-              {/* Ctrl + Alt + R：复制当前完整地址（控制台没有地址栏，用它补上） */}
-              {/* 🖱️ 全站悬停提示：原生 title 一律换成网页自己的气泡（详见组件注释） */}
               <HoverTip />
               <UrlCopyShortcut />
               <MusicProvider>
@@ -89,10 +69,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                       style={{
                         background: `linear-gradient(-45deg, ${siteConfig.themeColors.join(', ')})`,
                         backgroundSize: '400% 400%',
-                        backgroundPosition: '50% 50%', // 不流动时就停在渐变正中间（约等于原来流动时的平均观感）
-                        // ⚠️ 纯图片背景（useGradient === false）时这一层不能再流动：
-                        //    它是 mix-blend-color 压在壁纸上的"色膜"，background-position 一动
-                        //    颜色就顺着斜对角扫过去，看着就像背景图整体偏移了（15 秒一循环）。
+                        backgroundPosition: '50% 50%',
                         animation: siteConfig.useGradient ? 'gradientMove 15s ease infinite' : 'none'
                       }}
                     ></div>
@@ -108,31 +85,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <GlobalSnow />
 
                   <div className="relative z-10 flex-1 flex flex-col">
-                    {/*
-                      🧭 导航栏挪到**根布局**里了（原来 17 个页面各自 import 一份）。
+                    {
 
-                      为什么必须这样：页面各引一份 = 切页时整条导航栏被销毁重建 ✗
-                      表现就是"点选项卡 → 色块刚揭开 → 页面像刷新一样断了"✗
-                      放到这里之后它**全程常驻**（React 不会重建它）：切页只换下面 children 那块 ✓
-                        · 色块能把揭开动画（.32s 弹簧）完整播完 ✓ 不会被切页打断 ✓
-                        · 选中那一条平滑接手：点过的那条 → 新页面的 active ✓ 中间不闪 ✗
-                        · 手机上开着的抽屉、悬停状态也跨页保留 ✓
-                      ⚠️ 高度/留白：导航栏自己是 `fixed`（不占布局空间），
-                         各页面原来的 mt-28 / pt-20 留白**一个像素都不用改** ✓
-                      ⚠️ 博客前台（TLBlog/app/layout.tsx）是同一套写法，改一处记得看另一处 ✓
-                    */}
+}
                     <Navbar />
-                    {/* ⚡ 内容区包这一层，是为了"条和界面**真正同时**开始动"：
-                        ① 真正的解法在 Navbar 里 —— 鼠标悬停到选项卡上就 router.prefetch，
-                           等你真按下去时数据已经在浏览器里 → 内容**当帧就换** ✓
-                        ② 这层只是兜底：没预取到（没悬停就点 / 后端慢）时，
-                           等超过 110ms 才变暗告诉用户"在切了" ✓ 预取命中时一次都不闪 ✓
-                        详见 components/NavSwitchDim.tsx（和博客前台是同一份）*/}
+                    {
+}
                     <NavSwitchDim>{children}</NavSwitchDim>
                   </div>
 
-                  {/* 📱 小屏不显示这些悬浮物（和博客前台 layout.tsx 完全同一套写法：
-                      悬浮播放器 / 工具箱 / 点击粒子 统一用 hidden md:block 包起来） */}
+                  {
+}
                   <div className="hidden md:block">
                     <FloatingPlayer />
                   </div>
@@ -143,8 +106,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     <ClickEffect />
                   </div>
 
-                  {/* 📱 手机端右下角「返回顶部」按钮（大屏不显示，靠组件自己的 lg:hidden）。
-                      往下滑过一段才出现，点一下瞬间回顶；和博客前台那份是同一个组件 ✓ */}
+                  {
+}
                   <BackToTop />
                 </div>
 
@@ -170,25 +133,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </ToastProvider>
           </OperationProvider>
         </ThemeProvider>
-        {/* 📱 小屏不显示这只猫（和博客前台同一套：hidden md:block 包起来） */}
         <div className="hidden md:block">
           <CyberCat />
         </div>
         <CodeCopy />
-        {/* 🔗 GitHub / Gitee 的仓库或主页链接 → 卡片（和 CodeCopy 一样是"挂一个组件自己扫 DOM"） */}
         <RepoCard />
         <TableScroll />
-        {/* 🔍 点击图片放大查看（和博客前台是同一个组件、同一份代码） */}
         <ImageZoom />
-        {/* 🔗 正文里的站内链接改走客户端路由：点一下瞬间切页，不再整篇文档重载
-            （原来会重新 Boot 控制台 + 重播入场动画，看着像"刷新进来"） */}
+        {
+}
         <InSiteLinks />
-        {/* 🖱️ 触摸点击链接后立刻取消"悬停态"（手机上点完跳转、返回时不再卡着悬停样式） */}
         <ClickUnhover />
         <CalloutRender />
         <PageKeys />
-        {/* 🔑 给所有"调后端 API"的请求自动带上管理密钥 X-Admin-Key
-            （后端能改博客文件，见 cms_core/main.py 顶部说明；这里是配套的前端半边） */}
+        {
+}
         <ApiKeyInjector />
       </body>
     </html>

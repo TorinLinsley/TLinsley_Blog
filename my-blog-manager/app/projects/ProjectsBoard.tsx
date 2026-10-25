@@ -13,15 +13,9 @@ export default function ProjectsBoard() {
   const { addOperation } = useOperations();
   const { showToast } = useToast();
 
-  // 1. 核心状态
   const [editableProjects, setEditableProjects] = useState<Project[]>(initialProjects);
   const [searchQuery, setSearchQuery] = useState("");
 
-  /**
-   * 🚀 项目数据按请求问后端要，不用 bundle 里那份。
-   * `data/projects.ts` 是构建时打包进去的快照，「更新本地」写盘后不重建就看不到变化
-   * （照片墙那个"新加的相册消失"是同一个根因）。后端没起来就先用快照顶着。
-   */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -33,11 +27,9 @@ export default function ProjectsBoard() {
     return () => { alive = false; };
   }, []);
 
-  // 2. 弹窗状态
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; name: string | null }>({ isOpen: false, id: null, name: null });
   const [projectModal, setProjectModal] = useState<{ isOpen: boolean; mode: 'add' | 'edit'; data: Partial<Project> }>({ isOpen: false, mode: 'add', data: {} });
 
-  // 3. 搜索过滤逻辑
   const filteredProjects = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return editableProjects;
@@ -48,7 +40,6 @@ export default function ProjectsBoard() {
     );
   }, [searchQuery, editableProjects]);
 
-  // --- 核心逻辑：加入暂存队列 ---
   const syncToQueue = (nextList: Project[]) => {
     addOperation({
       id: `sync_projects_${Date.now()}`,
@@ -93,7 +84,6 @@ export default function ProjectsBoard() {
     setDeleteModal({ isOpen: false, id: null, name: null });
   };
 
-  // GitHub 原生 SVG 图标组件
   const GithubIcon = () => (
     <svg className="w-8 h-8 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
       <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
@@ -103,7 +93,6 @@ export default function ProjectsBoard() {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-10 py-10 relative z-10">
 
-      {/* 💎 销毁确认弹窗 */}
       <AnimatePresence>
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -121,7 +110,6 @@ export default function ProjectsBoard() {
         )}
       </AnimatePresence>
 
-      {/* 💎 项目编辑弹窗 */}
       <AnimatePresence>
         {projectModal.isOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
@@ -146,7 +134,6 @@ export default function ProjectsBoard() {
         )}
       </AnimatePresence>
 
-      {/* 顶部标题区 */}
       <div className="mb-8 flex flex-col items-center md:items-start">
         <div className="w-full flex justify-start mb-6"><BackButton /></div>
         <div className="text-center md:text-left w-full">
@@ -157,7 +144,6 @@ export default function ProjectsBoard() {
         </div>
       </div>
 
-      {/* 搜索框 */}
       <div className="mb-12 flex justify-center w-full">
         <div className="relative w-full max-w-lg group">
           <input type="text" placeholder="搜索项目、代号或技术栈..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-full px-6 py-3 pl-12 text-slate-800 dark:text-white shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-serif" />
@@ -167,7 +153,6 @@ export default function ProjectsBoard() {
 
       <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
 
-        {/* 👇 新建项目虚线矩阵 */}
         <motion.div layout onClick={() => setProjectModal({ isOpen: true, mode: 'add', data: { icon: '🚀', tags: [] } })} className="group cursor-pointer flex flex-col items-center justify-center min-h-[320px] rounded-[40px] border-4 border-dashed border-slate-300 dark:border-slate-700 bg-white/10 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all duration-500">
             <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-md group-hover:rotate-90">
               <Plus size={40} />
@@ -179,7 +164,6 @@ export default function ProjectsBoard() {
           {filteredProjects.map((project) => (
             <motion.div layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} key={project.id} className="h-full relative group">
 
-              {/* 👇 悬浮管理按钮：📱 手机上常显（触屏没有 hover），桌面仍旧悬停才出现 */}
               <div className="absolute top-8 right-8 z-30 flex gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all -translate-x-4 group-hover:translate-x-0 max-lg:translate-x-0!">
                   <button onClick={(e) => { e.preventDefault(); setProjectModal({ isOpen: true, mode: 'edit', data: project }); }} className="w-9 h-9 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Edit3 size={16}/></button>
                   <button onClick={(e) => { e.preventDefault(); setDeleteModal({ isOpen: true, id: project.id, name: project.name }); }} className="w-9 h-9 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Trash2 size={16}/></button>

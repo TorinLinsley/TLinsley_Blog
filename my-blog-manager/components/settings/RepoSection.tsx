@@ -24,15 +24,14 @@ export default function RepoSection() {
     type: null
   });
 
-  // 🌟 核心升级：区分当前的 SSH 密匙是 A 线的还是 B 线的
   const [sshConfig, setSshConfig] = useState<{ key: string, type: 'static' | 'source' }>({ key: "", type: "static" });
 
   const [deployData, setDeployData] = useState({
     blogPath: "",
-    staticRepoUrl: "",    // 原来的静态部署仓库
-    staticBranch: "gh-pages", // 静态部署分支
-    sourceRepoUrl: "",    // 新增的源码同步仓库
-    sourceBranch: "main"      // 源码同步分支
+    staticRepoUrl: "",
+    staticBranch: "gh-pages",
+    sourceRepoUrl: "",
+    sourceBranch: "main"
   });
 
   useEffect(() => {
@@ -93,12 +92,10 @@ export default function RepoSection() {
     setIsCheckingGit(false);
   };
 
-  // 🌟 核心升级：传入 type 区分请求 A 线还是 B 线的密匙
   const handleGetSSH = async (type: 'static' | 'source') => {
     try {
       const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
       const config = await configRes.json();
-      // 向后端传递参数 ?type=static 或 ?type=source
       const res = await fetch(`http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:${config.api_port}/api/deploy/ssh/key?type=${type}`);
       const data = await res.json();
       if (data.success) {
@@ -216,7 +213,6 @@ export default function RepoSection() {
                </button>
             </div>
 
-            {/* 🌟 A线：静态部署配置区 */}
             <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl mb-4 relative">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase flex items-center gap-1"><Rocket size={12}/> A 线：静态资源库 (用于 GitHub Pages)</h4>
@@ -236,7 +232,6 @@ export default function RepoSection() {
               </div>
             </div>
 
-            {/* 🌟 B线：源码同步配置区 */}
             <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl mb-6 relative">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1"><Code size={12}/> B 线：源码托管库 (用于 Vercel 触发)</h4>
@@ -256,7 +251,6 @@ export default function RepoSection() {
               </div>
             </div>
 
-            {/* 操作按钮区 */}
             <div className="pt-6 border-t border-slate-200 dark:border-slate-700/50 flex flex-col gap-3">
                <button onClick={() => setModalConfig({isOpen: true, type: 'init'})} disabled={isInitializing} className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-sm font-black shadow-sm active:scale-95 transition-all hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
                   <Wand2 size={18} className={isInitializing ? "animate-spin" : ""} /> {isInitializing ? "初始化中..." : "🪄 智能初始化双轨环境"}
@@ -280,7 +274,6 @@ export default function RepoSection() {
         </div>
       </motion.section>
 
-      {/* 💎 弹窗传送门 */}
       {mounted && createPortal(
         <AnimatePresence>
           {modalConfig.isOpen && (

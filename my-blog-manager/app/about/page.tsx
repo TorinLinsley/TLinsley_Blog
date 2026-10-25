@@ -4,10 +4,9 @@ import matter from 'gray-matter';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
-// 🌟 1. 核心升级：引入现代统一解析流，并挂载 remark-gfm
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm'; // 🌟 引入 GFM 以支持 ~~删除线~~
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkHardBreaks from '../../lib/remarkHardBreaks';
 import remarkRehype from 'remark-rehype';
@@ -15,7 +14,6 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../lib/hljsLanguages';
 import rehypeCodeLang from '../../lib/rehypeCodeLang';
 import rehypeCallout from '../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import rehypeKatex from 'rehype-katex';
@@ -25,23 +23,14 @@ import 'katex/dist/katex.min.css';
 import PageTransition from '../../components/PageTransition';
 import { siteConfig } from '../../siteConfig';
 
-// 🌟 引入刚刚写好的前端交互引擎
 import AboutClient from '../../components/AboutClient';
 
-// 内容会随时变化（控制台里写完就落盘），按请求实时读取，别在构建时定死 —— 和博客前台那一份保持一致
-// ⚡ 改成 ISR（静态化 + 30 秒刷新）——只对**只读**页面这么干 ✓
-//   以前 force-dynamic → 每次切页都要服务端现渲染（实测首字节 1.155 秒 ✗）而且无法预取 ✗
-//   现在静态化 → 悬停预取 ✓ 切页几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（看数据够用 ✓）
-//   ⚠️ 编辑页（posts/[slug]、chatter/[slug]）**故意保持动态** ✗ 那里必须永远看到最新数据 ✓
 export const revalidate = 30;
 
-// 🏷️ 标签页标题：栏目页 = 「栏目名 | 站点名」（和导航栏、其它栏目页同一套规则）
 export const metadata = {
   title: "关于 | " + siteConfig.title,
 };
 
-// 🌟 读取指定目录下的 markdown 文件，并提取属性
 function getDirActivities(dirName: string, typeLabel: '文章' | '杂谈' | '说说', linkPrefix: string) {
   const dirPath = path.join(process.cwd(), dirName);
   if (!fs.existsSync(dirPath)) return [];
@@ -55,7 +44,6 @@ function getDirActivities(dirName: string, typeLabel: '文章' | '杂谈' | '说
       id: `${dirName}-${file}`,
       type: typeLabel,
       title: data.title || file.replace('.md', ''),
-      // 保留完整 ISO 时间供前端处理
       date: data.date ? new Date(data.date).toISOString() : '1970-01-01T00:00:00Z',
       url: `/${linkPrefix}/${file.replace('.md', '')}`
     };
@@ -69,44 +57,34 @@ export default async function AdminAboutPage() {
 
   try {
     const fileContents = fs.readFileSync(fullPath, 'utf8');
-    // 🌟 改为 let，以便进行文本预清洗
     let { data, content } = matter(fileContents);
 
     if (data.cover) coverImage = data.cover;
 
-    // ==========================================
-    // 🌟 解析前物理清洗区
-    // ==========================================
-    // 1. 强行给没有语言标记的代码块加上 cpp 标签，防止侦测失败
     content = content.replace(/^```\s*$/gm, '```cpp');
-    // 2. 强行修复数字列表缺少空格导致无法渲染为列表的 Bug (1.百度 -> 1. 百度)
     content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
 
-    // 3. 🌟 拯救被 Markdown 引擎吞噬的“连续空行” (同步文章页的阵法)
     content = content.replace(/\r\n/g, '\n').replace(/^[ \t]+$/gm, '');
     const blocks = content.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g);
     content = blocks.map((block, index) => {
-      if (index % 2 === 1) return block; // 代码块绝对不碰
+      if (index % 2 === 1) return block;
       return block.replace(/\n{3,}/g, (match) => {
         const brCount = match.length - 2;
         return '\n\n' + '<br>'.repeat(brCount) + '\n\n';
       });
     }).join('');
-    // ==========================================
 
-    // 🌟 2. 启用全新解析引擎：支持代码高亮与删除线
     const processedContent = await unified()
       .use(remarkParse)
       .use(remarkHardBreaks)
-      .use(remarkGfm) // 🌟 挂载 GFM 解析
+      .use(remarkGfm)
       .use(remarkMath)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeCodeLang)
     .use(rehypeCallout)
-      // 语言由作者显式指定（编辑器里每个代码块右上角的下拉）：没写就保持纯文本
       // @ts-ignore
       .use(rehypeHighlight, {
-        detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
+        detect: false,
         ignoreMissing: true,
         languages: hljsLanguages
       })
@@ -119,12 +97,10 @@ export default async function AdminAboutPage() {
     console.error("读取 about.md 失败", e);
   }
 
-  // 🌟 3. 获取所有的活动动态
   const posts = getDirActivities('posts', '文章', 'posts');
   const chatters = getDirActivities('chatters', '杂谈', 'chatter');
   const moments = getDirActivities('moments', '说说', 'moments');
 
-  // 将所有动态合并，并按时间倒序排列 (最新的在最上面)
   const allActivities = [...posts, ...chatters, ...moments].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
@@ -133,10 +109,8 @@ export default async function AdminAboutPage() {
     <div className="min-h-screen relative pb-20">
 
       <PageTransition>
-        {/* 📱 只动布局：小屏顶部留白收一档（mt-20）；从 md（≥768px）到桌面端仍是原来的 mt-28 */}
         <main className="w-[95%] md:w-[90%] max-w-4xl mx-auto mt-20 md:mt-28 relative z-10">
 
-          {/* 🌟 注入 About 页面专用的高颜值 Prose 全局样式 */}
           <style dangerouslySetInnerHTML={{ __html: `
             .prose h1 { font-size: 1.8rem !important; font-weight: 900 !important; margin-bottom: 1.2rem !important; margin-top: 2rem !important; line-height: 1.3 !important; color: inherit !important; }
             .prose h2 { font-size: 1.5rem !important; font-weight: 800 !important; margin-bottom: 1rem !important; margin-top: 1.5rem !important; color: inherit !important; }
@@ -245,7 +219,6 @@ export default async function AdminAboutPage() {
             }
           `}} />
 
-          {/* 🌟 4. 控制台专属：悬浮在整个海报右上角的“一键修改”特权按钮 */}
           <div className="absolute top-4 right-4 md:top-6 md:right-8 z-50">
             <Link
               href="/editor?type=about"
@@ -256,7 +229,6 @@ export default async function AdminAboutPage() {
             </Link>
           </div>
 
-          {/* 🌟 5. 载入前端互动引擎 */}
           <Suspense fallback={
             <div className="h-96 flex flex-col gap-4 items-center justify-center text-slate-500 font-bold bg-white/40 dark:bg-slate-800/40 rounded-[40px] animate-pulse">
               <span className="text-3xl">📡</span>

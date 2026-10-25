@@ -10,7 +10,6 @@ import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../../lib/hljsLanguages';
 import rehypeCodeLang from '../../../lib/rehypeCodeLang';
 import rehypeCallout from '../../../lib/rehypeCallout';
-// 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
 import { repairMarkdown } from '../../../lib/repairMarkdown';
 import rehypeStringify from 'rehype-stringify';
 import rehypeRepoCard from '../../../lib/rehypeRepoCard';
@@ -26,36 +25,16 @@ import ResourceToc from '../../../components/ResourceToc';
 import ResourcePanels from '../../../components/ResourcePanels';
 import { siteConfig } from '../../../siteConfig';
 
-// 🏷️ 标签页标题：和其它非首页界面一个写法（友链 / 项目矩阵 / 说说… 都是「栏目名 | 站点名」）
 export const metadata = {
   title: "资源分享 | " + siteConfig.title,
   description: "资源分享与收藏整理",
 };
 
-// 资源目录会随时增删，按请求实时读取
-// ⚡ 改成 ISR（静态化 + 定时刷新）：
-//   以前是 force-dynamic → 每次点击都要等服务端现渲染（首字节约 1 秒 ✗）而且**无法被预取** ✗
-//   现在页面是静态的 → <Link> 的预取生效 ✓ 悬停就取好 ✓ 点下去几乎瞬开 ✓
-//   内容更新最多延迟 30 秒 ✓（文章/相册这类"偶尔变一次"的数据完全够 ✓）
 export const revalidate = 30;
 
 const RES_DIR = path.join(process.cwd(), 'resources');
 const CONTENT_ID = 'resource-content';
 
-/**
- * 🏗️ 让「资源分享」这一页也能被**预取**（= 点击瞬开 ✓）
- *
- * 病根：这个路由是 `[[...path]]` 这种**可选 catch-all** ✗
- *   不告诉 Next 有哪些路径 → 构建时**一个静态产物都不生成** ✗
- *   （你能在服务器上看到：.next/server/app/ 里有 about.html / music.html / photowall.html …
- *     唯独**没有** resources.html ✓ 就是这个原因 ✓）
- *   → 别的页面悬停一下就被预取好了 ✓ 只有它点下去还得现渲染（约 1 秒）✗
- *
- * 做法：只预生成**根路径** `/resources` ✓（也就是导航栏「资源分享」点过去的那个地址 ✓）
- *   ⚠️ 故意**不去猜**深层文件路径 ✗：那套命名规则（带不带 .md、文件夹怎么算）
- *      属于渲染逻辑 ✓ 猜错会让**构建直接失败** ✗✗ 代价太大 ✓
- *      深层的那些路径仍然"第一次访问时生成 + 缓存" ✓（revalidate=30 ✓）之后一样快 ✓
- */
 export function generateStaticParams() {
   return [{ path: [] as string[] }];
 }
@@ -107,7 +86,6 @@ function buildTree(dir: string = RES_DIR, prefix = ''): ResourceNode[] {
   return [...folders, ...articles];
 }
 
-/** 判断一段 HTML 是不是「没有任何实际内容」 */
 function isEmptyHtml(html: string) {
   if (!html) return true;
   return html
@@ -116,7 +94,6 @@ function isEmptyHtml(html: string) {
     .trim() === '';
 }
 
-/** 深度优先取第一篇文章，作为默认打开的那篇 */
 function firstArticle(nodes: ResourceNode[]): string {
   for (const n of nodes) {
     if (n.type === 'article') return n.path;
@@ -143,7 +120,6 @@ async function getResourceData(rel: string) {
 
   let content = rawContent;
 
-  // === 与 posts/[slug] 完全一致的正文清洗，保证阅读观感相同 ===
   content = content.replace(/^(\s*\d+)\.([^ \n\d])/gm, '$1. $2');
   content = content.replace(/\r\n/g, '\n').replace(/^[ \t]+$/gm, '');
   const blocks = content.split(/(```[\s\S]*?```)/g);
@@ -164,7 +140,7 @@ async function getResourceData(rel: string) {
     .use(rehypeCallout)
     // @ts-ignore
     .use(rehypeHighlight, {
-      detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
+      detect: false,
       ignoreMissing: true,
       languages: hljsLanguages,
     })
@@ -182,8 +158,6 @@ async function getResourceData(rel: string) {
 export default async function ResourcesPage({ params }: { params: Promise<{ path?: string[] }> }) {
   const { path: segments } = await params;
 
-  // ⚠️ Next.js 传给动态路由的参数是「未解码」的，中文会变成 %E6%AC%A2... 形式，
-  // 必须自己解码，否则和磁盘上的真实文件名匹配不上，会一直兜底成第一篇文章。
   const requested = (segments || [])
     .map((s) => {
       try {
@@ -195,25 +169,19 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
     .join('/');
 
   const tree = buildTree();
-  // 地址栏指定的文章不存在时（链接过期、文章被删或改名），明确提示，
-  // 而不是悄悄显示成别的文章
   const notFound = Boolean(requested) && !findArticle(tree, requested);
   const targetPath = notFound ? '' : requested || firstArticle(tree);
   const doc = targetPath ? await getResourceData(targetPath) : null;
 
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
-      {/* 📊 画面顶部那条细线（阅读进度条）**已按用户要求去掉** ✗
-          用户原话："我没说要加这个 用不着" —— 那是之前那批动效里自作主张加的，别再恢复 ✓ */}
-      {/* 从导航栏进来（/resources）时播入场动画；
-          从左侧列表切换文章（/resources/xxx）时跳过，内容瞬间出现 */}
-      {/* ⚠️ fadeOnly：这一页里有 **fixed 的「按钮行」**（左右两个展开按钮，见 ResourcePanels）——
-          入场动画只要动 transform，那个 div 就成了 fixed 的定位参照物：
-          按钮会跟着动画往下飘，动画播完才"啪"地跳回导航栏正下方 ✗
-          （用户反馈："进界面后按钮先在下面一段距离，过了一会才变到顶部"）
-          → 这一页改成只淡入、不做 20px 上滑 ✓ 详见 components/PageTransition.tsx */}
+      {
+}
+      {
+}
+      {
+}
       <PageTransition disabled={Boolean(requested)} fadeOnly>
-        {/* 大屏三栏常驻；小屏只留正文 + 左右两个展开抽屉，都交给这个客户端容器 */}
         <ResourcePanels
           left={<ResourceTreeView tree={tree} selectedPath={targetPath} />}
           right={<ResourceToc contentId={CONTENT_ID} contentKey={targetPath} />}
@@ -302,5 +270,4 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
     </div>
   );
 }
-
 

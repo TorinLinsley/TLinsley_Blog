@@ -6,20 +6,13 @@ from cms_core.api.autosync import mirror_dir, describe_problems
 
 router = APIRouter()
 
-# 动态定位 Manager 根目录
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
-# 需要镜像覆盖的文件夹 (先清空目标，再全量复制)
 SYNC_DIRS = ["posts", "chatters", "moments"]
-# 🌟 resources 要特殊处理：控制台这边的「文章总目录」是 resources/ResShare/，
-# 而博客前台读的是 <博客>/resources/（顶层）。所以同步时要把 ResShare 里的内容
-# 「平铺」到博客的 resources/ 下，不能把 ResShare 这一层也带过去，
-# 否则前台会找不到文章（前台代码里写死的就是顶层 resources/）。
 SYNC_DIR_MAP = {
     "resources": "resources/ResShare",
 }
-# 需要精确覆盖的单文件
 SYNC_FILES = [
     "app/about/about.md",
     "data/albums.ts",
@@ -72,14 +65,8 @@ async def execute_sync(request: Request):
         if not is_safe_blog_dir(target_path):
             return {"success": False, "message": "安全拦截：目标路径不合法！"}
 
-        # 1. 同步文件夹
-        #    用和自动同步同一套「增量镜像」：先补新的、再删多余的，
-        #    绝不先把目标清空 —— 否则那个瞬间博客前台的列表会突然变空。
-        #    ⚠️ 删不掉的项会被收集下来（多半是前端文件属主/权限问题）：
-        #       以前是静默忽略 → 你在控制台改了文件夹名，前端却多出一份旧的 ✗
         problems: list = []
         for d in SYNC_DIRS + list(SYNC_DIR_MAP.keys()):
-            # 源目录可能和名字不同（比如 resources 的源其实是 resources/ResShare）
             src_rel = SYNC_DIR_MAP.get(d, d)
             src_dir = os.path.join(PROJECT_ROOT, src_rel.replace("/", os.sep))
             dst_dir = os.path.join(target_path, d)
@@ -87,10 +74,6 @@ async def execute_sync(request: Request):
             if os.path.exists(src_dir):
                 mirror_dir(src_dir, dst_dir, problems)
 
-        # 2. 同步单个文件 (直接覆盖或过滤)
-        #    🧠 顺便记一下：**哪些"构建时才会打进产物"的文件真的变了**
-        #       （siteConfig.ts / data/*.ts 是 import 进前台的，光拷文件不重建，
-        #         前台还是旧的那份 —— 表现就是"控制台里背景图换好了，博客上没反应"）
         build_touched: list = []
         for f in SYNC_FILES:
             src_file = os.path.join(PROJECT_ROOT, f.replace("/", os.sep))
@@ -106,14 +89,12 @@ async def execute_sync(request: Request):
                     except Exception:
                         old = None
 
-                # 🌟 核心过滤逻辑：如果是 siteConfig.ts，拦截并剔除敏感信息
                 if f == "siteConfig.ts":
                     with open(src_file, "r", encoding="utf-8") as file_in:
                         lines = file_in.readlines()
 
                     new = "".join(
                         line for line in lines
-                        # 只要这一行包含以下关键词，直接跳过不写入
                         if not ("picBedName:" in line or "picBedUrl:" in line or "picBedToken:" in line or "图床核心配置" in line)
                     )
                     if new != old:
@@ -121,14 +102,10 @@ async def execute_sync(request: Request):
                             file_out.write(new)
                         build_touched.append(f)
                 else:
-                    # 其他普通文件：内容一样就不动它（免得白改 mtime）
                     if old is None or old != open(src_file, "r", encoding="utf-8").read():
                         shutil.copy2(src_file, dst_file)
                         build_touched.append(f)
 
-        # 🧠 配置类文件（siteConfig.ts / data/*.ts）是**构建时打进前台产物**的：
-        #    文件拷过去了，但不重建的话前台还是旧的那份 —— 所以这里明确提醒一句，
-        #    免得又出现"控制台里背景图/音乐/徽章都换好了，博客上却没反应"。
         rebuild_hint = ""
         if build_touched:
             rebuild_hint = (
@@ -138,7 +115,6 @@ async def execute_sync(request: Request):
             )
 
         if problems:
-            # 详细清单打到后端日志；界面上给一句能照着做的短提示 ✓
             print(describe_problems(problems, target_path))
             names = [os.path.basename(p[0] if isinstance(p, tuple) else p) for p in problems[:3]]
             moved = sum(1 for p in problems if isinstance(p, tuple) and p[1])
