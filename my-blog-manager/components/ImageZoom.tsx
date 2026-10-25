@@ -97,10 +97,29 @@ export default function ImageZoom() {
     /** 是否正在动画（这时别再改 transform） */
     let animating = false;
 
-    const baseSize = () => ({
-      w: imgCur?.offsetWidth || 1,
-      h: imgCur?.offsetHeight || 1,
+    /**
+     * 🔍 高清底图：图片元素**按原始像素**布局（宽高 = naturalWidth/Height），
+     * 屏幕上看到多大全靠 transform 的 scale —— 这样放大时浏览器拿的是原始分辨率，
+     * 而不是"先把大图缩到视口大小、再拿这张缩小的位图放大"（那样文字笔画必糊 ✗）
+     */
+    const natSize = (img: HTMLImageElement | null) => ({
+      w: img?.naturalWidth || 1,
+      h: img?.naturalHeight || 1,
     });
+
+    /** 默认态（zoom=1）把整张图装进中间区域的系数：小图不放大（最多 100%） */
+    const fitFor = (img: HTMLImageElement | null) => {
+      const { w, h } = natSize(img);
+      if (w <= 1 || h <= 1) return 1;
+      return Math.min(1, viewW() / w, viewH() / h);
+    };
+
+    /** 默认态在屏幕上占的尺寸（= 原始像素 × 适配系数），平移边界按这个算 */
+    const baseSize = () => {
+      const { w, h } = natSize(imgCur);
+      const fit = fitFor(imgCur);
+      return { w: w * fit, h: h * fit };
+    };
 
     const viewW = () => window.innerWidth;
     const slideSpan = () => viewW() + GAP;
@@ -129,7 +148,7 @@ export default function ImageZoom() {
     const paintCurrent = () => {
       if (!imgCur) return;
       clampPan();
-      imgCur.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${zoom})`;
+      imgCur.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${fitFor(imgCur) * zoom})`;
       if (overlay) overlay.style.cursor = zoom > 1.02 ? 'grab' : 'zoom-out';
     };
 
@@ -189,13 +208,29 @@ export default function ImageZoom() {
         img.style.visibility = 'visible';
         if (img.getAttribute('src') !== it.src) img.src = it.src;
         img.alt = it.alt || '';
+
+        // 📐 图加载完 → 按**原始像素**摆好（高清底图），屏幕尺寸交给 scale ✓
+        const applyNatural = () => {
+          if (!img.naturalWidth || !img.naturalHeight) return;
+          img.style.width = `${img.naturalWidth}px`;
+          img.style.height = `${img.naturalHeight}px`;
+          if (img === imgCur) paintCurrent();
+          else img.style.transform = `scale(${fitFor(img)})`;
+        };
+        if (img.complete) applyNatural();
+        else img.onload = applyNatural;
       };
       set(imgPrev, items.length > 1 ? at(-1) : undefined);
       set(imgCur, items[index]);
       set(imgNext, items.length > 1 ? at(1) : undefined);
 
       zoom = 1; tx = 0; ty = 0; dragX = 0;
-      if (imgCur) imgCur.style.transform = 'translate3d(0,0,0) scale(1)';
+      // 三张都按各自的原图比例缩到"装得下"的大小（当前这张还要带平移/缩放）✓
+      [imgPrev, imgCur, imgNext].forEach((img) => {
+        if (!img) return;
+        const s = fitFor(img);
+        img.style.transform = img === imgCur ? `translate3d(0,0,0) scale(${s})` : `scale(${s})`;
+      });
       if (track) {
         track.style.transition = 'none';
         paintTrack();
@@ -331,7 +366,11 @@ export default function ImageZoom() {
       const im = document.createElement('img');
       im.draggable = false;
       im.style.cssText = [
-        'max-width:100%', 'max-height:100%', 'object-fit:contain',
+        // ⚠️ 绝对不要再写 max-width/max-height:100% —— 那是"先把大图缩到视口大小、
+        //    再用 scale 放大"，等于把一张已经缩小过的位图拉大，文字笔画必糊 ✗
+        //    这里按原始像素布局（onload 时写宽高），适配比例全部交给 transform 的 scale ✓
+        'max-width:none', 'max-height:none', 'display:block',
+        'width:0', 'height:0',   // 图没加载完先不占位 ✓
         'pointer-events:auto',
         'user-select:none', '-webkit-user-select:none',
         '-webkit-user-drag:none', '-webkit-touch-callout:none',
@@ -604,6 +643,10 @@ export default function ImageZoom() {
         if (!slotPrev || !slotNext) return;
         slotPrev.style.transform = `translate3d(${-(viewW() + GAP)}px, 0, 0)`;
         slotNext.style.transform = `translate3d(${viewW() + GAP}px, 0, 0)`;
+        // 视口变了 → 适配系数也变了，左右两张要重新缩一下 ✓
+        [imgPrev, imgNext].forEach((img) => {
+          if (img && img.naturalWidth) img.style.transform = `scale(${fitFor(img)})`;
+        });
         paintCurrent();
       });
       window.addEventListener('keydown', onKeyDown, true);
