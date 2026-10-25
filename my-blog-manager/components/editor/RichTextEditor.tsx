@@ -1855,6 +1855,47 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
        */
       const dom = new window.DOMParser().parseFromString(safeContent, 'text/html');
       /**
+       * 🧹 灌进编辑器之前，先把「图片上下那些空段落 / 块与块之间的纯空白」清掉。
+       *
+       * 病根（两条，都表现为"图片上面多一行、行号栏还给它一个号"✗）：
+       *   ① 后端 HTML 里块与块之间带着排版换行（`</ol>\n<img>`）。ProseMirror 的
+       *      DOMParser 会把这团空白当**内容**，就地造一个空段落 —— 行号栏给它编号，
+       *      看着就是图片上面多了一个空行 ✗
+       *   ② 草稿箱 JSON 里存的是**编辑器 HTML 快照**，图片是裸 `<img>`，它上面那个
+       *      空 `<p>` 在服务端那条 `<p><img></p>` 规则里认不到 → 一直躺在快照里 ✗
+       *      于是"删掉→暂存→重新打开又有了"（用户 2026-10-25 反馈 ✗）
+       *
+       * ⚠️ 只清「纯空白 / 只含 <br>、且紧贴图片」的空段落，以及块级元素之间的纯空白文本；
+       *    段落内部的行内空白、代码块里的内容一个字都不动 ✓
+       */
+      const BLOCKS = new Set(['P', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE', 'DIV', 'HR',
+        'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'IMG', 'FIGURE', 'SECTION', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
+      const isBlockEl = (n: Node | null) =>
+        !!n && n.nodeType === Node.ELEMENT_NODE && BLOCKS.has((n as Element).tagName.toUpperCase());
+
+      // ① 块与块之间的纯空白文本节点 → 删（不删就会变成一个空段落）
+      {
+        const walker = dom.createTreeWalker(dom.body, NodeFilter.SHOW_TEXT);
+        const texts: Text[] = [];
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
+        texts.forEach((t) => {
+          if (t.parentElement?.closest('pre')) return;
+          if (!/^[\s\u00a0\u3000]*$/.test(t.nodeValue || '')) return;
+          if (isBlockEl(t.previousSibling) || isBlockEl(t.nextSibling)) t.remove();
+        });
+      }
+
+      // ② 紧贴图片的空段落（草稿快照里那行删不掉、也存不掉的空行）
+      const holdsImg = (n: Element | null) =>
+        !!n && (n.tagName.toUpperCase() === 'IMG' || !!n.querySelector('img'));
+      Array.from(dom.body.querySelectorAll('p')).forEach((p) => {
+        if (p.querySelector('img')) return;
+        if ((p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;  // 有字 → 不动
+        if (!p.querySelector('br') && p.childElementCount > 0) return;                          // 别的行内元素 → 不动
+        if (holdsImg(p.nextElementSibling) || holdsImg(p.previousElementSibling)) p.remove();
+      });
+
+      /**
        * 🧩 callout 的 div 壳要还原成引用块再灌进去。
        *    后端给的 HTML 里 callout 是 <div class="callout"><div class="callout-title">…</div>…</div>，
        *    而 schema 里没有 div —— 不还原的话编辑器会把两层 div 拆掉、callout 散成一堆普通段落
@@ -1865,9 +1906,30 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       //    每个空隙都变成一个空段落（表现就是"每段之间凭空多出空行"）。
       //    tiptap 默认加载用的就是空 parseOptions，跟着它来。
       const parsed = PMDOMParser.fromSchema(editor.schema).parse(dom.body);
+      /**
+       * 🧹 文档层再补一刀：**紧贴图片的空段落直接丢**。
+       *    不管它是从后端 HTML 的排版换行、草稿箱快照、还是解析器自己"造"出来的 ——
+       *    Markdown 里「列表/段落 → 空行 → 图片」那个空行只是语法分隔，
+       *    编辑器里不该多出一个空段落，行号栏更不该给它一个号 ✗
+       *    （用户 2026-10-25：删掉、暂存、刷新，图片上面那行还是回来）
+       * ⚠️ 只丢「空段落 + 邻居是图片节点」，别的空段落（作者真的按了两下回车）一律保留 ✓
+       */
+      const order: PMNode[] = [];
+      parsed.content.forEach((node) => order.push(node));
+      const drop = new Set<number>();
+      order.forEach((node, i) => {
+        if (node.type.name !== 'paragraph') return;
+        if ((node.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;
+        if (node.content.size > 1) return;                 // 段落里有多个行内节点 → 不是空行，不动
+        if (order[i - 1]?.type.name === 'image' || order[i + 1]?.type.name === 'image') drop.add(i);
+      });
+      const cleaned = drop.size
+        ? parsed.type.create(parsed.attrs, order.filter((_, i) => !drop.has(i)), parsed.marks)
+        : parsed;
+
       editor.view.dispatch(
         editor.state.tr
-          .replaceWith(0, editor.state.doc.content.size, parsed.content)
+          .replaceWith(0, editor.state.doc.content.size, cleaned.content)
           .setMeta('preventUpdate', true)
       );
 
