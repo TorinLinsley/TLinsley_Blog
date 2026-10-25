@@ -970,7 +970,7 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
 .moment-content li { margin: 0.15rem 0; }
 .moment-content li::marker { opacity: 0.75; }
 .moment-content ul ul { list-style: circle; }
-.moment-content ul ol { list-style: lower-alpha; }
+.moment-content ul ol { list-style: decimal; }
 .moment-content strong { font-weight: 800; }
 .moment-content code {
   font-size: 0.88em;

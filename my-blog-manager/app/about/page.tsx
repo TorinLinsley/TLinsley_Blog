@@ -151,7 +151,7 @@ export default async function AdminAboutPage() {
             .prose li { display: list-item !important; margin-bottom: 0.5rem !important; }
             
             .prose ul ul, .prose ol ul { list-style-type: circle !important; margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
-            .prose ol ol, .prose ul ol { list-style-type: lower-alpha !important; margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
+            .prose ol ol, .prose ul ol { list-style-type: decimal !important; margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
             
             /* 🌟 删除线强制展现 */
             .prose s, .prose del { text-decoration-line: line-through !important; opacity: 0.6; }
