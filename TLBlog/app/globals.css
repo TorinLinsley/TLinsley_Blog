@@ -554,6 +554,13 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   color: #ffffff;
 }
 
+/* ⚠️ 但**链接里的粗体**不能跟着变白 —— 那会把链接的紫色整条洗掉 ✗
+   （用户 2026-10-25："切到浅色再切回深色，原本紫色的超链接文字变成白色了"）
+   → 链接内部的 strong/b 一律继承链接自己的颜色 ✓ 只留字重变粗 ✓ */
+.dark :is(.prose, .resource-preview, .chatter-preview, .editor-content-area, .moment-content) a :is(strong, b) {
+  color: inherit;
+}
+
 /* ============================================================
    📱 正文里的长链接 / 长单词要能换行（手机上引用块被顶出边界 ✗）
 
