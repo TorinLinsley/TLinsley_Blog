@@ -4,9 +4,11 @@ import remarkHardBreaks from './remarkHardBreaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
+import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import rehypeCallout from './rehypeCallout';
+import { hljsLanguages } from './hljsLanguages';
 import { repairMarkdown } from './repairMarkdown';
 
 /**
@@ -21,7 +23,8 @@ import { repairMarkdown } from './repairMarkdown';
  *   · 单个换行仍然换行（remark-breaks）：老的纯文本说说看着和以前一样 ✓
  *   · repairMarkdown 那套修复（连续空行、表格等）和文章页共用同一份 ✓
  *
- * ⚠️ 只给说说用：文章页还有代码高亮、仓库卡片那些额外插件，这里用最小集合就够 ✓
+ * ⚠️ 只给说说用：文章页还多几个插件（仓库卡片等），这里用最小集合就够 ✓
+ *    代码高亮是例外——这里也有，因为说说里写 ```powershell 也是要看的代码块 ✓
  */
 export async function renderMomentHtml(markdown: string): Promise<string> {
   /* ⚠️ 图片**不走正文**：说说的图片一直由 front-matter 的 images 数组 + 卡片里的九宫格渲染 ✓
@@ -38,6 +41,8 @@ export async function renderMomentHtml(markdown: string): Promise<string> {
     .use(remarkMath)     // $…$ 公式
     .use(remarkRehype, { allowDangerousHtml: true })  // 允许正文里的原始 HTML（颜色、下划线、上下标等）
     .use(rehypeCallout)  // > [!info] 那种引用块
+    // 🎨 代码块着色：语言表和文章页/编辑器同一份（lib/hljsLanguages.ts）✓
+    .use(rehypeHighlight, { detect: false, ignoreMissing: true, languages: hljsLanguages })
     .use(rehypeKatex)
     .use(rehypeStringify, { allowDangerousHtml: true })
     .process(repairMarkdown(source));

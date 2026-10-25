@@ -7,6 +7,7 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeHighlight from 'rehype-highlight';
+import { hljsLanguages } from '../../../lib/hljsLanguages';
 import rehypeCodeLang from '../../../lib/rehypeCodeLang';
 import rehypeCallout from '../../../lib/rehypeCallout';
 // 🩹 修「中文加粗」被 CommonMark 判非法导致星号漏出来的写法（详见 lib/repairMarkdown.ts）
@@ -165,7 +166,7 @@ async function getResourceData(rel: string) {
     .use(rehypeHighlight, {
       detect: false, // 没写语言就保持纯文本：不猜语言、不着色（猜错比不亮更糟）
       ignoreMissing: true,
-      subset: ['cpp', 'c', 'python', 'java', 'javascript', 'typescript', 'go', 'rust', 'bash', 'json', 'html', 'css', 'sql', 'xml'],
+      languages: hljsLanguages,
     })
     .use(rehypeKatex)
     .use(rehypeRepoCard)

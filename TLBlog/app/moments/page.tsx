@@ -9,6 +9,8 @@ import { siteConfig } from '../../siteConfig';
 import { stripInlineMarkdown } from '../../lib/repairMarkdown';
 // 📝 说说正文按 Markdown 渲染（用户 2026-10-22 要求：写的 `- 列表` 要真的显示成列表）
 import { renderMomentHtml } from '../../lib/momentMarkdown';
+// 🎨 代码块的配色主题（和文章页/资源页同一个 atom-one-dark，别处有的颜色这里也必须有）
+import 'highlight.js/styles/atom-one-dark.css';
 
 // 内容会随时变化（控制台改完自动同步过来），按请求实时读取，别在构建时定死
 // ⚠️ 这里**故意不做 ISR 缓存**（用户 2026-10-22 反馈："发完说说要刷好几次才看见"）：

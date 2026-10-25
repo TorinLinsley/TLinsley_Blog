@@ -29,42 +29,14 @@
  */
 
 import { createLowlight } from 'lowlight';
-
-import bash from 'highlight.js/lib/languages/bash';
-import c from 'highlight.js/lib/languages/c';
-import cpp from 'highlight.js/lib/languages/cpp';
-import csharp from 'highlight.js/lib/languages/csharp';
-import css from 'highlight.js/lib/languages/css';
-import diff from 'highlight.js/lib/languages/diff';
-import dockerfile from 'highlight.js/lib/languages/dockerfile';
-import dos from 'highlight.js/lib/languages/dos';
-import go from 'highlight.js/lib/languages/go';
-import ini from 'highlight.js/lib/languages/ini';
-import java from 'highlight.js/lib/languages/java';
-import javascript from 'highlight.js/lib/languages/javascript';
-import json from 'highlight.js/lib/languages/json';
-import lua from 'highlight.js/lib/languages/lua';
-import markdown from 'highlight.js/lib/languages/markdown';
-import matlab from 'highlight.js/lib/languages/matlab';
-import nginx from 'highlight.js/lib/languages/nginx';
-import php from 'highlight.js/lib/languages/php';
-import powershell from 'highlight.js/lib/languages/powershell';
-import python from 'highlight.js/lib/languages/python';
-import rust from 'highlight.js/lib/languages/rust';
-import sql from 'highlight.js/lib/languages/sql';
-import typescript from 'highlight.js/lib/languages/typescript';
-import xml from 'highlight.js/lib/languages/xml';
-import yaml from 'highlight.js/lib/languages/yaml';
+import { hljsLanguages } from './hljsLanguages';
 
 /**
- * 只注册编辑器工具栏里那些语言（清单见 RichTextEditor 的 CODE_LANGUAGES）。
+ * 只注册 hljsLanguages 里那些语言 —— 这份清单就是全站唯一的那一份
+ * （编辑器 RichTextEditor、前台/控制台各条渲染管线都从 lib/hljsLanguages.ts 取）。
  * **绝不能用 lowlight 的 `all`**：那是 384 种语言、1.5 MB，会把首屏拖死。
- * jsx/tsx 走 javascript/typescript 的别名，html 走 xml 的别名，cmd/bat 走 dos 的别名。
  */
-const lowlight = createLowlight({
-  bash, c, cpp, csharp, css, diff, dockerfile, dos, go, ini, java, javascript, json,
-  lua, markdown, matlab, nginx, php, powershell, python, rust, sql, typescript, xml, yaml,
-});
+const lowlight = createLowlight(hljsLanguages);
 
 /** lowlight 返回的是 hast，我们只会遇到 element(span) 和 text，手写个极小的序列化就够了 */
 type HastNode = {
