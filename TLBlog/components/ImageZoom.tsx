@@ -494,7 +494,6 @@ export default function ImageZoom() {
       let pinchStartDist = 0;
       let pinchStartZoom = 1;
       let lastPinchAt = 0;
-      let lastOnImage = false;
       let startX = 0;
 
       const onPointerDown = (e: PointerEvent) => {
@@ -505,7 +504,6 @@ export default function ImageZoom() {
           lastX: e.clientX, lastT: performance.now(), vx: 0,
           startTx: tx, startTy: ty,
         });
-        lastOnImage = e.target === imgCur;
         startX = e.clientX;
 
         if (presses.size === 2) {
@@ -559,6 +557,8 @@ export default function ImageZoom() {
 
       const onPointerUp = (e: PointerEvent) => {
         if (!overlay) return;
+        // 指针被系统打断（滚动接管 / 手势被取消）不算点击 ✓
+        if (e.type === 'pointercancel') { presses.delete(e.pointerId); return; }
         const me = presses.get(e.pointerId);
         presses.delete(e.pointerId);
         const moved = me ? me.moved : 0;
@@ -585,9 +585,12 @@ export default function ImageZoom() {
           return;
         }
 
-        // ② 点空白处关闭 —— **放大状态下也关** ✓（只有点在图片上或按钮上才不关）
-        if (moved < CLICK_SLOP && !lastOnImage) {
-          if (e.pointerType !== 'mouse') swallowClickUntil = performance.now() + 500;
+        // ② 轻点关闭 —— **点图片本身也关**，不用去找空白处 ✓（用户 2026-10-25 要求）
+        //    ⚠️ 只认「没拖动」的轻点：moved < CLICK_SLOP 才算点击，拖画面/滑翻页不算 ✓
+        if (moved < CLICK_SLOP) {
+          // ⚠️ 鼠标也要吞一下：关掉之后紧跟着的那个 click 会落在**下面那张正文图片**上，
+          //    不挡的话页面会立刻又打开一次（看着像"点了没反应"）✗
+          swallowClickUntil = performance.now() + 500;
           close();
         }
       };
