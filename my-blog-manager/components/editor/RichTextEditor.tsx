@@ -285,7 +285,8 @@ import type { Node as PMNode, Schema } from '@tiptap/pm/model';
 
 import {
   Undo2, Redo2, Eraser, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  AlignLeft, AlignCenter, AlignRight, List, ListOrdered, ListTodo,
+  AlignLeft, AlignCenter, AlignRight, List, ListOrdered, ListTodo, 
+  IndentIncrease, IndentDecrease,
   Highlighter, Code2, Heading1, Heading2, Heading3,
   Type, ImageIcon, Quote, RemoveFormatting,
   Pipette, Hash, Check, Link2, Superscript as SupIcon, Subscript as SubIcon, Minus, Palette, Lock,
@@ -886,6 +887,33 @@ const FontSize = Extension.create({
   addCommands() { return { setFontSize: (fontSize: string) => ({ chain }) => chain().setMark('textStyle', { fontSize }).run() }; },
 });
 
+const ListIndentKeys = Extension.create({
+  name: 'listIndentKeys',
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        if (this.editor.isActive('table')) return false;
+        if (this.editor.isActive('codeBlock')) {
+          this.editor.commands.insertContent('  ');
+          return true;
+        }
+        if (this.editor.isActive('listItem')) {
+          this.editor.commands.sinkListItem('listItem');
+        }
+        return true;
+      },
+      'Shift-Tab': () => {
+        if (this.editor.isActive('table')) return false;
+        if (this.editor.isActive('listItem')) {
+          this.editor.commands.liftListItem('listItem');
+        }
+        return true;
+      },
+    };
+  },
+});
+
 const ExitQuoteOnEmptyEnter = Extension.create({
   name: 'exitQuoteOnEmptyEnter',
   priority: 1000,
@@ -1178,6 +1206,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   const editor = useEditor({
     extensions: [
+      ListIndentKeys,
       ExitQuoteOnEmptyEnter,
       Markdown.configure({
         transformPastedText: true,
@@ -1716,13 +1745,14 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     editor.chain().focus().extendMarkRange('link').setLink({ href: safeUrl }).run();
   };
 
-  const Btn = ({ onClick, active, children, title }: any) => (
+  const Btn = ({ onClick, active, disabled, children, title }: any) => (
     <button
       onClick={onClick}
+      disabled={disabled}
       title={title}
       data-tip={title}
       aria-label={title}
-      className={`p-2.5 max-lg:p-1 rounded-xl transition-all duration-300 ease-out flex items-center justify-center 
+      className={`p-2.5 max-lg:p-1 rounded-xl transition-all duration-300 ease-out flex items-center justify-center ${disabled ? 'opacity-30 cursor-default ' : ''}
         ${active ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/40 scale-110' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}
     >
       {children}
@@ -1878,7 +1908,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
         <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })} title="左对齐 (Ctrl+L)"><AlignLeft size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })} title="居中 (Ctrl+E)"><AlignCenter size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })} title="右对齐 (Ctrl+R)"><AlignRight size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
-        <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
+        <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!editor.can().sinkListItem('listItem')} title="增加缩进 (Tab)"><IndentIncrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')} title="减少缩进 (Shift+Tab)"><IndentDecrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
 
         <div className="flex items-center gap-1">
