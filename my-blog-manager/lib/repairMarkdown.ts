@@ -80,34 +80,41 @@ export function continueOrderedLists(md: string): string {
   return lines.join('\n');
 }
 
-export function repairBoldQuotes(md: string): string {
-  const PUNCT = '（(【「『《〈“”"\'‘’，,。；;：:！?？、';
+export function repairBold(md: string): string {
   const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
-  const SPAN = /`[^`\n]*`|\*\*([^*\n]*?)\*\*/g;
+  const SPAN = /`[^`\n]*`|\*\*([^*]*?)\*\*/g;
+  const out: string[] = [];
+  let buf: string[] = [];
   let fence = '';
-  return String(md || '')
-    .split('\n')
-    .map((line) => {
-      const hit = line.match(FENCE);
-      if (hit) {
-        const ch = hit[1].charAt(0);
-        fence = fence === ch ? '' : fence || ch;
-        return line;
-      }
-      if (fence) return line;
-      return line.replace(SPAN, (all, inner?: string) => {
-        if (inner === undefined || !inner) return all;
-        const starts = PUNCT.includes(inner[0]);
-        const ends = PUNCT.includes(inner[inner.length - 1]);
-        if (!starts && !ends) return all;
-        return '<strong>' + inner + '</strong>';
-      });
-    })
-    .join('\n');
+  const flush = () => {
+    if (!buf.length) return;
+    const text = buf.join('\n');
+    buf = [];
+    out.push(text.replace(SPAN, (all, inner?: string) => {
+      if (inner === undefined) return all;
+      if (!inner.trim()) return all;
+      return '<strong>' + inner + '</strong>';
+    }));
+  };
+  for (const line of String(md || '').split('\n')) {
+    const hit = line.match(FENCE);
+    if (hit) {
+      flush();
+      out.push(line);
+      const ch = hit[1].charAt(0);
+      fence = fence === ch ? '' : fence || ch;
+      continue;
+    }
+    if (fence) { out.push(line); continue; }
+    if (line.trim() === '') { flush(); out.push(line); continue; }
+    buf.push(line);
+  }
+  flush();
+  return out.join('\n');
 }
 
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBoldQuotes(continueOrderedLists(md))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(md))));
 }
 
 export function stripInlineMarkdown(text: string): string {
