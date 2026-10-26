@@ -34,8 +34,54 @@ export function repairListMarkers(md: string): string {
     .join('\n');
 }
 
+export function continueOrderedLists(md: string): string {
+  const ORDERED = /^(\d{1,9})([.)])([ \t]+)(.*)$/;
+  const UNORDERED = /^[-*+][ \t]+/;
+  const HEADING = /^#{1,6}[ \t]+/;
+  const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
+  const lines = String(md || '').split('\n');
+  let fence = '';
+  let last = 0;
+  let resumable = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const f = line.match(FENCE);
+    if (f) {
+      const ch = f[1].charAt(0);
+      fence = fence === ch ? '' : fence || ch;
+      last = 0;
+      resumable = false;
+      continue;
+    }
+    if (fence) continue;
+    const o = line.match(ORDERED);
+    if (o) {
+      let n = parseInt(o[1], 10);
+      if (resumable && last > 0) {
+        const want = last + 1;
+        if (n !== want) {
+          lines[i] = `${want}${o[2]}${o[3]}${o[4]}`;
+          n = want;
+        }
+      }
+      last = n;
+      resumable = true;
+      continue;
+    }
+    if (HEADING.test(line) || HR.test(line) || UNORDERED.test(line)) {
+      last = 0;
+      resumable = false;
+      continue;
+    }
+    if (line.trim() === '' || /^[ \t]/.test(line)) continue;
+    resumable = true;
+  }
+  return lines.join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(md));
+  return repairEmphasis(repairListMarkers(continueOrderedLists(md)));
 }
 
 export function stripInlineMarkdown(text: string): string {

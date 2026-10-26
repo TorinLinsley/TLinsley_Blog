@@ -24,6 +24,7 @@ from .markdown_utils import (
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
+    continue_ordered_lists,
     glue_image_blocks,
     protect_inline_tags,
     render_callouts,
@@ -165,6 +166,7 @@ async def get_draft(request: Request):
 
             md_body = split_callout_blockquotes(md_body)
             md_body = separate_blockquotes(md_body)
+            md_body = continue_ordered_lists(md_body)
             html_content = markdown.markdown(
                 md_body,
                 extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', MathExtension()],

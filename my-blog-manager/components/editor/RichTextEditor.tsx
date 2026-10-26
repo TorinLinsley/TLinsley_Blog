@@ -1,6 +1,7 @@
 "use client";
 
 import { badgeHtmlToSource } from '../../lib/badgeSource';
+import { continueOrderedLists } from '../../lib/repairMarkdown';
 import React, { useState, useImperativeHandle, forwardRef, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
@@ -136,7 +137,7 @@ function mergeSiblingLists(body: HTMLElement) {
 
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const body = new window.DOMParser()
-    .parseFromString(PASTE_MD.render(stripFrontmatter(raw)), 'text/html')
+    .parseFromString(PASTE_MD.render(continueOrderedLists(stripFrontmatter(raw))), 'text/html')
     .body;
   tidyPasteWhitespace(body);
   mergeSiblingLists(body);

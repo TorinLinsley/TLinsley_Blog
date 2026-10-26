@@ -54,6 +54,49 @@ def code_language_callback(el) -> Optional[str]:
     return None
 
 
+ORDERED_LINE = re.compile(r"^(\d{1,9})([.)])([ \t]+)(.*)$")
+UNORDERED_LINE = re.compile(r"^[-*+][ \t]+")
+HEADING_LINE = re.compile(r"^#{1,6}[ \t]+")
+HR_LINE = re.compile(r"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$")
+FENCE_LINE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
+
+
+def continue_ordered_lists(md: str) -> str:
+    lines = str(md or "").split("\n")
+    fence = ""
+    last = 0
+    resumable = False
+    for i, line in enumerate(lines):
+        hit = FENCE_LINE.match(line)
+        if hit:
+            ch = hit.group(1)[0]
+            fence = "" if fence == ch else (fence or ch)
+            last = 0
+            resumable = False
+            continue
+        if fence:
+            continue
+        ordered = ORDERED_LINE.match(line)
+        if ordered:
+            n = int(ordered.group(1))
+            if resumable and last > 0:
+                want = last + 1
+                if n != want:
+                    lines[i] = "%d%s%s%s" % (want, ordered.group(2), ordered.group(3), ordered.group(4))
+                    n = want
+            last = n
+            resumable = True
+            continue
+        if HEADING_LINE.match(line) or HR_LINE.match(line) or UNORDERED_LINE.match(line):
+            last = 0
+            resumable = False
+            continue
+        if line.strip() == "" or line[:1] in (" ", "\t"):
+            continue
+        resumable = True
+    return "\n".join(lines)
+
+
 def collapse_blank_lines(markdown_text: str) -> str:
     """把连续空行压成一个（代码围栏内部**原样保留**）。
 
