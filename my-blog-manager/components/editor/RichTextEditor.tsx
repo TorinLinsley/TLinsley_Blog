@@ -887,6 +887,58 @@ const FontSize = Extension.create({
   addCommands() { return { setFontSize: (fontSize: string) => ({ chain }) => chain().setMark('textStyle', { fontSize }).run() }; },
 });
 
+function unlistItemAtCursor(editor: any): boolean {
+  const { state, view } = editor;
+  const { selection } = state;
+  if (!selection.empty) return false;
+  const { $from } = selection;
+  if ($from.parent.type.name !== 'paragraph') return false;
+  if ($from.parentOffset !== 0) return false;
+  if ($from.depth < 2) return false;
+  if ($from.index($from.depth - 1) !== 0) return false;
+  const itemName = $from.node($from.depth - 1).type.name;
+  if (itemName === 'taskItem') return editor.commands.liftListItem('taskItem');
+  if (itemName !== 'listItem') return false;
+
+  const item = $from.node($from.depth - 1);
+  const itemPos = $from.before($from.depth - 1);
+  const list = $from.node($from.depth - 2);
+  const listPos = $from.before($from.depth - 2);
+  const index = $from.index($from.depth - 2);
+  const start = list.type.name === 'orderedList' ? (list.attrs.start || 1) : 1;
+
+  const siblings: any[] = [];
+  list.forEach((child: any, _offset: number, i: number) => siblings.push({ child, i }));
+  const before = siblings.filter((x) => x.i < index).map((x) => x.child);
+  const after = siblings.filter((x) => x.i > index).map((x) => x.child);
+
+  const frag: any[] = [];
+  let lead = 0;
+  if (before.length) {
+    const beforeList = list.type.create(list.attrs, before);
+    frag.push(beforeList);
+    lead = beforeList.nodeSize;
+  }
+  item.forEach((child: any) => frag.push(child));
+  if (after.length) {
+    const attrs = list.type.name === 'orderedList' ? { ...list.attrs, start: start + index + 1 } : list.attrs;
+    frag.push(list.type.create(attrs, after));
+  }
+  if (!frag.length) return false;
+
+  const tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, frag);
+  tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(listPos + lead + 1, tr.doc.content.size)), 1));
+  view.dispatch(tr.scrollIntoView());
+  return true;
+}
+
+function toggleListKeepNumbers(editor: any, kind: 'orderedList' | 'bulletList' | 'taskList'): boolean {
+  if (kind !== 'taskList' && editor.isActive(kind) && unlistItemAtCursor(editor)) return true;
+  if (kind === 'orderedList') return editor.chain().focus().toggleOrderedList().run();
+  if (kind === 'bulletList') return editor.chain().focus().toggleBulletList().run();
+  return editor.chain().focus().toggleTaskList().run();
+}
+
 function indentItemOnce(editor: any): boolean {
   if (!editor.isActive('listItem')) return false;
   if (editor.can().sinkListItem('listItem')) return editor.commands.sinkListItem('listItem');
@@ -944,6 +996,7 @@ const ListIndentKeys = Extension.create({
         }
         return true;
       },
+      Backspace: () => unlistItemAtCursor(this.editor),
     };
   },
 });
@@ -1550,9 +1603,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         else handled = false;
       } else if (shift) {
         if (lower === 't') chain().insertTable({ rows: 1, cols: 1, withHeaderRow: true }).run();
-        else if (key === '7') chain().toggleOrderedList().run();
-        else if (key === '8') chain().toggleBulletList().run();
-        else if (key === '9') chain().toggleTaskList().run();
+        else if (key === '7') toggleListKeepNumbers(editor, 'orderedList');
+        else if (key === '8') toggleListKeepNumbers(editor, 'bulletList');
+        else if (key === '9') toggleListKeepNumbers(editor, 'taskList');
         else if (lower === 'h') chain().toggleHighlight().run();
         else if (lower === 'x') chain().toggleStrike().run();
         else if (key === 'Backspace') {
@@ -1942,7 +1995,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
         <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })} title="左对齐 (Ctrl+L)"><AlignLeft size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })} title="居中 (Ctrl+E)"><AlignCenter size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })} title="右对齐 (Ctrl+R)"><AlignRight size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
-        <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => indentItemOnce(editor)} disabled={!editor.isActive('listItem')} title="增加缩进 (Tab)"><IndentIncrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')} title="减少缩进 (Shift+Tab)"><IndentDecrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
+        <div className="flex items-center gap-1"><Btn onClick={() => toggleListKeepNumbers(editor, 'bulletList')} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'orderedList')} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'taskList')} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => indentItemOnce(editor)} disabled={!editor.isActive('listItem')} title="增加缩进 (Tab)"><IndentIncrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')} title="减少缩进 (Shift+Tab)"><IndentDecrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
 
         <div className="flex items-center gap-1">
