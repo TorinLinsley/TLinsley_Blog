@@ -80,8 +80,34 @@ export function continueOrderedLists(md: string): string {
   return lines.join('\n');
 }
 
+export function repairBoldQuotes(md: string): string {
+  const PUNCT = '（(【「『《〈“”"\'‘’，,。；;：:！?？、';
+  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
+  const SPAN = /`[^`\n]*`|\*\*([^*\n]*?)\*\*/g;
+  let fence = '';
+  return String(md || '')
+    .split('\n')
+    .map((line) => {
+      const hit = line.match(FENCE);
+      if (hit) {
+        const ch = hit[1].charAt(0);
+        fence = fence === ch ? '' : fence || ch;
+        return line;
+      }
+      if (fence) return line;
+      return line.replace(SPAN, (all, inner?: string) => {
+        if (inner === undefined || !inner) return all;
+        const starts = PUNCT.includes(inner[0]);
+        const ends = PUNCT.includes(inner[inner.length - 1]);
+        if (!starts && !ends) return all;
+        return '<strong>' + inner + '</strong>';
+      });
+    })
+    .join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(continueOrderedLists(md)));
+  return repairEmphasis(repairListMarkers(repairBoldQuotes(continueOrderedLists(md))));
 }
 
 export function stripInlineMarkdown(text: string): string {
