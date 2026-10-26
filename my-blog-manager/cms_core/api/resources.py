@@ -25,8 +25,6 @@ def md(html, *args, **kwargs):
         out = out.replace("@@SUPSUB%d@@" % i, tag)
     return out
 from .markdown_utils import (
-    apply_ordered_starts,
-    ordered_list_starts,
     continue_ordered_lists,
     MathExtension,
     code_language_callback,
@@ -406,13 +404,12 @@ async def get_resource(request: Request):
 
     html = markdown.markdown(
         body,
-        extensions=["fenced_code", "codehilite", "tables", "nl2br", MathExtension()],
+        extensions=["fenced_code", "codehilite", "tables", "nl2br", "sane_lists", MathExtension()],
         extension_configs={
             "codehilite": {"noclasses": True, "pygments_style": "monokai", "guess_lang": False},
         },
     )
     html = unbreak_image_lines(html)
-    html = apply_ordered_starts(html, ordered_list_starts(body))
     html = render_callouts(html)
     fallback = os.path.splitext(os.path.basename(rel))[0]
 

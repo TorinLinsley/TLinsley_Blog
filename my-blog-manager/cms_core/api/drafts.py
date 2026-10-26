@@ -25,8 +25,6 @@ from .markdown_utils import (
     code_language_callback,
     collapse_blank_lines,
     continue_ordered_lists,
-    apply_ordered_starts,
-    ordered_list_starts,
     glue_image_blocks,
     protect_inline_tags,
     render_callouts,
@@ -171,13 +169,12 @@ async def get_draft(request: Request):
             md_body = continue_ordered_lists(md_body)
             html_content = markdown.markdown(
                 md_body,
-                extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', MathExtension()],
+                extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', 'sane_lists', MathExtension()],
                 extension_configs={
                     'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
                 },
             )
             html_content = unbreak_image_lines(html_content)
-            html_content = apply_ordered_starts(html_content, ordered_list_starts(md_body))
             html_content = render_callouts(html_content)
 
             draft_data = {
