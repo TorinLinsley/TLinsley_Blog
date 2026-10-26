@@ -962,9 +962,51 @@ function canIndentItem(editor: any): boolean {
 }
 
 function indentItemOnce(editor: any): boolean {
-  if (!editor.isActive('listItem')) return false;
-  if (!canIndentItem(editor)) return false;
-  return editor.commands.sinkListItem('listItem');
+  const { state, view } = editor;
+  const { selection } = state;
+  if (!selection.empty) return false;
+  const ctx = listItemContext(editor);
+  if (!ctx) return false;
+  const { item, list, listPos, index } = ctx;
+  if (index === 0) return false;
+  if (item.type.name === 'taskItem') return editor.commands.sinkListItem('taskItem');
+
+  const itemPos = selection.$from.before(ctx.depth);
+  const offsetInText = selection.$from.parentOffset;
+
+  const items: any[] = [];
+  list.forEach((child: any) => items.push(child));
+  const prev = items[index - 1];
+  let prevPos = listPos + 1;
+  for (let i = 0; i < index - 1; i++) prevPos += items[i].nodeSize;
+
+  const head: any[] = [];
+  const tails: any[] = [];
+  let sawList = false;
+  item.forEach((child: any) => {
+    const name = child.type.name;
+    const isList = name === 'orderedList' || name === 'bulletList' || name === 'taskList';
+    if (isList) sawList = true;
+    if (sawList) tails.push(child);
+    else head.push(child);
+  });
+  if (!head.length) return false;
+
+  const attrs = list.type.name === 'orderedList' ? { ...list.attrs, start: 1 } : list.attrs;
+  const sub = list.type.create(attrs, item.type.create(item.attrs, head));
+  const insertAt = prevPos + prev.nodeSize - 1;
+
+  try {
+    const tr = state.tr.delete(itemPos, itemPos + item.nodeSize);
+    const at = tr.mapping.map(insertAt);
+    tr.insert(at, Fragment.fromArray([sub, ...tails]));
+    const caret = Math.min(at + 3 + offsetInText, tr.doc.content.size);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(caret), 1));
+    view.dispatch(tr.scrollIntoView());
+    return true;
+  } catch {
+    return false;
+  }
 }
 const ListIndentKeys = Extension.create({
   name: 'listIndentKeys',
