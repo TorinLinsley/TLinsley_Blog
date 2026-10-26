@@ -962,53 +962,9 @@ function canIndentItem(editor: any): boolean {
 }
 
 function indentItemOnce(editor: any): boolean {
-  const { state, view } = editor;
-  const { selection } = state;
-  if (!selection.empty) return false;
-  const ctx = listItemContext(editor);
-  if (!ctx) return false;
-  const { item, list, listPos, index } = ctx;
-  if (index === 0) return false;
-  if (item.type.name === 'taskItem') return editor.commands.sinkListItem('taskItem');
-
-  const offsetInText = selection.$from.parentOffset;
-  const items: any[] = [];
-  list.forEach((child: any) => items.push(child));
-  const prev = items[index - 1];
-
-  const head: any[] = [];
-  const tails: any[] = [];
-  let sawList = false;
-  item.forEach((child: any) => {
-    const isList = child.type.name === 'orderedList' || child.type.name === 'bulletList';
-    if (isList) sawList = true;
-    if (sawList) tails.push(child);
-    else head.push(child);
-  });
-  if (!head.length) return false;
-
-  const subAttrs = list.type.name === 'orderedList' ? { ...list.attrs, start: 1 } : list.attrs;
-  const sub = list.type.create(subAttrs, item.type.create(item.attrs, head));
-  let prevContent = prev.content.append(sub);
-  for (const tail of tails) prevContent = prevContent.append(tail);
-  const prevNew = prev.copy(prevContent);
-
-  const merged: any[] = [];
-  for (let i = 0; i < index - 1; i++) merged.push(items[i]);
-  merged.push(prevNew);
-  for (let i = index + 1; i < items.length; i++) merged.push(items[i]);
-
-  const newList = list.type.create(list.attrs, merged);
-  const tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, newList);
-
-  let lead = listPos + 1;
-  for (let i = 0; i < index - 1; i++) lead += items[i].nodeSize;
-  const subStart = lead + 1 + prev.content.size;
-  const textStart = subStart + 3;
-  const target = Math.min(textStart + offsetInText, tr.doc.content.size);
-  tr.setSelection(TextSelection.near(tr.doc.resolve(target), 1));
-  view.dispatch(tr.scrollIntoView());
-  return true;
+  if (!editor.isActive('listItem')) return false;
+  if (!canIndentItem(editor)) return false;
+  return editor.commands.sinkListItem('listItem');
 }
 const ListIndentKeys = Extension.create({
   name: 'listIndentKeys',
