@@ -620,3 +620,27 @@ def restore_inline_tags(text: str, stash) -> str:
     for i, raw in enumerate(stash):
         text = text.replace(_INLINE_SLOT.format(i), raw)
     return text
+
+
+LIST_MARK_RE = re.compile(r"^([ \t]+)([-*+]|\d{1,9}[.)])([ \t]+)")
+
+
+def normalize_list_indent(md: str) -> str:
+    lines = str(md or "").split("\n")
+    fence = ""
+    for i, line in enumerate(lines):
+        hit = FENCE_LINE.match(line)
+        if hit:
+            ch = hit.group(1)[0]
+            fence = "" if fence == ch else (fence or ch)
+            continue
+        if fence:
+            continue
+        hit = LIST_MARK_RE.match(line)
+        if not hit:
+            continue
+        indent = len(hit.group(1).replace("\t", "    "))
+        if indent >= 4:
+            continue
+        lines[i] = " " * 4 + line[indent:]
+    return "\n".join(lines)

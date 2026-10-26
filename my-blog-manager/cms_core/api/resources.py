@@ -26,6 +26,7 @@ def md(html, *args, **kwargs):
     return out
 from .markdown_utils import (
     continue_ordered_lists,
+    normalize_list_indent,
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
@@ -401,6 +402,7 @@ async def get_resource(request: Request):
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
     body = continue_ordered_lists(body)
+    body = normalize_list_indent(body)
 
     html = markdown.markdown(
         body,
