@@ -25,6 +25,8 @@ from .markdown_utils import (
     code_language_callback,
     collapse_blank_lines,
     continue_ordered_lists,
+    apply_ordered_starts,
+    ordered_list_starts,
     glue_image_blocks,
     protect_inline_tags,
     render_callouts,
@@ -175,6 +177,7 @@ async def get_draft(request: Request):
                 },
             )
             html_content = unbreak_image_lines(html_content)
+            html_content = apply_ordered_starts(html_content, ordered_list_starts(md_body))
             html_content = render_callouts(html_content)
 
             draft_data = {

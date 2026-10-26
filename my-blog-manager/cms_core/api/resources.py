@@ -25,6 +25,9 @@ def md(html, *args, **kwargs):
         out = out.replace("@@SUPSUB%d@@" % i, tag)
     return out
 from .markdown_utils import (
+    apply_ordered_starts,
+    ordered_list_starts,
+    continue_ordered_lists,
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
@@ -399,6 +402,7 @@ async def get_resource(request: Request):
 
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
+    body = continue_ordered_lists(body)
 
     html = markdown.markdown(
         body,
@@ -408,6 +412,7 @@ async def get_resource(request: Request):
         },
     )
     html = unbreak_image_lines(html)
+    html = apply_ordered_starts(html, ordered_list_starts(body))
     html = render_callouts(html)
     fallback = os.path.splitext(os.path.basename(rel))[0]
 
