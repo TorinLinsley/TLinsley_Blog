@@ -385,21 +385,21 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
         .editor-content-area ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; } 
         .editor-content-area ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; }
         .editor-content-area li { margin-bottom: 0.4rem !important; line-height: 1.5 !important; }
-        .editor-content-area li > ol,
-        .editor-content-area li > ul { position: relative; }
-        .editor-content-area li > ol::before,
-        .editor-content-area li > ul::before {
-          content: '';
-          position: absolute;
-          top: 0.1em;
-          bottom: 0.1em;
-          left: -0.75rem;
-          width: 1px;
-          border-radius: 1px;
-          background: currentColor;
-          opacity: 0.22;
-          pointer-events: none;
-        }
+        html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) li > :is(ol, ul) {
+  position: relative;
+}
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) li > :is(ol, ul)::before {
+  content: '';
+  position: absolute;
+  top: 0.05em;
+  bottom: 0.05em;
+  left: -0.75rem;
+  width: 1px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.22;
+  pointer-events: none;
+}
         .editor-content-area { color: #1e293b !important; }
         .dark .editor-content-area { color: #e2e8f0 !important; }
         .editor-content-area h1, .editor-content-area h2, .editor-content-area h3,

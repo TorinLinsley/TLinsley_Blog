@@ -381,7 +381,21 @@ html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
   html .editor-content-area .tableWrapper::-webkit-scrollbar { height: 12px; }
 }
 
-html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) blockquote {
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) li > :is(ol, ul) {
+  position: relative;
+}
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) li > :is(ol, ul)::before {
+  content: '';
+  position: absolute;
+  top: 0.05em;
+  bottom: 0.05em;
+  left: -0.75rem;
+  width: 1px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.22;
+  pointer-events: none;
+}html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) blockquote {
   font-style: normal !important;
 }
 
