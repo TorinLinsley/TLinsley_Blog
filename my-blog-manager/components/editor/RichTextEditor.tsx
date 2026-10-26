@@ -939,74 +939,9 @@ function toggleListKeepNumbers(editor: any, kind: 'orderedList' | 'bulletList' |
   return editor.chain().focus().toggleTaskList().run();
 }
 
-function listItemContext(editor: any) {
-  const { $from } = editor.state.selection;
-  for (let d = $from.depth; d > 0; d--) {
-    const name = $from.node(d).type.name;
-    if (name === 'listItem' || name === 'taskItem') {
-      return {
-        depth: d,
-        item: $from.node(d),
-        list: $from.node(d - 1),
-        listPos: $from.before(d - 1),
-        index: $from.index(d - 1),
-      };
-    }
-  }
-  return null;
-}
-
-function canIndentItem(editor: any): boolean {
-  const ctx = listItemContext(editor);
-  return !!ctx && ctx.index > 0;
-}
-
 function indentItemOnce(editor: any): boolean {
-  const { state, view } = editor;
-  const { selection } = state;
-  if (!selection.empty) return false;
-  const ctx = listItemContext(editor);
-  if (!ctx) return false;
-  const { item, list, listPos, index } = ctx;
-  if (index === 0) return false;
-  if (item.type.name === 'taskItem') return editor.commands.sinkListItem('taskItem');
-
-  const itemPos = selection.$from.before(ctx.depth);
-  const offsetInText = selection.$from.parentOffset;
-
-  const items: any[] = [];
-  list.forEach((child: any) => items.push(child));
-  const prev = items[index - 1];
-  let prevPos = listPos + 1;
-  for (let i = 0; i < index - 1; i++) prevPos += items[i].nodeSize;
-
-  const head: any[] = [];
-  const tails: any[] = [];
-  let sawList = false;
-  item.forEach((child: any) => {
-    const name = child.type.name;
-    const isList = name === 'orderedList' || name === 'bulletList' || name === 'taskList';
-    if (isList) sawList = true;
-    if (sawList) tails.push(child);
-    else head.push(child);
-  });
-  if (!head.length) return false;
-
-  const attrs = list.type.name === 'orderedList' ? { ...list.attrs, start: 1 } : list.attrs;
-  const sub = list.type.create(attrs, item.type.create(item.attrs, head));
-  const insertAt = prevPos + prev.nodeSize - 1;
-
-  try {
-    const tr = state.tr.delete(itemPos, itemPos + item.nodeSize);
-    const at = tr.mapping.map(insertAt);
-    tr.insert(at, Fragment.fromArray([sub, ...tails]));
-    const caret = Math.min(at + 3 + offsetInText, tr.doc.content.size);
-    tr.setSelection(TextSelection.near(tr.doc.resolve(caret), 1));
-    view.dispatch(tr.scrollIntoView());
-    return true;
-  } catch {
-    return false;
-  }
+  if (!editor.isActive('listItem')) return false;
+  return editor.commands.sinkListItem('listItem');
 }
 const ListIndentKeys = Extension.create({
   name: 'listIndentKeys',
@@ -2030,7 +1965,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
         <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })} title="左对齐 (Ctrl+L)"><AlignLeft size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })} title="居中 (Ctrl+E)"><AlignCenter size={16}/></Btn><Btn onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })} title="右对齐 (Ctrl+R)"><AlignRight size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
-        <div className="flex items-center gap-1"><Btn onClick={() => toggleListKeepNumbers(editor, 'bulletList')} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'orderedList')} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'taskList')} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => indentItemOnce(editor)} disabled={!canIndentItem(editor)} title="增加缩进 (Tab)"><IndentIncrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')} title="减少缩进 (Shift+Tab)"><IndentDecrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
+        <div className="flex items-center gap-1"><Btn onClick={() => toggleListKeepNumbers(editor, 'bulletList')} active={editor.isActive('bulletList')} title="无序列表 (Ctrl+Shift+8)"><List size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'orderedList')} active={editor.isActive('orderedList')} title="有序列表 (Ctrl+Shift+7)"><ListOrdered size={16}/></Btn><Btn onClick={() => toggleListKeepNumbers(editor, 'taskList')} active={editor.isActive('taskList')} title="任务列表 (Ctrl+Shift+9)"><ListTodo size={16}/></Btn><Btn onClick={() => indentItemOnce(editor)} disabled={!editor.can().sinkListItem('listItem')} title="增加缩进 (Tab)"><IndentIncrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')} title="减少缩进 (Shift+Tab)"><IndentDecrease size={16}/></Btn><Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="引用 (Ctrl+\)"><Quote size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
 
         <div className="flex items-center gap-1">
