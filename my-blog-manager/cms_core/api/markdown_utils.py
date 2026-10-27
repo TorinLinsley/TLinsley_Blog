@@ -812,3 +812,95 @@ def promote_inline_code_blocks(html: str) -> str:
         cls = ' class="language-%s"' % lang if lang else ""
         return '<div class="codehilite"><pre><code%s>%s</code></pre></div>' % (cls, code)
     return PARA_RE.sub(repl, str(html or ""))
+
+
+def stash_task_lists(html: str, to_md):
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return html, []
+    soup = BeautifulSoup(str(html or ""), "html.parser")
+    stash = []
+    for ul in soup.find_all("ul"):
+        lis = [li for li in ul.find_all("li", recursive=False) if li.get("data-type") == "taskItem" or li.get("data-checked") is not None]
+        if not lis:
+            continue
+        lines = []
+        for li in lis:
+            checked = str(li.get("data-checked", "")).lower() == "true"
+            content = li.find("div", recursive=False) or li
+            inner_html = "".join(str(child) for child in content.contents)
+            try:
+                inner = to_md(inner_html)
+            except Exception:
+                inner = content.get_text(" ", strip=True)
+            inner = re.sub(r"\s+", " ", str(inner)).strip()
+            lines.append("- [%s] %s" % ("x" if checked else " ", inner))
+        token = "@@TASKLIST%d@@" % len(stash)
+        stash.append((token, "\n".join(lines)))
+        placeholder = soup.new_tag("p")
+        placeholder.string = token
+        ul.replace_with(placeholder)
+    return str(soup), stash
+
+
+def restore_task_lists(md_text: str, stash) -> str:
+    for token, block in stash or []:
+        md_text = md_text.replace(token, "\n\n" + block + "\n\n")
+    return md_text
+
+
+def render_task_lists(html: str) -> str:
+    try:
+        from bs4 import BeautifulSoup
+        from bs4.element import NavigableString
+    except ImportError:
+        return html
+    soup = BeautifulSoup(str(html or ""), "html.parser")
+    for ul in soup.find_all("ul"):
+        lis = ul.find_all("li", recursive=False)
+        if not lis:
+            continue
+        marks = []
+        ok = True
+        for li in lis:
+            first = li.contents[0] if li.contents else None
+            text = str(first) if isinstance(first, NavigableString) else ""
+            hit = re.match(r"^\s*\[([ xX])\]\s+", text)
+            if not hit:
+                ok = False
+                break
+            marks.append((li, hit.group(1).lower() == "x", hit.end()))
+        if not ok:
+            continue
+        ul["data-type"] = "taskList"
+        for li, checked, cut in marks:
+            inline = []
+            blocks = []
+            for child in list(li.contents):
+                if getattr(child, "name", None) in ("ul", "ol", "div", "p"):
+                    blocks.append(child.extract())
+                else:
+                    inline.append(child.extract())
+            if inline and isinstance(inline[0], NavigableString):
+                first_text = str(inline[0])
+                inline[0] = NavigableString(first_text[cut:])
+            label = soup.new_tag("label")
+            box = soup.new_tag("input", attrs={"type": "checkbox"})
+            if checked:
+                box["checked"] = "checked"
+            label.append(box)
+            label.append(soup.new_tag("span"))
+            holder = soup.new_tag("div")
+            para = soup.new_tag("p")
+            for node in inline:
+                para.append(node)
+            holder.append(para)
+            for node in blocks:
+                holder.append(node)
+            li.clear()
+            li["data-type"] = "taskItem"
+            li["data-checked"] = "true" if checked else "false"
+            li.append(label)
+            li.append(holder)
+    return str(soup)

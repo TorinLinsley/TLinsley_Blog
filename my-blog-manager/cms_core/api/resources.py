@@ -28,6 +28,9 @@ from .markdown_utils import (
     continue_ordered_lists,
     normalize_list_indent,
     sanitize_code_fences,
+    stash_task_lists,
+    restore_task_lists,
+    render_task_lists,
     promote_inline_code_blocks,
     strip_spans_in_fences,
     space_blockquote_lists,
@@ -429,6 +432,7 @@ async def get_resource(request: Request):
             },
         ),
     )
+    html = render_task_lists(html)
     html = promote_inline_code_blocks(html)
     html = unbreak_image_lines(html)
     html = render_callouts(html)
@@ -449,10 +453,15 @@ def html_to_markdown(raw_html: str) -> str:
     这里是全流程唯一的转换入口，抽出来是为了能单独测：
     空行保护 → 抠出带样式的内联标签 → markdownify → 放回标签。
     """
+    raw_html = sanitize_code_fences(raw_html)
     raw_html = re.sub(
         r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
         "<br>\u200d",
         raw_html,
+    )
+    raw_html, task_stash = stash_task_lists(
+        raw_html,
+        lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
     )
     protected, stash = protect_inline_tags(raw_html)
     protected, tables = stash_tables(protected)
@@ -464,7 +473,8 @@ def html_to_markdown(raw_html: str) -> str:
     out = collapse_blank_lines(out)
     out = glue_image_blocks(out)
     out = split_callout_blockquotes(out)
-    return restore_inline_tags(out, stash)
+    out = restore_inline_tags(out, stash)
+    return restore_task_lists(out, task_stash)
 
 
 @router.post("/save")

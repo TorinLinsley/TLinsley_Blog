@@ -27,6 +27,9 @@ from .markdown_utils import (
     continue_ordered_lists,
     normalize_list_indent,
     sanitize_code_fences,
+    stash_task_lists,
+    restore_task_lists,
+    render_task_lists,
     promote_inline_code_blocks,
     strip_spans_in_fences,
     space_blockquote_lists,
@@ -66,6 +69,10 @@ def html_to_markdown(raw_html: str) -> str:
         "<br>\u200d",
         raw_html,
     )
+    raw_html, task_stash = stash_task_lists(
+        raw_html,
+        lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
+    )
     raw_html, inline_tags = protect_inline_tags(raw_html)
     raw_html, tables = stash_tables(raw_html)
     raw_html, callouts = stash_callouts(raw_html)
@@ -77,6 +84,7 @@ def html_to_markdown(raw_html: str) -> str:
     text = glue_image_blocks(text)
     text = split_callout_blockquotes(text)
     text = restore_inline_tags(text, inline_tags)
+    text = restore_task_lists(text, task_stash)
     return text
 
 
@@ -104,6 +112,7 @@ def render_markdown_body(md_body: str) -> str:
             },
         ),
     )
+    html = render_task_lists(html)
     html = promote_inline_code_blocks(html)
     html = unbreak_image_lines(html)
     html = render_callouts(html)
@@ -300,6 +309,10 @@ async def sync_local_operations(request: Request):
                 raw_html,
             )
 
+            raw_html, task_stash = stash_task_lists(
+                raw_html,
+                lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
+            )
             raw_html, inline_tags = protect_inline_tags(raw_html)
             raw_html, tables = stash_tables(raw_html)
             raw_html, callouts = stash_callouts(raw_html)
@@ -314,6 +327,7 @@ async def sync_local_operations(request: Request):
 
             md_content = split_callout_blockquotes(md_content)
             md_content = restore_inline_tags(md_content, inline_tags)
+            md_content = restore_task_lists(md_content, task_stash)
 
             input_date = str(data.get("date", "")).strip()
             if input_date:
