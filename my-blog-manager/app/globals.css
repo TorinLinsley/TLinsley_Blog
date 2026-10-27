@@ -1011,3 +1011,14 @@ html body :is(.editor-content-area, .resource-preview, .chatter-preview, .prose)
   font-weight: 400 !important;
   color: #ffffff !important;
 }
+
+html .editor-content-area blockquote.callout > blockquote.callout {
+  margin-left: 0.95rem !important;
+  margin-right: 0.95rem !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+html .editor-content-area blockquote.callout > blockquote:not(.callout) {
+  margin-left: 0.95rem !important;
+  margin-right: 0.95rem !important;
+}

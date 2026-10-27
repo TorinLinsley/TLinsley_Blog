@@ -1619,6 +1619,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         else if (key === '9') toggleListKeepNumbers(editor, 'taskList');
         else if (lower === 'h') chain().toggleHighlight().run();
         else if (lower === 'x') chain().toggleStrike().run();
+        else if (lower === 'e') chain().toggleCode().run();
         else if (key === 'Backspace') {
           chain().unsetAllMarks().run();
           chain().clearNodes().run();
@@ -1942,7 +1943,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} title="斜体 (Ctrl+I)"><Italic size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="下划线 (Ctrl+U)"><UnderlineIcon size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="删除线 (Ctrl+Shift+X)"><Strikethrough size={16}/></Btn>
-          <Btn onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')} title="行内代码 (Ctrl+E)"><Code size={15} /></Btn>
+          <Btn onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')} title="行内代码 (Ctrl+Shift+E)"><Code size={15} /></Btn>
                 <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
           <Btn
             onClick={() =>
