@@ -993,19 +993,13 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .mom
   --callout-ink: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff);
 }
 
-html:not(.dark) :is(.callout-note, .callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary) .callout-title {
+html:not(.dark) :is(.callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary) .callout-title {
   color: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220) !important;
   --callout-ink: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220);
 }
 
-html body .callout.callout-note .callout-title,
-html body .callout.callout-quote .callout-title,
-html body .callout.callout-cite .callout-title,
-html body .callout.callout-example .callout-title,
-html body .callout.callout-abstract .callout-title,
-html body .callout.callout-summary .callout-title {
-  background-color: #32455a !important;
-  border-bottom-color: rgba(255, 255, 255, 0.16) !important;
-  color: #e8eef7 !important;
-  --callout-ink: #e8eef7;
+
+.callout-note,
+.editor-content-area blockquote.callout-note {
+  --callout: 50, 69, 90;
 }
