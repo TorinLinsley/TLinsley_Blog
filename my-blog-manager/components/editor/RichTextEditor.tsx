@@ -135,6 +135,32 @@ function mergeSiblingLists(body: HTMLElement) {
   });
 }
 
+function splitCalloutTitle(body: HTMLElement) {
+  const doc = body.ownerDocument;
+  body.querySelectorAll('blockquote').forEach((bq) => {
+    const first = bq.firstElementChild as HTMLElement | null;
+    if (!first || first.tagName !== 'P') return;
+    if (!/^\s*\[!\w+\]/.test(first.textContent || '')) return;
+    const groups: Node[][] = [[]];
+    Array.from(first.childNodes).forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+        groups.push([]);
+        return;
+      }
+      groups[groups.length - 1].push(node);
+    });
+    if (groups.length < 2) return;
+    groups[0].forEach((node) => first.appendChild(node));
+    let anchor: Node = first;
+    groups.slice(1).forEach((nodes) => {
+      if (!nodes.length) return;
+      const p = doc.createElement('p');
+      nodes.forEach((node) => p.appendChild(node));
+      bq.insertBefore(p, anchor.nextSibling);
+      anchor = p;
+    });
+  });
+}
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const body = new window.DOMParser()
     .parseFromString(PASTE_MD.render(continueOrderedLists(stripFrontmatter(raw))), 'text/html')
@@ -142,6 +168,7 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
   tidyPasteWhitespace(body);
   mergeSiblingLists(body);
   convertTaskLists(body);
+  splitCalloutTitle(body);
   body.querySelectorAll('pre').forEach(pre => {
     const walker = pre.ownerDocument.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
     let lastText: Text | null = null;

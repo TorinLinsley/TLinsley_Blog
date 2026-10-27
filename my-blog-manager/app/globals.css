@@ -556,35 +556,6 @@ font-weight: 700;
 font-style: normal !important;
 font-size: 0.95rem;
         }
-        .editor-content-area blockquote.callout > p.callout-title::before {
-content: 'ⓘ';
-flex: 0 0 auto;
-font-weight: 700;
-line-height: 1;
-        }
-        .editor-content-area blockquote.callout-note > p.callout-title::before { content: '✎'; }
-        .editor-content-area blockquote.callout-info > p.callout-title::before,
-        .editor-content-area blockquote.callout-tip > p.callout-title::before,
-        .editor-content-area blockquote.callout-hint > p.callout-title::before { content: 'ⓘ'; }
-        .editor-content-area blockquote.callout-success > p.callout-title::before,
-        .editor-content-area blockquote.callout-check > p.callout-title::before,
-        .editor-content-area blockquote.callout-done > p.callout-title::before { content: '✔'; }
-        .editor-content-area blockquote.callout-warning > p.callout-title::before,
-        .editor-content-area blockquote.callout-caution > p.callout-title::before,
-        .editor-content-area blockquote.callout-attention > p.callout-title::before { content: '⚠'; }
-        .editor-content-area blockquote.callout-danger > p.callout-title::before,
-        .editor-content-area blockquote.callout-error > p.callout-title::before,
-        .editor-content-area blockquote.callout-failure > p.callout-title::before,
-        .editor-content-area blockquote.callout-bug > p.callout-title::before { content: '✖'; }
-        .editor-content-area blockquote.callout-question > p.callout-title::before,
-        .editor-content-area blockquote.callout-help > p.callout-title::before,
-        .editor-content-area blockquote.callout-faq > p.callout-title::before { content: '?'; }
-        .editor-content-area blockquote.callout-quote > p.callout-title::before,
-        .editor-content-area blockquote.callout-cite > p.callout-title::before { content: '❝'; }
-        .editor-content-area blockquote.callout-example > p.callout-title::before,
-        .editor-content-area blockquote.callout-abstract > p.callout-title::before,
-        .editor-content-area blockquote.callout-summary > p.callout-title::before { content: '☰'; }
-        .editor-content-area blockquote.callout-todo > p.callout-title::before { content: '☑'; }
         .editor-content-area blockquote.callout > :not(.callout-title):not(ul):not(ol) { padding-left: 0.95rem !important; padding-right: 0.95rem !important; }
         .editor-content-area blockquote.callout > ul,
         .editor-content-area blockquote.callout > ol { padding-left: 2.15rem !important; padding-right: 0.95rem !important; }
