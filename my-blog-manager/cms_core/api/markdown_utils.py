@@ -737,3 +737,43 @@ def space_blockquote_lists(md: str) -> str:
             continue
         out.append(line)
     return "\n".join(out)
+
+
+PRE_BLOCK_RE = re.compile(r"<pre[^>]*>(.*?)</pre>", re.S | re.I)
+LANG_RE = re.compile(r"language-([A-Za-z0-9_+#.\-]+)")
+
+
+def sanitize_code_fences(raw_html: str) -> str:
+    def repl(match):
+        block = match.group(0)
+        lang = LANG_RE.search(block)
+        body = match.group(1)
+        body = re.sub(r"<[^>]+>", "", body)
+        body = body.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        body = body.strip("\n")
+        code = (
+            body.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        cls = ' class="language-%s"' % lang.group(1) if lang else ""
+        return "<pre><code%s>%s</code></pre>" % (cls, code)
+    return PRE_BLOCK_RE.sub(repl, str(raw_html or ""))
+
+
+def strip_spans_in_fences(md: str) -> str:
+    lines = str(md or "").split("\n")
+    out = []
+    fence = ""
+    for line in lines:
+        hit = FENCE_LINE.match(line)
+        if hit:
+            ch = hit.group(1)[0]
+            fence = "" if fence == ch else (fence or ch)
+            out.append(line)
+            continue
+        if fence and "<span" in line:
+            line = re.sub(r"<[^>]+>", "", line)
+            line = line.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        out.append(line)
+    return "\n".join(out)

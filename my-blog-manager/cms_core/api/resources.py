@@ -27,6 +27,8 @@ def md(html, *args, **kwargs):
 from .markdown_utils import (
     continue_ordered_lists,
     normalize_list_indent,
+    sanitize_code_fences,
+    strip_spans_in_fences,
     space_blockquote_lists,
     extract_list_fences,
     restore_list_fences,
@@ -405,7 +407,7 @@ async def get_resource(request: Request):
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
     body = continue_ordered_lists(body)
-    body = normalize_list_indent(space_blockquote_lists(body))
+    body = normalize_list_indent(space_blockquote_lists(strip_spans_in_fences(body)))
     body, list_fences = extract_list_fences(body)
 
     html = markdown.markdown(
@@ -483,7 +485,7 @@ async def save_resource(request: Request):
     if not os.path.isfile(target):
         return {"success": False, "message": "文件不存在"}
 
-    raw_html = payload.get("content", "") or ""
+    raw_html = sanitize_code_fences(payload.get("content", "") or "")
 
     md_content = html_to_markdown(raw_html)
 

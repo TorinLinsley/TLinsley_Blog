@@ -26,6 +26,8 @@ from .markdown_utils import (
     collapse_blank_lines,
     continue_ordered_lists,
     normalize_list_indent,
+    sanitize_code_fences,
+    strip_spans_in_fences,
     space_blockquote_lists,
     extract_list_fences,
     restore_list_fences,
@@ -57,6 +59,7 @@ def get_manager_drafts_dir() -> str:
 
 
 def html_to_markdown(raw_html: str) -> str:
+    raw_html = sanitize_code_fences(raw_html)
     raw_html = re.sub(
         r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
         "<br>\u200d",
@@ -80,7 +83,7 @@ def render_markdown_body(md_body: str) -> str:
     md_body = split_callout_blockquotes(md_body)
     md_body = separate_blockquotes(md_body)
     md_body = continue_ordered_lists(md_body)
-    md_body = normalize_list_indent(space_blockquote_lists(md_body))
+    md_body = normalize_list_indent(space_blockquote_lists(strip_spans_in_fences(md_body)))
     md_body, list_fences = extract_list_fences(md_body)
     html = markdown.markdown(
         md_body,
