@@ -1097,21 +1097,15 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
 
   if (t.kind === 'node') {
     const el = view.nodeDOM(t.pos) as HTMLElement | null;
-    const node = view.state.doc.nodeAt(t.pos);
-    if (node && node.isTextblock) {
-      try {
-        const c = view.coordsAtPos(t.pos + 1);
-        const lh = el ? parseFloat(getComputedStyle(el).lineHeight) : NaN;
-        const h = c.bottom - c.top;
-        const pad = Number.isFinite(lh) && lh > h ? (lh - h) / 2 : 0;
-        return { top: c.top - pad, bottom: c.bottom + pad };
-      } catch {  }
-    }
     const r = el?.getBoundingClientRect?.();
-    if (!r || !r.height) return null;
-    const lh = parseFloat(getComputedStyle(el as HTMLElement).lineHeight);
-    const h = Number.isFinite(lh) && lh > 0 && lh < r.height ? lh : r.height;
-    return { top: r.top, bottom: r.top + h };
+    if (!el || !r || !r.height) return null;
+    const cs = getComputedStyle(el);
+    const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6 || 20;
+    const padTop = parseFloat(cs.paddingTop) || 0;
+    const padBottom = parseFloat(cs.paddingBottom) || 0;
+    const content = Math.max(0, r.height - padTop - padBottom);
+    const top = r.top + padTop + Math.min(0, content - lh) / 2;
+    return { top, bottom: top + Math.min(lh, content || lh) };
   }
 
   const c = view.coordsAtPos(t.pos);
@@ -1723,12 +1717,17 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     collectLineTargets(editor.state.doc, 0, targets);
 
     const next: { n: number; y: number; h: number }[] = [];
+    let lastBottom = 0;
     targets.forEach((t, i) => {
       let box: { top: number; bottom: number } | null = null;
       try {
         box = measureLineBox(view, t);
       } catch {  }
-      if (!box) return;
+      if (!box) {
+        const top = lastBottom || originY;
+        box = { top, bottom: top + 20 };
+      }
+      lastBottom = box.bottom;
       next.push({ n: i + 1, y: Math.round(box.top - originY), h: Math.max(14, Math.round(box.bottom - box.top)) });
     });
 
