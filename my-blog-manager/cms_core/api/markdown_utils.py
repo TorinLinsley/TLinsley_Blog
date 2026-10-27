@@ -686,57 +686,54 @@ def restore_list_fences(html: str, blocks, render) -> str:
                 return code_html
             return match.group(0)
         html = pattern.sub(repl, html)
+        html = re.sub(
+            r"(</li>\s*</ul>)\s*(" + re.escape(code_html) + r")",
+            lambda m: m.group(2) + m.group(1),
+            html,
+            count=1,
+        )
     return html
 
 
 def normalize_list_indent(md: str) -> str:
     lines = str(md or "").split("\n")
     out = []
-    i = 0
-    total = len(lines)
-    item_re = re.compile(r"^[ \t]{0,3}([-*+]|\d{1,9}[.)])[ \t]+")
-    while i < total:
-        line = lines[i]
-        fence = FENCE_LINE.match(line)
+    fence = ""
+    for line in lines:
+        hit = FENCE_LINE.match(line)
+        if hit:
+            ch = hit.group(1)[0]
+            fence = "" if fence == ch else (fence or ch)
+            out.append(line)
+            continue
         if fence:
-            marker = fence.group(1)[0]
-            indent = len(line) - len(line.lstrip(" "))
-            in_list = False
-            seen = 0
-            j = len(out) - 1
-            while j >= 0 and seen < 6:
-                prev = out[j]
-                j -= 1
-                if prev.strip() == "":
-                    continue
-                seen += 1
-                if item_re.match(prev):
-                    in_list = True
-                    break
-                if prev.lstrip().startswith(">"):
-                    continue
-                break
-            pad = 4 - indent if in_list and indent < 4 else 0
-            block = [(" " * pad) + line]
-            i += 1
-            while i < total:
-                cur = lines[i]
-                closing = FENCE_LINE.match(cur.strip())
-                block.append(cur if (not pad or cur.strip() == "") else (" " * pad) + cur)
-                i += 1
-                if closing and closing.group(1)[0] == marker:
-                    break
-            out.extend(block)
+            out.append(line)
             continue
         mark = LIST_MARK_RE.match(line)
         if mark:
             indent = len(mark.group(1).replace("\t", "    "))
             if indent < 4:
                 line = " " * 4 + line[indent:]
-            out.append(line)
-            i += 1
-            continue
         out.append(line)
-        i += 1
     return "\n".join(out)
 
+
+
+BQ_ITEM_RE = re.compile(r"^([ \t]*(?:>[ \t]*)+)([*+-]|\d{1,9}[.)])(?=\S)(.*)$")
+BQ_ANY_ITEM_RE = re.compile(r"^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])[ \t]")
+
+
+def space_blockquote_lists(md: str) -> str:
+    lines = str(md or "").split("\n")
+    out = []
+    for line in lines:
+        hit = BQ_ITEM_RE.match(line)
+        if hit and "*" not in hit.group(3) and "_" not in hit.group(3):
+            prefix = hit.group(1)
+            prev = out[-1] if out else ""
+            if prev.strip().startswith(">") and not BQ_ANY_ITEM_RE.match(prev) and prev.strip() != ">":
+                out.append(prefix.rstrip())
+            out.append(prefix + hit.group(2) + " " + hit.group(3))
+            continue
+        out.append(line)
+    return "\n".join(out)

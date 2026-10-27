@@ -778,3 +778,14 @@ html .moment-content pre code, html .moment-content pre code * {
   padding: 0 !important;
   border-radius: 0 !important;
 }
+
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content, .editor-content-area) pre code,
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content, .editor-content-area) pre code *,
+html.dark :is(.prose, .resource-preview, .chatter-preview, .moment-content, .editor-content-area) pre code,
+html.dark :is(.prose, .resource-preview, .chatter-preview, .moment-content, .editor-content-area) pre code * {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}

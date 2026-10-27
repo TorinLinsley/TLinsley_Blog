@@ -113,8 +113,29 @@ export function repairBold(md: string): string {
   return out.join('\n');
 }
 
+function repairBlockquoteLists(md: string): string {
+  const lines = md.split('\n');
+  const out: string[] = [];
+  const itemRe = /^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])(?=\S)(.*)$/;
+  const anyItemRe = /^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])[ \t]/;
+  for (const line of lines) {
+    const hit = itemRe.exec(line);
+    if (hit && !hit[2].includes('*') && !hit[2].includes('_')) {
+      const prefix = /^[ \t]*(?:>[ \t]*)+/.exec(line)?.[0] ?? '';
+      const prev = out.length ? out[out.length - 1] : '';
+      if (prev.trim().startsWith('>') && !anyItemRe.test(prev) && prev.trim() !== '>') {
+        out.push(prefix.trimEnd());
+      }
+      out.push(prefix + line.slice(prefix.length));
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(md))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(md)))));
 }
 
 export function stripInlineMarkdown(text: string): string {

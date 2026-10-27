@@ -26,6 +26,7 @@ from .markdown_utils import (
     collapse_blank_lines,
     continue_ordered_lists,
     normalize_list_indent,
+    space_blockquote_lists,
     extract_list_fences,
     restore_list_fences,
     glue_image_blocks,
@@ -170,7 +171,7 @@ async def get_draft(request: Request):
             md_body = split_callout_blockquotes(md_body)
             md_body = separate_blockquotes(md_body)
             md_body = continue_ordered_lists(md_body)
-            md_body = normalize_list_indent(md_body)
+            md_body = normalize_list_indent(space_blockquote_lists(md_body))
             md_body, list_fences = extract_list_fences(md_body)
             html_content = markdown.markdown(
                 md_body,

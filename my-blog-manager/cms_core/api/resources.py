@@ -27,6 +27,7 @@ def md(html, *args, **kwargs):
 from .markdown_utils import (
     continue_ordered_lists,
     normalize_list_indent,
+    space_blockquote_lists,
     extract_list_fences,
     restore_list_fences,
     MathExtension,
@@ -404,7 +405,7 @@ async def get_resource(request: Request):
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
     body = continue_ordered_lists(body)
-    body = normalize_list_indent(body)
+    body = normalize_list_indent(space_blockquote_lists(body))
     body, list_fences = extract_list_fences(body)
 
     html = markdown.markdown(
