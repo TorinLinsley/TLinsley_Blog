@@ -782,20 +782,25 @@ def strip_spans_in_fences(md: str) -> str:
     return "\n".join(out)
 
 
-INLINE_CODE_P_RE = re.compile(r"<p>\s*<code[^>]*>(.*?)</code>\s*</p>", re.S)
+PARA_RE = re.compile(r"<p>((?:(?!</p>).)*?)</p>", re.S)
+SINGLE_CODE_RE = re.compile(r"^\s*<code[^>]*>(.*?)</code>\s*$", re.S)
 
 
 def promote_inline_code_blocks(html: str) -> str:
     def repl(match):
         inner = match.group(1)
-        text = re.sub(r"<br\s*/?>", "\n", inner)
+        single = SINGLE_CODE_RE.match(inner)
+        if not single:
+            return match.group(0)
+        raw = single.group(1)
+        text = re.sub(r"<br\s*/?>", "\n", raw)
         text = re.sub(r"<[^>]+>", "", text)
         text = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
         lines = [line.strip() for line in text.split("\n") if line.strip()]
         if len(lines) < 2:
             return match.group(0)
         lang = ""
-        head = re.match(r"^([A-Za-z0-9_+#.\-]{1,20})[ \t]+(.*)$", lines[0])
+        head = re.match(r"^([A-Za-z0-9_+#.-]{1,20})[ \t]+(.*)$", lines[0])
         if head and not re.search(r"[(){}\[\];,]", head.group(1)):
             lang = head.group(1)
             lines[0] = head.group(2)
@@ -803,4 +808,4 @@ def promote_inline_code_blocks(html: str) -> str:
         code = code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         cls = ' class="language-%s"' % lang if lang else ""
         return '<div class="codehilite"><pre><code%s>%s</code></pre></div>' % (cls, code)
-    return INLINE_CODE_P_RE.sub(repl, str(html or ""))
+    return PARA_RE.sub(repl, str(html or ""))
