@@ -44,8 +44,10 @@ $exDirs = @(
 )
 $exFiles = @('.code-hash', '.lock-hash', '*.log', 'npm-debug.log*', '.DS_Store', 'tsconfig.tsbuildinfo', '*.pyc')
 
+$exFiles += @('backend_config.json')
+
 if ($Target -eq 'console') {
-    $exFiles += @('deploy_config.json', 'backend_config.json')
+    $exFiles += @('deploy_config.json')
 }
 
 if (-not $WithContent) {
