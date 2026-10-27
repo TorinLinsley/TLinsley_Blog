@@ -807,3 +807,28 @@ html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-lis
 html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol) {
   margin: 0.25rem 0 0.25rem 0.2rem !important;
 }
+
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 0.55rem;
+  margin: 0.25rem 0 !important;
+}
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin: 0.42em 0 0 0 !important;
+}
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(p, div) {
+  margin: 0 !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol) {
+  flex-basis: 100%;
+  margin: 0.2rem 0 0.2rem 0 !important;
+  padding-left: 1.05rem !important;
+}
+html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol)::before {
+  left: 0.12rem !important;
+}

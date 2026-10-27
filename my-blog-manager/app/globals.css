@@ -1059,3 +1059,44 @@ html .editor-content-area blockquote.callout > blockquote.callout {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
+
+html .editor-content-area li[data-type="taskItem"] {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 0.55rem;
+  list-style: none !important;
+}
+html .editor-content-area li[data-type="taskItem"] > label {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35em;
+}
+html .editor-content-area li[data-type="taskItem"] > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html .editor-content-area li[data-type="taskItem"] > div > p:first-child {
+  margin-top: 0 !important;
+}
+html .editor-content-area li[data-type="taskItem"] > ul,
+html .editor-content-area li[data-type="taskItem"] > div > ul {
+  flex-basis: 100%;
+  margin: 0.2rem 0 0.2rem 0 !important;
+  padding-left: 1.05rem !important;
+  position: relative;
+}
+html .editor-content-area li[data-type="taskItem"] > ul::before,
+html .editor-content-area li[data-type="taskItem"] > div > ul::before {
+  content: '' !important;
+  position: absolute;
+  top: 0.05em;
+  bottom: 0.05em;
+  left: 0.12rem !important;
+  width: 1px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.22;
+  pointer-events: none;
+}
