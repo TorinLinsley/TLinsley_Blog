@@ -726,7 +726,10 @@ BQ_ANY_ITEM_RE = re.compile(r"^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])[ \t]")
 def space_blockquote_lists(md: str) -> str:
     lines = str(md or "").split("\n")
     out = []
+    plain_item_re = re.compile(r"^[ \t]{0,3}([*+-]|\d{1,9}[.)])[ \t]+\S")
+    unescape_re = re.compile(r"^([ \t]*(?:>[ \t]*)*)\\([*+-])")
     for line in lines:
+        line = unescape_re.sub(lambda m: m.group(1) + m.group(2), line)
         hit = BQ_ITEM_RE.match(line)
         if hit and "*" not in hit.group(3) and "_" not in hit.group(3):
             prefix = hit.group(1)
@@ -735,14 +738,10 @@ def space_blockquote_lists(md: str) -> str:
                 out.append(prefix.rstrip())
             out.append(prefix + hit.group(2) + " " + hit.group(3))
             continue
+        if plain_item_re.match(line) and out and out[-1].lstrip().startswith(">"):
+            out.append("")
         out.append(line)
     return "\n".join(out)
-
-
-PRE_BLOCK_RE = re.compile(r"<pre[^>]*>(.*?)</pre>", re.S | re.I)
-LANG_RE = re.compile(r"language-([A-Za-z0-9_+#.\-]+)")
-
-
 def sanitize_code_fences(raw_html: str) -> str:
     def repl(match):
         block = match.group(0)
