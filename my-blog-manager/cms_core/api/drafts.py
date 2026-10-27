@@ -55,6 +55,56 @@ def get_manager_drafts_dir() -> str:
     return drafts_dir
 
 
+
+def html_to_markdown(raw_html: str) -> str:
+    raw_html = re.sub(
+        r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
+        "<br>\u200d",
+        raw_html,
+    )
+    raw_html, inline_tags = protect_inline_tags(raw_html)
+    raw_html, tables = stash_tables(raw_html)
+    raw_html, callouts = stash_callouts(raw_html)
+    text = md(raw_html, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback)
+    text = re.sub(r"<br\s*/?>", "\n\n", text)
+    text = restore_tables(text, tables)
+    text = restore_callouts(text, callouts)
+    text = collapse_blank_lines(text)
+    text = glue_image_blocks(text)
+    text = split_callout_blockquotes(text)
+    text = restore_inline_tags(text, inline_tags)
+    return text
+
+
+def render_markdown_body(md_body: str) -> str:
+    md_body = split_callout_blockquotes(md_body)
+    md_body = separate_blockquotes(md_body)
+    md_body = continue_ordered_lists(md_body)
+    md_body = normalize_list_indent(space_blockquote_lists(md_body))
+    md_body, list_fences = extract_list_fences(md_body)
+    html = markdown.markdown(
+        md_body,
+        extensions=["fenced_code", "codehilite", "tables", "nl2br", "sane_lists", MathExtension()],
+        extension_configs={
+            "codehilite": {"noclasses": True, "pygments_style": "monokai", "guess_lang": False},
+        },
+    )
+    html = restore_list_fences(
+        html,
+        list_fences,
+        lambda language, body: markdown.markdown(
+            "```" + (language or "") + "\n" + body + "\n```\n",
+            extensions=["fenced_code", "codehilite", "tables", "sane_lists"],
+            extension_configs={
+                "codehilite": {"noclasses": True, "pygments_style": "monokai", "guess_lang": False},
+            },
+        ),
+    )
+    html = unbreak_image_lines(html)
+    html = render_callouts(html)
+    return html
+
+
 @router.post("/save")
 async def save_draft(request: Request):
     try:
@@ -168,31 +218,7 @@ async def get_draft(request: Request):
                     except:
                         pass
 
-            md_body = split_callout_blockquotes(md_body)
-            md_body = separate_blockquotes(md_body)
-            md_body = continue_ordered_lists(md_body)
-            md_body = normalize_list_indent(space_blockquote_lists(md_body))
-            md_body, list_fences = extract_list_fences(md_body)
-            html_content = markdown.markdown(
-                md_body,
-                extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', 'sane_lists', MathExtension()],
-                extension_configs={
-                    'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
-                },
-            )
-            html_content = restore_list_fences(
-                html_content,
-                list_fences,
-                lambda language, body: markdown.markdown(
-                    '```' + (language or '') + '\n' + body + '\n```\n',
-                    extensions=['fenced_code', 'codehilite', 'tables', 'sane_lists'],
-                    extension_configs={
-                        'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
-                    },
-                ),
-            )
-            html_content = unbreak_image_lines(html_content)
-            html_content = render_callouts(html_content)
+            html_content = render_markdown_body(md_body)
 
             draft_data = {
                 "id": raw_id,
