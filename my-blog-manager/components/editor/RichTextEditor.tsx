@@ -171,6 +171,68 @@ function splitCalloutTitle(body: HTMLElement) {
   });
 }
 
+function trimCodeFences(body: HTMLElement) {
+  body.querySelectorAll('pre > code').forEach((code) => {
+    const el = code as HTMLElement;
+    while (el.firstChild && el.firstChild.nodeType === Node.TEXT_NODE && !(el.firstChild.nodeValue || '').trim()) {
+      el.removeChild(el.firstChild);
+    }
+    while (el.lastChild && el.lastChild.nodeType === Node.TEXT_NODE && !(el.lastChild.nodeValue || '').trim()) {
+      el.removeChild(el.lastChild);
+    }
+    const first = el.firstChild as ChildNode | null;
+    if (first && first.nodeType === Node.TEXT_NODE) first.nodeValue = (first.nodeValue || '').replace(/^\n+/, '');
+    const last = el.lastChild as ChildNode | null;
+    if (last && last.nodeType === Node.TEXT_NODE) last.nodeValue = (last.nodeValue || '').replace(/\n+$/, '');
+  });
+}
+
+function obsidianCalloutDepth(el: HTMLElement): number {
+  let depth = 0;
+  let cur: HTMLElement | null = el.parentElement;
+  while (cur) {
+    if (cur.matches?.('div.callout, div[data-callout]')) depth += 1;
+    cur = cur.parentElement;
+  }
+  return depth;
+}
+
+function preprocessPastedHtml(body: HTMLElement) {
+  const doc = body.ownerDocument;
+  const boxes = Array.from(body.querySelectorAll('div.callout, div[data-callout]')) as HTMLElement[];
+  boxes.sort((a, b) => obsidianCalloutDepth(b) - obsidianCalloutDepth(a));
+  boxes.forEach((el) => {
+    if (!el.isConnected) return;
+    const attr = (el.getAttribute('data-callout') || '').toLowerCase().trim();
+    const cls = Array.from(el.classList).map((c) => c.toLowerCase());
+    const fromClass = cls.map((c) => (c.indexOf('callout-') === 0 ? c.slice(8) : '')).filter(Boolean)[0] || '';
+    const kind = (attr || fromClass || 'note').replace(/[^a-z0-9_-]/g, '');
+    const titleEl = el.querySelector(':scope > .callout-title') as HTMLElement | null;
+    const contentEl = el.querySelector(':scope > .callout-content') as HTMLElement | null;
+    const titleText = (titleEl?.textContent || '').replace(/\s+/g, ' ').trim();
+    const bq = doc.createElement('blockquote');
+    const head = doc.createElement('p');
+    head.textContent = '[!' + kind + ']' + (titleText ? ' ' + titleText : '');
+    bq.appendChild(head);
+    const content = contentEl || el;
+    Array.from(content.children).forEach((child) => {
+      if (child === titleEl) return;
+      if (child.classList && child.classList.contains('callout-title')) return;
+      bq.appendChild(child.cloneNode(true));
+    });
+    el.replaceWith(bq);
+  });
+
+  body.querySelectorAll('pre > code').forEach((code) => {
+    const el = code as HTMLElement;
+    while (el.lastChild && el.lastChild.nodeType === Node.TEXT_NODE && !(el.lastChild.nodeValue || '').trim()) {
+      el.removeChild(el.lastChild);
+    }
+    const last = el.lastChild;
+    if (last && last.nodeType === Node.TEXT_NODE) last.nodeValue = (last.nodeValue || '').replace(/\n+$/, '');
+  });
+}
+
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const body = new window.DOMParser()
     .parseFromString(PASTE_MD.render(continueOrderedLists(stripFrontmatter(raw))), 'text/html')
@@ -179,6 +241,7 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
   mergeSiblingLists(body);
   convertTaskLists(body);
   splitCalloutTitle(body);
+  trimCodeFences(body);
   body.querySelectorAll('pre').forEach(pre => {
     const walker = pre.ownerDocument.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
     let lastText: Text | null = null;
@@ -1370,6 +1433,16 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
         const clipboardHtml = clipboard?.getData('text/html') || '';
+        if (clipboardHtml && /callout/i.test(clipboardHtml)) {
+          try {
+            const holder = document.createElement('div');
+            holder.innerHTML = clipboardHtml;
+            preprocessPastedHtml(holder);
+            const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(holder, { preserveWhitespace: true });
+            view.dispatch(view.state.tr.replaceSelection(slice).scrollIntoView());
+            return true;
+          } catch {  }
+        }
         if (/<(u|ins|mark|sub|sup)\b|text-decoration\s*:|border-bottom\s*:/i.test(clipboardHtml)) {
           return false;
         }
