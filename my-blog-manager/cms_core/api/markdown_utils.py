@@ -742,6 +742,10 @@ def space_blockquote_lists(md: str) -> str:
             out.append("")
         out.append(line)
     return "\n".join(out)
+PRE_BLOCK_RE = re.compile(r"<pre[^>]*>(.*?)</pre>", re.S | re.I)
+LANG_RE = re.compile(r"language-([A-Za-z0-9_+#.-]+)")
+
+
 def sanitize_code_fences(raw_html: str) -> str:
     def repl(match):
         block = match.group(0)
