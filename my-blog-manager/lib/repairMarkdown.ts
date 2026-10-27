@@ -134,8 +134,28 @@ function repairBlockquoteLists(md: string): string {
   return out.join('\n');
 }
 
+function repairTaskLists(md: string): string {
+  const cleaned = md.replace(/<span[^>]*>\s*<\/span>/gi, '');
+  const lines = cleaned.split('\n');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const hit = /^(\s*)([*+-])\s*$/.exec(lines[i]);
+    if (hit) {
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() === '') j += 1;
+      if (j < lines.length && !/^\s*([*+-]|\d+[.)])\s/.test(lines[j])) {
+        out.push(`${hit[1]}- [ ] ${lines[j].trim()}`);
+        i = j;
+        continue;
+      }
+    }
+    out.push(lines[i]);
+  }
+  return out.join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(md)))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(md))))));
 }
 
 export function stripInlineMarkdown(text: string): string {

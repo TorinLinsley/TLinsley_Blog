@@ -10,6 +10,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeHighlight from 'rehype-highlight';
 import { hljsLanguages } from '../../lib/hljsLanguages';
 import rehypeCodeLang from '../../lib/rehypeCodeLang';
+import rehypeTaskReadonly from '../../lib/rehypeTaskReadonly';
 import rehypeCallout from '../../lib/rehypeCallout';
 import { repairMarkdown } from '../../lib/repairMarkdown';
 import rehypeKatex from 'rehype-katex';
@@ -80,6 +81,7 @@ export default async function AboutPage() {
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeCodeLang)
       .use(rehypeCallout)
+    .use(rehypeTaskReadonly)
       // @ts-ignore
       .use(rehypeHighlight, {
         detect: false,
