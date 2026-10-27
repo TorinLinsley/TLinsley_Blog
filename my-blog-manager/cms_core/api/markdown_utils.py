@@ -625,22 +625,117 @@ def restore_inline_tags(text: str, stash) -> str:
 LIST_MARK_RE = re.compile(r"^([ \t]+)([-*+]|\d{1,9}[.)])([ \t]+)")
 
 
+
+FENCE_TOKEN_RE = re.compile(r"<p>\s*(TLFENCE\d+)\s*</p>")
+
+
+def extract_list_fences(md: str):
+    lines = str(md or "").split("\n")
+    out = []
+    blocks = []
+    i = 0
+    total = len(lines)
+    item_re = re.compile(r"^[ \t]{0,3}([-*+]|\d{1,9}[.)])[ \t]+")
+    any_fence = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
+    while i < total:
+        line = lines[i]
+        fence = any_fence.match(line)
+        indent = len(line) - len(line.lstrip(" "))
+        if fence and indent > 0:
+            in_list = False
+            seen = 0
+            j = len(out) - 1
+            while j >= 0 and seen < 6:
+                prev = out[j]
+                j -= 1
+                if prev.strip() == "":
+                    continue
+                seen += 1
+                if item_re.match(prev):
+                    in_list = True
+                    break
+                if prev.lstrip().startswith(">"):
+                    continue
+                break
+            if in_list:
+                language = (fence.group(3) or "").strip().split(" ")[0] if (fence.group(3) or "").strip() else ""
+                body = []
+                i += 1
+                while i < total:
+                    cur = lines[i]
+                    stripped = cur.strip()
+                    if stripped.startswith("```") or stripped.startswith("~~~"):
+                        i += 1
+                        break
+                    body.append(cur[indent:] if len(cur) >= indent else cur)
+                    i += 1
+                token = "TLFENCE%d" % len(blocks)
+                blocks.append((token, language, "\n".join(body)))
+                out.append((" " * indent) + token)
+                continue
+        out.append(line)
+        i += 1
+    return "\n".join(out), blocks
+
+def restore_list_fences(html: str, blocks, render) -> str:
+    if not blocks:
+        return html
+    table = {}
+    for token, language, body in blocks:
+        table[token] = render(language, body)
+    def repl(match):
+        return table.get(match.group(1), match.group(0))
+    return FENCE_TOKEN_RE.sub(repl, html)
+
+
 def normalize_list_indent(md: str) -> str:
     lines = str(md or "").split("\n")
-    fence = ""
-    for i, line in enumerate(lines):
-        hit = FENCE_LINE.match(line)
-        if hit:
-            ch = hit.group(1)[0]
-            fence = "" if fence == ch else (fence or ch)
-            continue
+    out = []
+    i = 0
+    total = len(lines)
+    item_re = re.compile(r"^[ \t]{0,3}([-*+]|\d{1,9}[.)])[ \t]+")
+    while i < total:
+        line = lines[i]
+        fence = FENCE_LINE.match(line)
         if fence:
+            marker = fence.group(1)[0]
+            indent = len(line) - len(line.lstrip(" "))
+            in_list = False
+            seen = 0
+            j = len(out) - 1
+            while j >= 0 and seen < 6:
+                prev = out[j]
+                j -= 1
+                if prev.strip() == "":
+                    continue
+                seen += 1
+                if item_re.match(prev):
+                    in_list = True
+                    break
+                if prev.lstrip().startswith(">"):
+                    continue
+                break
+            pad = 4 - indent if in_list and indent < 4 else 0
+            block = [(" " * pad) + line]
+            i += 1
+            while i < total:
+                cur = lines[i]
+                closing = FENCE_LINE.match(cur.strip())
+                block.append(cur if (not pad or cur.strip() == "") else (" " * pad) + cur)
+                i += 1
+                if closing and closing.group(1)[0] == marker:
+                    break
+            out.extend(block)
             continue
-        hit = LIST_MARK_RE.match(line)
-        if not hit:
+        mark = LIST_MARK_RE.match(line)
+        if mark:
+            indent = len(mark.group(1).replace("\t", "    "))
+            if indent < 4:
+                line = " " * 4 + line[indent:]
+            out.append(line)
+            i += 1
             continue
-        indent = len(hit.group(1).replace("\t", "    "))
-        if indent >= 4:
-            continue
-        lines[i] = " " * 4 + line[indent:]
-    return "\n".join(lines)
+        out.append(line)
+        i += 1
+    return "\n".join(out)
+

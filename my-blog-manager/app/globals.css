@@ -1025,7 +1025,10 @@ html .editor-content-area blockquote.callout > blockquote:not(.callout) {
 
 html body .editor-content-area pre code,
 html body .editor-content-area pre code *,
-html body .resource-preview pre code * {
+html body .resource-preview pre code *,
+html.dark body .editor-content-area pre code,
+html.dark body .editor-content-area pre code *,
+html.dark body .resource-preview pre code * {
   background-color: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;

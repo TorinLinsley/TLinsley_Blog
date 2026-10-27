@@ -26,6 +26,8 @@ from .markdown_utils import (
     collapse_blank_lines,
     continue_ordered_lists,
     normalize_list_indent,
+    extract_list_fences,
+    restore_list_fences,
     glue_image_blocks,
     protect_inline_tags,
     render_callouts,
@@ -169,12 +171,24 @@ async def get_draft(request: Request):
             md_body = separate_blockquotes(md_body)
             md_body = continue_ordered_lists(md_body)
             md_body = normalize_list_indent(md_body)
+            md_body, list_fences = extract_list_fences(md_body)
             html_content = markdown.markdown(
                 md_body,
                 extensions=['fenced_code', 'codehilite', 'tables', 'nl2br', 'sane_lists', MathExtension()],
                 extension_configs={
                     'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
                 },
+            )
+            html_content = restore_list_fences(
+                html_content,
+                list_fences,
+                lambda language, body: markdown.markdown(
+                    '```' + (language or '') + '\n' + body + '\n```\n',
+                    extensions=['fenced_code', 'codehilite', 'tables', 'sane_lists'],
+                    extension_configs={
+                        'codehilite': {'noclasses': True, 'pygments_style': 'monokai', 'guess_lang': False},
+                    },
+                ),
             )
             html_content = unbreak_image_lines(html_content)
             html_content = render_callouts(html_content)
