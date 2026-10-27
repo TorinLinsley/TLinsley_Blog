@@ -804,6 +804,9 @@ def promote_inline_code_blocks(html: str) -> str:
         if head and not re.search(r"[(){}\[\];,]", head.group(1)):
             lang = head.group(1)
             lines[0] = head.group(2)
+        elif len(lines) >= 2 and re.fullmatch(r"[A-Za-z][A-Za-z0-9_+#.-]{0,19}", lines[0]):
+            lang = lines[0]
+            lines = lines[1:]
         code = "\n".join(lines)
         code = code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         cls = ' class="language-%s"' % lang if lang else ""
