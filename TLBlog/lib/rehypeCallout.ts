@@ -118,6 +118,7 @@ export default function rehypeCallout() {
           }
         });
         node.children = expanded;
+        node.children.forEach(walk);
       }
 
       if (node.type === 'element' && node.tagName === 'blockquote' && Array.isArray(node.children)) {
@@ -157,7 +158,6 @@ export default function rehypeCallout() {
         }
       }
 
-      if (Array.isArray(node.children)) node.children.forEach(walk);
     };
 
     walk(tree);
