@@ -1170,3 +1170,8 @@ html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type=
   content: none !important;
   display: none !important;
 }
+
+html .resource-preview input[type="checkbox"] {
+  pointer-events: none !important;
+  cursor: default !important;
+}

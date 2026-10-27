@@ -626,6 +626,17 @@ function ResourcesContent() {
     void renderMathIn(el);
   }, [previewHtml, mode, contentVersion]);
 
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el || mode !== 'preview') return;
+    el.querySelectorAll('input[type="checkbox"]').forEach((box) => {
+      const input = box as HTMLInputElement;
+      input.disabled = true;
+      input.tabIndex = -1;
+      input.setAttribute('data-readonly', 'true');
+    });
+  }, [previewHtml, mode, contentVersion]);
+
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
       {
