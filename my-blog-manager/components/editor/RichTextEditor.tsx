@@ -1097,6 +1097,16 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
 
   if (t.kind === 'node') {
     const el = view.nodeDOM(t.pos) as HTMLElement | null;
+    const node = view.state.doc.nodeAt(t.pos);
+    if (el && node && node.isTextblock) {
+      try {
+        const c = view.coordsAtPos(t.pos + 1);
+        const lh = parseFloat(getComputedStyle(el).lineHeight);
+        const h = c.bottom - c.top;
+        const pad = Number.isFinite(lh) && lh > h ? (lh - h) / 2 : 0;
+        return { top: c.top - pad, bottom: c.bottom + pad };
+      } catch {  }
+    }
     const r = el?.getBoundingClientRect?.();
     if (!r || !r.height) return null;
     const lh = parseFloat(getComputedStyle(el as HTMLElement).lineHeight);
