@@ -1098,10 +1098,10 @@ const measureLineBox = (view: EditorView, t: LineTarget): { top: number; bottom:
   if (t.kind === 'node') {
     const el = view.nodeDOM(t.pos) as HTMLElement | null;
     const node = view.state.doc.nodeAt(t.pos);
-    if (el && node && node.isTextblock) {
+    if (node && node.isTextblock) {
       try {
         const c = view.coordsAtPos(t.pos + 1);
-        const lh = parseFloat(getComputedStyle(el).lineHeight);
+        const lh = el ? parseFloat(getComputedStyle(el).lineHeight) : NaN;
         const h = c.bottom - c.top;
         const pad = Number.isFinite(lh) && lh > h ? (lh - h) / 2 : 0;
         return { top: c.top - pad, bottom: c.bottom + pad };
