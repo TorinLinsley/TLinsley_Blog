@@ -1100,3 +1100,53 @@ html .editor-content-area li[data-type="taskItem"] > div > ul::before {
   opacity: 0.22;
   pointer-events: none;
 }
+
+html body :is(.editor-content-area, .resource-preview, .prose) :is(ul[data-type="taskList"], ul.contains-task-list) {
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin: 0.4rem 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) :is(ul[data-type="taskList"], ul.contains-task-list) > li,
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 0 0.55rem !important;
+  list-style: none !important;
+  margin: 0.15rem 0 !important;
+  padding-left: 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked])::marker {
+  content: none !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > label {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  margin-top: 0.38em !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > div {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > div > p {
+  margin: 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > :is(ul, ol) {
+  flex-basis: 100% !important;
+  margin: 0.15rem 0 0.15rem 0 !important;
+  padding-left: 1.55rem !important;
+  position: relative !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > :is(ul, ol)::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0.05em !important;
+  bottom: 0.05em !important;
+  left: 0.62rem !important;
+  width: 1px !important;
+  border-radius: 1px !important;
+  background: currentColor !important;
+  opacity: 0.22 !important;
+  pointer-events: none !important;
+}

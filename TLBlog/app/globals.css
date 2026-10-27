@@ -832,3 +832,43 @@ html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-lis
 html :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol)::before {
   left: 0.12rem !important;
 }
+
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) :is(ul.contains-task-list, ul[data-type="taskList"]) {
+  margin: 0.4rem 0 !important;
+  padding-left: 0 !important;
+  list-style: none !important;
+}
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 0 0.55rem !important;
+  margin: 0.15rem 0 !important;
+}
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > input[type="checkbox"] {
+  flex: 0 0 auto !important;
+  margin: 0.38em 0 0 0 !important;
+}
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(p, div) {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol) {
+  flex-basis: 100% !important;
+  margin: 0.15rem 0 0.15rem 0 !important;
+  padding-left: 1.55rem !important;
+  position: relative !important;
+}
+html body :is(.prose, .resource-preview, .chatter-preview, .moment-content) .task-list-item > :is(ul, ol)::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0.05em !important;
+  bottom: 0.05em !important;
+  left: 0.62rem !important;
+  width: 1px !important;
+  border-radius: 1px !important;
+  background: currentColor !important;
+  opacity: 0.22 !important;
+  pointer-events: none !important;
+}
