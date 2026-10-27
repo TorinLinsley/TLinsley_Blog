@@ -1033,3 +1033,12 @@ html.dark body .resource-preview pre code * {
   padding: 0 !important;
   border-radius: 0 !important;
 }
+
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) pre code,
+html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) pre code *,
+html.dark :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) pre code,
+html.dark :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) pre code * {
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}

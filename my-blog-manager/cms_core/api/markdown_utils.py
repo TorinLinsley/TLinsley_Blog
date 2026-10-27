@@ -626,17 +626,13 @@ LIST_MARK_RE = re.compile(r"^([ \t]+)([-*+]|\d{1,9}[.)])([ \t]+)")
 
 
 
-FENCE_TOKEN_RE = re.compile(r"<p>\s*(TLFENCE\d+)\s*</p>")
-
-
 def extract_list_fences(md: str):
     lines = str(md or "").split("\n")
-    out = []
     blocks = []
-    i = 0
-    total = len(lines)
     item_re = re.compile(r"^[ \t]{0,3}([-*+]|\d{1,9}[.)])[ \t]+")
     any_fence = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
+    i = 0
+    total = len(lines)
     while i < total:
         line = lines[i]
         fence = any_fence.match(line)
@@ -644,9 +640,9 @@ def extract_list_fences(md: str):
         if fence and indent > 0:
             in_list = False
             seen = 0
-            j = len(out) - 1
-            while j >= 0 and seen < 6:
-                prev = out[j]
+            j = i - 1
+            while j >= 0 and seen < 8:
+                prev = lines[j]
                 j -= 1
                 if prev.strip() == "":
                     continue
@@ -669,23 +665,28 @@ def extract_list_fences(md: str):
                         break
                     body.append(cur[indent:] if len(cur) >= indent else cur)
                     i += 1
-                token = "TLFENCE%d" % len(blocks)
-                blocks.append((token, language, "\n".join(body)))
-                out.append((" " * indent) + token)
+                blocks.append(("TLFENCE%d" % len(blocks), language, "\n".join(body)))
                 continue
-        out.append(line)
         i += 1
-    return "\n".join(out), blocks
+    return md, blocks
+
 
 def restore_list_fences(html: str, blocks, render) -> str:
     if not blocks:
         return html
-    table = {}
-    for token, language, body in blocks:
-        table[token] = render(language, body)
-    def repl(match):
-        return table.get(match.group(1), match.group(0))
-    return FENCE_TOKEN_RE.sub(repl, html)
+    pattern = re.compile(r"<p>[ \t]*<code[^>]*>(.*?)</code>[ \t]*</p>", re.S)
+    for _token, language, body in blocks:
+        target = re.sub(r"\s+", " ", ((language or "") + " " + " ".join(body.split("\n"))).strip()).strip()
+        if not target:
+            continue
+        code_html = render(language, body)
+        def repl(match, target=target, code_html=code_html):
+            inner = re.sub(r"<[^>]+>", "", match.group(1))
+            if re.sub(r"\s+", " ", inner).strip() == target:
+                return code_html
+            return match.group(0)
+        html = pattern.sub(repl, html)
+    return html
 
 
 def normalize_list_indent(md: str) -> str:

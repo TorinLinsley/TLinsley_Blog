@@ -767,3 +767,14 @@ html body :is(.prose, .resource-preview, .chatter-preview, .editor-content-area,
   font-weight: 400 !important;
   color: inherit !important;
 }
+
+html .prose pre code, html .prose pre code *,
+html .dark .prose pre code, html .dark .prose pre code *,
+html .resource-preview pre code, html .resource-preview pre code *,
+html .dark .resource-preview pre code, html .dark .resource-preview pre code *,
+html .chatter-preview pre code, html .chatter-preview pre code *,
+html .moment-content pre code, html .moment-content pre code * {
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
