@@ -324,7 +324,7 @@ import {
   Undo2, Redo2, Eraser, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, List, ListOrdered, ListTodo, 
   IndentIncrease, IndentDecrease,
-  Highlighter, Code2, Heading1, Heading2, Heading3,
+  Highlighter, Code, Code2, Heading1, Heading2, Heading3,
   Type, ImageIcon, Quote, RemoveFormatting,
   Pipette, Hash, Check, Link2, Superscript as SupIcon, Subscript as SubIcon, Minus, Palette, Lock,
   Table as TableIcon, Trash2, Info, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, Copy, ArrowUpDown, Rows3, Columns3
@@ -1942,7 +1942,8 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} title="斜体 (Ctrl+I)"><Italic size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="下划线 (Ctrl+U)"><UnderlineIcon size={16}/></Btn>
           <Btn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="删除线 (Ctrl+Shift+X)"><Strikethrough size={16}/></Btn>
-          <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
+          <Btn onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')} title="行内代码 (Ctrl+E)"><Code size={15} /></Btn>
+                <Btn onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')} title="代码块 (Ctrl+/)"><Code2 size={16}/></Btn>
           <Btn
             onClick={() =>
               editor

@@ -1003,3 +1003,11 @@ html:not(.dark) :is(.callout-quote, .callout-cite, .callout-example, .callout-ab
 .editor-content-area blockquote.callout-note {
   --callout: 56, 120, 145;
 }
+
+html body :is(.editor-content-area, .resource-preview, .chatter-preview, .prose) :is(p, li, td, th) pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-weight: 400 !important;
+  color: #ffffff !important;
+}
