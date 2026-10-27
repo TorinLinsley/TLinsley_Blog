@@ -748,3 +748,8 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .mom
   color: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff) !important;
   --callout-ink: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff);
 }
+
+html:not(.dark) :is(.callout-note, .callout-quote, .callout-cite, .callout-example, .callout-abstract, .callout-summary) .callout-title {
+  color: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220) !important;
+  --callout-ink: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220);
+}
