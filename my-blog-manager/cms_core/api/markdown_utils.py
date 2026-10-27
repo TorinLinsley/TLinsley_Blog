@@ -814,6 +814,27 @@ def promote_inline_code_blocks(html: str) -> str:
     return PARA_RE.sub(repl, str(html or ""))
 
 
+def _task_lines(ul, to_md, depth: int = 0):
+    lines = []
+    pad = "    " * depth
+    for li in ul.find_all("li", recursive=False):
+        checked = str(li.get("data-checked", "")).lower() == "true"
+        content = li.find("div", recursive=False) or li
+        nested = []
+        for sub in content.find_all("ul", recursive=False):
+            nested.append(sub.extract())
+        inner_html = "".join(str(child) for child in content.contents)
+        try:
+            inner = to_md(inner_html)
+        except Exception:
+            inner = content.get_text(" ", strip=True)
+        inner = re.sub(r"\s+", " ", str(inner)).strip()
+        lines.append("%s- [%s] %s" % (pad, "x" if checked else " ", inner))
+        for sub in nested:
+            lines.extend(_task_lines(sub, to_md, depth + 1))
+    return lines
+
+
 def stash_task_lists(html: str, to_md):
     try:
         from bs4 import BeautifulSoup
@@ -822,22 +843,14 @@ def stash_task_lists(html: str, to_md):
     soup = BeautifulSoup(str(html or ""), "html.parser")
     stash = []
     for ul in soup.find_all("ul"):
+        if ul.parent is None:
+            continue
         lis = [li for li in ul.find_all("li", recursive=False) if li.get("data-type") == "taskItem" or li.get("data-checked") is not None]
         if not lis:
             continue
-        lines = []
-        for li in lis:
-            checked = str(li.get("data-checked", "")).lower() == "true"
-            content = li.find("div", recursive=False) or li
-            inner_html = "".join(str(child) for child in content.contents)
-            try:
-                inner = to_md(inner_html)
-            except Exception:
-                inner = content.get_text(" ", strip=True)
-            inner = re.sub(r"\s+", " ", str(inner)).strip()
-            lines.append("- [%s] %s" % ("x" if checked else " ", inner))
+        block = "\n".join(_task_lines(ul, to_md))
         token = "@@TASKLIST%d@@" % len(stash)
-        stash.append((token, "\n".join(lines)))
+        stash.append((token, block))
         placeholder = soup.new_tag("p")
         placeholder.string = token
         ul.replace_with(placeholder)
