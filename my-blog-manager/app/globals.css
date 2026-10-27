@@ -1150,3 +1150,23 @@ html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type=
   opacity: 0.22 !important;
   pointer-events: none !important;
 }
+
+html body :is(.editor-content-area, .resource-preview, .prose) :is(ul[data-type="taskList"], ul.contains-task-list) {
+  margin: 0.3rem 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) :is(h1, h2, h3, h4, h5, h6) + :is(ul[data-type="taskList"], ul.contains-task-list) {
+  margin-top: 0.2rem !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) {
+  margin: 0.08rem 0 !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > :is(ul, ol) {
+  margin: 0.08rem 0 0.08rem 0.38rem !important;
+  padding-left: 1.05rem !important;
+  border-left: 1px solid rgba(148, 163, 184, 0.45) !important;
+  position: static !important;
+}
+html body :is(.editor-content-area, .resource-preview, .prose) li:is([data-type="taskItem"], [data-checked]) > :is(ul, ol)::before {
+  content: none !important;
+  display: none !important;
+}
