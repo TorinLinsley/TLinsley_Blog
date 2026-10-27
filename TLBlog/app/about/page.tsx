@@ -184,6 +184,8 @@ export default async function AboutPage() {
             .prose code::before, .prose code::after { content: none !important; }
             
             .prose p code, .prose li code, .prose td code, .prose th code { 
+
+                  .prose pre code, .prose pre code * { background-color: transparent !important; padding: 0 !important; border-radius: 0 !important; }
               background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; 
               padding: 0.2rem 0.4rem !important; border-radius: 0.5rem !important; font-size: 0.85em !important; 
             }
