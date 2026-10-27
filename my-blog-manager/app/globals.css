@@ -1053,3 +1053,9 @@ html.dark :is(.prose, .resource-preview, .chatter-preview, .moment-content, .edi
   padding: 0 !important;
   border-radius: 0 !important;
 }
+
+html .editor-content-area blockquote.callout > blockquote,
+html .editor-content-area blockquote.callout > blockquote.callout {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
