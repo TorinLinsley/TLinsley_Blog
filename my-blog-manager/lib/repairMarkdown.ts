@@ -154,8 +154,64 @@ function repairTaskLists(md: string): string {
   return out.join('\n');
 }
 
+function repairBrokenTasks(md: string): string {
+  const zw = /[\u200b\u200d\ufeff]/g;
+  const spanJunk = /<span[^>]*>\s*<\/span>/gi;
+  const src = md.split('\n').map((line) => line.replace(zw, ''));
+  const normalized = src.map((line) => (/^\s*\\\*\s*$/.test(line) ? '* ' : line));
+  const out: string[] = [];
+  const emptyBullet = /^\s*[*+-]\s*$/;
+  const isFence = (line: string) => /^\s*```/.test(line);
+  const junkFence = (body: string[]) => body.some((line) => /<span[\s>]/.test(line));
+  let i = 0;
+  while (i < normalized.length) {
+    const line = normalized[i];
+    if (isFence(line)) {
+      let j = i + 1;
+      while (j < normalized.length && !isFence(normalized[j])) j += 1;
+      const body = normalized.slice(i + 1, j);
+      if (junkFence(body)) {
+        const text = body
+          .map((item) => item.replace(spanJunk, '').trim())
+          .filter((item) => item && !/^[+\-*]$/.test(item))
+          .join(' ');
+        if (text) out.push(`- [ ] ${text}`);
+        i = j + 1;
+        continue;
+      }
+      out.push(normalized.slice(i, j + 1).join('\n'));
+      i = j + 1;
+      continue;
+    }
+    if (emptyBullet.test(line)) {
+      let j = i + 1;
+      while (j < normalized.length && normalized[j].trim() === '') j += 1;
+      if (j < normalized.length && !emptyBullet.test(normalized[j]) && !isFence(normalized[j]) && !/^\s*#{1,6}\s/.test(normalized[j])) {
+        let k = j;
+        const parts: string[] = [];
+        while (k < normalized.length) {
+          const cur = normalized[k];
+          if (cur.trim() === '') { k += 1; continue; }
+          if (emptyBullet.test(cur) || isFence(cur) || /^\s*#{1,6}\s/.test(cur)) break;
+          parts.push(cur.trim());
+          k += 1;
+        }
+        const text = parts.join(' ').replace(spanJunk, '').trim();
+        if (text) {
+          out.push(`- [ ] ${text}`);
+          i = k;
+          continue;
+        }
+      }
+    }
+    out.push(line);
+    i += 1;
+  }
+  return out.join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(md))))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(md)))))));
 }
 
 export function stripInlineMarkdown(text: string): string {
