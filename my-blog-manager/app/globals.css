@@ -551,7 +551,7 @@ margin: 0 !important;
 padding: 0.5rem 0.95rem !important;
 background-color: rgba(var(--callout), 0.18);
 border-bottom: 1px solid rgba(var(--callout), 0.35);
-color: rgb(var(--callout));
+color: var(--callout-ink) !important;
 font-weight: 700;
 font-style: normal !important;
 font-size: 0.95rem;
@@ -983,4 +983,12 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
 .moment-content td { border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.3rem 0.5rem; }
 html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) br + img {
   margin-top: 0.34em !important;
+}
+.callout-title {
+  color: color-mix(in srgb, rgb(var(--callout)) 68%, #0b1220) !important;
+  --callout-ink: color-mix(in srgb, rgb(var(--callout)) 68%, #0b1220);
+}
+.dark .callout-title {
+  color: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff) !important;
+  --callout-ink: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff);
 }

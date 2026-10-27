@@ -740,3 +740,11 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
 html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) br + img {
   margin-top: 0.34em !important;
 }
+.callout-title {
+  color: color-mix(in srgb, rgb(var(--callout)) 68%, #0b1220) !important;
+  --callout-ink: color-mix(in srgb, rgb(var(--callout)) 68%, #0b1220);
+}
+.dark .callout-title {
+  color: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff) !important;
+  --callout-ink: color-mix(in srgb, rgb(var(--callout)) 80%, #ffffff);
+}
