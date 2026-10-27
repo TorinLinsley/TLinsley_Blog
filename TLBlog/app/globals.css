@@ -757,21 +757,5 @@ html:not(.dark) :is(.callout-quote, .callout-cite, .callout-example, .callout-ab
 
 .callout-note,
 .editor-content-area blockquote.callout-note {
-  --callout: 48, 70, 81;
-}
-.callout-note .callout-title,
-.editor-content-area blockquote.callout-note > p.callout-title {
-  background-color: rgba(48, 70, 81, 0.72) !important;
-  border-bottom-color: rgba(125, 211, 232, 0.28) !important;
-  color: #e6f6fb !important;
-  --callout-ink: #e6f6fb;
-}
-.dark .callout-note .callout-title,
-.dark .editor-content-area blockquote.callout-note > p.callout-title {
-  background-color: rgba(48, 70, 81, 0.9) !important;
-  border-bottom-color: rgba(125, 211, 232, 0.22) !important;
-}
-.dark .callout-note,
-.dark .editor-content-area blockquote.callout-note {
-  border-color: rgba(125, 211, 232, 0.35) !important;
+  --callout: 56, 120, 145;
 }
