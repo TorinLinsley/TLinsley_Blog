@@ -477,6 +477,28 @@ def html_to_markdown(raw_html: str) -> str:
     return restore_task_lists(out, task_stash)
 
 
+
+
+def _mirror_to_blog(rel: str, text=None):
+    try:
+        from .autosync import blog_root
+        blog = blog_root()
+        if not blog:
+            return
+        dst = os.path.join(blog, "resources", rel.replace("/", os.sep))
+        if text is None:
+            if os.path.isfile(dst):
+                os.remove(dst)
+            return
+        parent = os.path.dirname(dst)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(dst, "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+
+
 @router.post("/save")
 async def save_resource(request: Request):
     """保存正文：编辑器给的是 HTML，这里按项目原有方式转成 Markdown 落盘"""
@@ -514,6 +536,8 @@ async def save_resource(request: Request):
             f.write(final_text)
     except Exception as e:
         return {"success": False, "message": f"写入失败: {str(e)}"}
+
+    _mirror_to_blog(rel, final_text)
 
     return {"success": True, "message": "已保存", "path": rel, "title": title}
 
