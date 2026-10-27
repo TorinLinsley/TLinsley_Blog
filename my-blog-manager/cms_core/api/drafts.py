@@ -27,6 +27,7 @@ from .markdown_utils import (
     continue_ordered_lists,
     normalize_list_indent,
     sanitize_code_fences,
+    promote_inline_code_blocks,
     strip_spans_in_fences,
     space_blockquote_lists,
     extract_list_fences,
@@ -103,6 +104,7 @@ def render_markdown_body(md_body: str) -> str:
             },
         ),
     )
+    html = promote_inline_code_blocks(html)
     html = unbreak_image_lines(html)
     html = render_callouts(html)
     return html
