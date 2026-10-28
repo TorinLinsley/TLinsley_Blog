@@ -227,8 +227,33 @@ function stripHeadingStrike(md: string): string {
   return md.replace(/^(#{1,6}[ \t]+)~~(.+?)~~[ \t]*$/gm, (_all, head: string, text: string) => head + text);
 }
 
+function tightenMath(md: string): string {
+  const lines = md.split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].trim() !== '$$') {
+      out.push(lines[i]);
+      i += 1;
+      continue;
+    }
+    out.push(lines[i]);
+    i += 1;
+    while (i < lines.length) {
+      if (lines[i].trim() === '$$') {
+        out.push(lines[i]);
+        i += 1;
+        break;
+      }
+      if (lines[i].trim()) out.push(lines[i]);
+      i += 1;
+    }
+  }
+  return out.join('\n');
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(stripHeadingStrike(md))))))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(stripHeadingStrike(tightenMath(md)))))))));
 }
 
 export function stripInlineMarkdown(text: string): string {

@@ -31,6 +31,7 @@ from .markdown_utils import (
     stash_task_lists,
     restore_task_lists,
     harden_fences,
+    tighten_math_blocks,
     strip_heading_strike,
     stash_code_blocks,
     restore_code_blocks,
@@ -415,7 +416,7 @@ async def get_resource(request: Request):
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
     body = continue_ordered_lists(body)
-    body = normalize_list_indent(space_blockquote_lists(strip_heading_strike(strip_spans_in_fences(body))))
+    body = tighten_math_blocks(normalize_list_indent(space_blockquote_lists(strip_heading_strike(strip_spans_in_fences(body)))))
     body, list_fences = extract_list_fences(body)
 
     html = markdown.markdown(
@@ -480,6 +481,7 @@ def html_to_markdown(raw_html: str) -> str:
     out = split_callout_blockquotes(out)
     out = restore_inline_tags(out, stash)
     out = restore_task_lists(out, task_stash)
+    out = tighten_math_blocks(out)
     out = restore_code_blocks(out, code_stash)
     return harden_fences(out)
 

@@ -1018,3 +1018,29 @@ HEADING_STRIKE_RE = re.compile(r"^(#{1,6}[ \t]+)~~(.+?)~~[ \t]*$", re.M)
 
 def strip_heading_strike(md: str) -> str:
     return HEADING_STRIKE_RE.sub(lambda m: m.group(1) + m.group(2), str(md or ""))
+
+
+def tighten_math_blocks(md_text: str) -> str:
+    lines = str(md_text or "").split("\n")
+    out = []
+    i = 0
+    total = len(lines)
+    while i < total:
+        line = lines[i]
+        if line.strip() == "$$":
+            block = [line]
+            i += 1
+            while i < total:
+                cur = lines[i]
+                if cur.strip() == "$$":
+                    block.append(cur)
+                    i += 1
+                    break
+                if cur.strip():
+                    block.append(cur)
+                i += 1
+            out.extend(block)
+            continue
+        out.append(line)
+        i += 1
+    return "\n".join(out)
