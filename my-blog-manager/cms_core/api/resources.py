@@ -30,6 +30,9 @@ from .markdown_utils import (
     sanitize_code_fences,
     stash_task_lists,
     restore_task_lists,
+    harden_fences,
+    stash_code_blocks,
+    restore_code_blocks,
     render_task_lists,
     promote_inline_code_blocks,
     strip_spans_in_fences,
@@ -459,6 +462,7 @@ def html_to_markdown(raw_html: str) -> str:
         "<br>\u200d",
         raw_html,
     )
+    raw_html, code_stash = stash_code_blocks(raw_html)
     raw_html, task_stash = stash_task_lists(
         raw_html,
         lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
@@ -474,7 +478,9 @@ def html_to_markdown(raw_html: str) -> str:
     out = glue_image_blocks(out)
     out = split_callout_blockquotes(out)
     out = restore_inline_tags(out, stash)
-    return restore_task_lists(out, task_stash)
+    out = restore_task_lists(out, task_stash)
+    out = restore_code_blocks(out, code_stash)
+    return harden_fences(out)
 
 
 

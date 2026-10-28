@@ -29,6 +29,9 @@ from .markdown_utils import (
     sanitize_code_fences,
     stash_task_lists,
     restore_task_lists,
+    harden_fences,
+    stash_code_blocks,
+    restore_code_blocks,
     render_task_lists,
     promote_inline_code_blocks,
     strip_spans_in_fences,
@@ -69,6 +72,7 @@ def html_to_markdown(raw_html: str) -> str:
         "<br>\u200d",
         raw_html,
     )
+    raw_html, code_stash = stash_code_blocks(raw_html)
     raw_html, task_stash = stash_task_lists(
         raw_html,
         lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
@@ -85,7 +89,8 @@ def html_to_markdown(raw_html: str) -> str:
     text = split_callout_blockquotes(text)
     text = restore_inline_tags(text, inline_tags)
     text = restore_task_lists(text, task_stash)
-    return text
+    text = restore_code_blocks(text, code_stash)
+    return harden_fences(text)
 
 
 def render_markdown_body(md_body: str) -> str:
@@ -309,6 +314,7 @@ async def sync_local_operations(request: Request):
                 raw_html,
             )
 
+            raw_html, code_stash = stash_code_blocks(raw_html)
             raw_html, task_stash = stash_task_lists(
                 raw_html,
                 lambda inner: md(inner, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback),
@@ -328,6 +334,8 @@ async def sync_local_operations(request: Request):
             md_content = split_callout_blockquotes(md_content)
             md_content = restore_inline_tags(md_content, inline_tags)
             md_content = restore_task_lists(md_content, task_stash)
+            md_content = restore_code_blocks(md_content, code_stash)
+            md_content = harden_fences(md_content)
 
             input_date = str(data.get("date", "")).strip()
             if input_date:

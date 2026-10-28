@@ -928,3 +928,86 @@ def render_task_lists(html: str) -> str:
             li.append(label)
             li.append(holder)
     return str(soup)
+
+
+def harden_fences(md_text: str) -> str:
+    lines = str(md_text or "").split("\n")
+    out = []
+    i = 0
+    total = len(lines)
+    while i < total:
+        line = lines[i]
+        hit = re.match(r"^([ \t]{0,3})(`{3,}|~{3,})(.*)$", line)
+        if not hit:
+            out.append(line)
+            i += 1
+            continue
+        indent, marker, info = hit.group(1), hit.group(2), hit.group(3)
+        ch = marker[0]
+        size = len(marker)
+        body = []
+        i += 1
+        while i < total:
+            close = re.match(r"^[ \t]{0,3}(%s{3,})[ \t]*$" % re.escape(ch), lines[i])
+            if close and len(close.group(1)) >= size:
+                break
+            body.append(lines[i])
+            i += 1
+        body_text = "\n".join(body)
+        runs = re.findall(re.escape(ch) + "{3,}", body_text)
+        need = max([size] + [len(run) + 1 for run in runs]) if runs else size
+        fence = ch * need
+        out.append(indent + fence + info)
+        out.extend(body)
+        out.append(indent + fence)
+        i += 1
+    return "\n".join(out)
+
+
+CODE_TOKEN = "@@CODEBLOCK%d@@"
+
+
+def stash_code_blocks(raw_html: str):
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return raw_html, []
+    soup = BeautifulSoup(str(raw_html or ""), "html.parser")
+    stash = []
+    for pre in soup.find_all("pre"):
+        code = pre.find("code")
+        language = ""
+        for node in (code, pre):
+            if node is None:
+                continue
+            cls = node.get("class") or []
+            if isinstance(cls, str):
+                cls = cls.split()
+            for item in cls:
+                if str(item).startswith("language-"):
+                    language = str(item)[9:]
+                    break
+            if language:
+                break
+            data_lang = node.get("data-language")
+            if data_lang:
+                language = str(data_lang)
+                break
+        text = code.get_text() if code is not None else pre.get_text()
+        text = str(text or "").strip("\n")
+        token = CODE_TOKEN % len(stash)
+        stash.append((token, language, text))
+        placeholder = soup.new_tag("p")
+        placeholder.string = token
+        pre.replace_with(placeholder)
+    return str(soup), stash
+
+
+def restore_code_blocks(md_text: str, stash) -> str:
+    for token, language, text in stash or []:
+        runs = re.findall(r"`{3,}", text or "")
+        size = max([3] + [len(run) + 1 for run in runs]) if runs else 3
+        fence = "`" * size
+        block = fence + (language or "") + "\n" + (text or "") + "\n" + fence
+        md_text = md_text.replace(token, "\n\n" + block + "\n\n")
+    return md_text
