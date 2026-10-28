@@ -510,6 +510,192 @@ def _mirror_to_blog(rel: str, text=None):
 
 
 
+@router.post("/save")
+async def save_resource(request: Request):
+    """保存正文：编辑器给的是 HTML，这里按项目原有方式转成 Markdown 落盘"""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {"success": False, "message": "JSON 解析失败"}
+
+    try:
+        rel = safe_rel(payload.get("path", ""))
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+
+    if not rel.lower().endswith(".md"):
+        return {"success": False, "message": "只能保存 .md 文件"}
+
+    target = abs_path(rel)
+    if not os.path.isfile(target):
+        return {"success": False, "message": "文件不存在"}
+
+    raw_html = sanitize_code_fences(payload.get("content", "") or "")
+
+    md_content = html_to_markdown(raw_html)
+
+    title = sanitize_name(payload.get("title", "")) or os.path.splitext(os.path.basename(rel))[0]
+
+    with open(target, "r", encoding="utf-8") as f:
+        meta, _ = split_front_matter(f.read())
+    meta["title"] = title
+    meta.setdefault("date", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    final_text = f"---\n{yaml.dump(meta, allow_unicode=True, sort_keys=False)}---\n\n{md_content}"
+    try:
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(final_text)
+    except Exception as e:
+        return {"success": False, "message": f"写入失败: {str(e)}"}
+
+    _mirror_to_blog(rel, final_text)
+
+    return {"success": True, "message": "已保存", "path": rel, "title": title}
+
+
+@router.post("/create")
+async def create_resource(request: Request):
+    """新建文章或文件夹；parent 为空表示建在总目录下"""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {"success": False, "message": "JSON 解析失败"}
+
+    try:
+        parent = safe_rel(payload.get("parent", ""))
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+
+    kind = payload.get("type", "article")
+    name = sanitize_name(payload.get("name", ""))
+    if not name:
+        name = "新建文件夹" if kind == "folder" else "新文章"
+
+    parent_abs = abs_path(parent) if parent else ensure_root()
+    if not os.path.isdir(parent_abs):
+        return {"success": False, "message": "父目录不存在"}
+
+    if kind == "folder":
+        name = unique_name(parent_abs, name, False)
+        target = os.path.join(parent_abs, name)
+        os.makedirs(target, exist_ok=True)
+        rel = f"{parent}/{name}" if parent else name
+        return {"success": True, "path": rel, "type": "folder", "name": name}
+
+    file_name = name if name.lower().endswith(".md") else f"{name}.md"
+    file_name = unique_name(parent_abs, file_name, True)
+    target = os.path.join(parent_abs, file_name)
+    fm = {
+        "title": os.path.splitext(file_name)[0],
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    try:
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(f"---\n{yaml.dump(fm, allow_unicode=True, sort_keys=False)}---\n\n")
+    except Exception as e:
+        return {"success": False, "message": fs_error("创建", e, target)}
+
+    rel = f"{parent}/{file_name}" if parent else file_name
+    return {"success": True, "path": rel, "type": "article", "name": fm["title"]}
+
+
+@router.post("/delete")
+async def delete_resource(request: Request):
+    """删除 = 移进回收站（不是真删）。
+    兼容两种传参：{path: "a.md"} 单选，{paths: [...]} 多选。
+    文件夹会连同里面的文章一起进回收站，账本里记的是整个文件夹的原始位置。
+
+    permanent: true = 永久删除（Shift+Delete 用的）：
+    直接物理删掉，不进项目回收站，也不进操作系统回收站，删了就真没了。"""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {"success": False, "message": "JSON 解析失败"}
+
+    raw_paths = payload.get("paths")
+    if not isinstance(raw_paths, list) or not raw_paths:
+        raw_paths = [payload.get("path", "")]
+    permanent = bool(payload.get("permanent"))
+
+    try:
+        rels = [safe_rel(p) for p in raw_paths]
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+    rels = [r for r in rels if r]
+    if not rels:
+        return {"success": False, "message": "不能删除根目录"}
+
+    if permanent:
+        purged, failed = [], []
+        for rel in rels:
+            target = abs_path(rel)
+            if not os.path.exists(target):
+                failed.append({"path": rel, "message": "目标不存在"})
+                continue
+            is_dir = os.path.isdir(target)
+            base = os.path.basename(target)
+            try:
+                if is_dir:
+                    shutil.rmtree(target)
+                else:
+                    os.remove(target)
+            except Exception as e:
+                failed.append({"path": rel, "message": fs_error("永久删除", e, target)})
+                continue
+            purged.append({
+                "path": rel,
+                "id": None,
+                "name": base if is_dir else os.path.splitext(base)[0],
+                "type": "folder" if is_dir else "article",
+                "permanent": True,
+            })
+            print(f"[资源分享] 🔥 已永久删除 {rel}")
+
+        if not purged:
+            return {"success": False, "message": failed[0]["message"] if failed else "永久删除失败", "failed": failed}
+
+        return {
+            "success": True,
+            "message": f"已永久删除 {len(purged)} 项（不可恢复）",
+            "deleted": purged,
+            "ids": [],
+            "permanent": True,
+            "failed": failed,
+        }
+
+    log = load_trash_log()
+    deleted, failed = [], []
+    for rel in rels:
+        target = abs_path(rel)
+        if not os.path.exists(target):
+            failed.append({"path": rel, "message": "目标不存在"})
+            continue
+        try:
+            item = trash_one(rel, log)
+            deleted.append({"path": rel, "id": item["id"], "name": item["name"], "type": item["type"]})
+            print(f"[资源分享] 🗑️ 已移入回收站 {rel} -> .trash/{item['store']}")
+        except Exception as e:
+            failed.append({"path": rel, "message": fs_error("删除", e, target)})
+
+    try:
+        save_trash_log(log)
+    except Exception as e:
+        return {"success": False, "message": f"写入回收站记录失败: {str(e)}"}
+
+    if not deleted:
+        return {"success": False, "message": failed[0]["message"] if failed else "删除失败", "failed": failed}
+
+    return {
+        "success": True,
+        "message": f"已删除 {len(deleted)} 项（可在回收站还原）",
+        "deleted": deleted,
+        "ids": [d["id"] for d in deleted],
+        "permanent": False,
+        "failed": failed,
+    }
+
+
+@router.get("/trash")
 def trash_list():
     """回收站里的东西（新的排在最上面）"""
     ensure_root()
