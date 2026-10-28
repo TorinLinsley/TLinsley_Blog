@@ -733,6 +733,10 @@ def normalize_list_indent(md: str) -> str:
         out.append(line)
     return "\n".join(out)
 
+BQ_ITEM_RE = re.compile(r"^([ \t]*(?:>[ \t]*)+)([*+-]|\d{1,9}[.)])(?=\S)(.*)$")
+BQ_ANY_ITEM_RE = re.compile(r"^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])[ \t]")
+
+
 def space_blockquote_lists(md: str) -> str:
     lines = str(md or "").split("\n")
     out = []
@@ -788,6 +792,10 @@ def strip_spans_in_fences(md: str) -> str:
             line = line.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
         out.append(line)
     return "\n".join(out)
+
+PARA_RE = re.compile(r"<p>((?:(?!</p>).)*?)</p>", re.S)
+SINGLE_CODE_RE = re.compile(r"^\s*<code[^>]*>(.*?)</code>\s*$", re.S)
+
 
 def promote_inline_code_blocks(html: str) -> str:
     def repl(match):
