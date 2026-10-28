@@ -187,10 +187,28 @@ function trimCodeFences(body: HTMLElement) {
   });
 }
 
+function protectMathText(raw: string): { text: string; slots: string[] } {
+  const slots: string[] = [];
+  const text = raw.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g, (all) => {
+    slots.push(all);
+    return `@@MATH${slots.length - 1}@@`;
+  });
+  return { text, slots };
+}
+
+function restoreMathText(html: string, slots: string[]): string {
+  return html.replace(/@@MATH(\d+)@@/g, (_all, index: string) => {
+    const raw = slots[Number(index)] ?? '';
+    return raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  });
+}
+
 function markdownToSlice(schema: Schema, raw: string): Slice {
+  const protectedRaw = protectMathText(stripFrontmatter(raw));
   const body = new window.DOMParser()
-    .parseFromString(PASTE_MD.render(continueOrderedLists(stripFrontmatter(raw))), 'text/html')
+    .parseFromString(PASTE_MD.render(continueOrderedLists(protectedRaw.text)), 'text/html')
     .body;
+  body.innerHTML = restoreMathText(body.innerHTML, protectedRaw.slots);
   tidyPasteWhitespace(body);
   mergeSiblingLists(body);
   convertTaskLists(body);
