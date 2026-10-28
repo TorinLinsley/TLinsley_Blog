@@ -1011,3 +1011,10 @@ def restore_code_blocks(md_text: str, stash) -> str:
         block = fence + (language or "") + "\n" + (text or "") + "\n" + fence
         md_text = md_text.replace(token, "\n\n" + block + "\n\n")
     return md_text
+
+
+HEADING_STRIKE_RE = re.compile(r"^(#{1,6}[ \t]+)~~(.+?)~~[ \t]*$", re.M)
+
+
+def strip_heading_strike(md: str) -> str:
+    return HEADING_STRIKE_RE.sub(lambda m: m.group(1) + m.group(2), str(md or ""))

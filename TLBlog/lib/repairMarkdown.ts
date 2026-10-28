@@ -223,8 +223,12 @@ function repairBrokenTasks(md: string): string {
   return out.join('\n');
 }
 
+function stripHeadingStrike(md: string): string {
+  return md.replace(/^(#{1,6}[ \t]+)~~(.+?)~~[ \t]*$/gm, (_all, head: string, text: string) => head + text);
+}
+
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(md)))))));
+  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(stripHeadingStrike(md))))))));
 }
 
 export function stripInlineMarkdown(text: string): string {

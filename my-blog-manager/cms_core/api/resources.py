@@ -31,6 +31,7 @@ from .markdown_utils import (
     stash_task_lists,
     restore_task_lists,
     harden_fences,
+    strip_heading_strike,
     stash_code_blocks,
     restore_code_blocks,
     render_task_lists,
@@ -414,7 +415,7 @@ async def get_resource(request: Request):
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
     body = continue_ordered_lists(body)
-    body = normalize_list_indent(space_blockquote_lists(strip_spans_in_fences(body)))
+    body = normalize_list_indent(space_blockquote_lists(strip_heading_strike(strip_spans_in_fences(body))))
     body, list_fences = extract_list_fences(body)
 
     html = markdown.markdown(
