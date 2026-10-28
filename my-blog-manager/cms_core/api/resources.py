@@ -506,6 +506,22 @@ def _mirror_to_blog(rel: str, text=None):
         pass
 
 
+
+
+def _mirror_to_project_root(abs_file: str, text: str):
+    try:
+        marker = os.sep + ".next" + os.sep + "standalone"
+        if marker not in abs_file:
+            return
+        alt = abs_file.replace(marker, "", 1)
+        if os.path.dirname(alt):
+            os.makedirs(os.path.dirname(alt), exist_ok=True)
+        with open(alt, "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+
+
 @router.post("/save")
 async def save_resource(request: Request):
     """保存正文：编辑器给的是 HTML，这里按项目原有方式转成 Markdown 落盘"""
@@ -544,6 +560,7 @@ async def save_resource(request: Request):
     except Exception as e:
         return {"success": False, "message": f"写入失败: {str(e)}"}
 
+    _mirror_to_project_root(target, final_text)
     _mirror_to_blog(rel, final_text)
 
     return {"success": True, "message": "已保存", "path": rel, "title": title}
