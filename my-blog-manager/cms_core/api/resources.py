@@ -61,7 +61,7 @@ router = APIRouter()
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
-RESOURCES_ROOT = os.path.join(PROJECT_ROOT, "resources")
+RESOURCES_ROOT = (os.environ.get("CMS_RESOURCES_ROOT") or "").strip() or os.path.join(PROJECT_ROOT, "resources")
 RESOURCES_DIR = os.path.join(RESOURCES_ROOT, "ResShare")
 TRASH_DIR = os.path.join(RESOURCES_ROOT, ".trash")
 TRASH_LOG = os.path.join(RESOURCES_ROOT, ".trash_log.json")
