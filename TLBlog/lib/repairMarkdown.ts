@@ -16,19 +16,27 @@ export function repairEmphasis(md: string): string {
   return out;
 }
 
+type Fence = { ch: string; len: number } | null;
+
+function trackFence(line: string, state: Fence): { fence: Fence; fenceLine: boolean } {
+  const hit = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line);
+  if (!hit) return { fence: state, fenceLine: false };
+  const marker = hit[1];
+  const ch = marker.charAt(0);
+  if (!state) return { fence: { ch, len: marker.length }, fenceLine: true };
+  if (ch === state.ch && marker.length >= state.len) return { fence: null, fenceLine: true };
+  return { fence: state, fenceLine: true };
+}
+
 export function repairListMarkers(md: string): string {
-  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
-  let fence = '';
+  let fence: Fence = null;
   return String(md || '')
     .split('\n')
     .map((line) => {
-      const hit = line.match(FENCE);
-      if (hit) {
-        const ch = hit[1].charAt(0);
-        fence = fence === ch ? '' : fence || ch;
-        return line;
-      }
-      if (fence) return line;
+      const wasInside = fence !== null;
+      const tracked = trackFence(line, fence);
+      fence = tracked.fence;
+      if (tracked.fenceLine || wasInside) return line;
       return line.replace(/^(\d{1,9})\.(?=\S)/, '$1\\.');
     })
     .join('\n');
@@ -39,22 +47,21 @@ export function continueOrderedLists(md: string): string {
   const UNORDERED = /^[-*+][ \t]+/;
   const HEADING = /^#{1,6}[ \t]+/;
   const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
-  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
   const lines = String(md || '').split('\n');
-  let fence = '';
+  let fence: Fence = null;
   let last = 0;
   let resumable = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const f = line.match(FENCE);
-    if (f) {
-      const ch = f[1].charAt(0);
-      fence = fence === ch ? '' : fence || ch;
+    const wasInside = fence !== null;
+    const tracked = trackFence(line, fence);
+    fence = tracked.fence;
+    if (tracked.fenceLine) {
       last = 0;
       resumable = false;
       continue;
     }
-    if (fence) continue;
+    if (wasInside) continue;
     const o = line.match(ORDERED);
     if (o) {
       let n = parseInt(o[1], 10);
@@ -81,11 +88,10 @@ export function continueOrderedLists(md: string): string {
 }
 
 export function repairBold(md: string): string {
-  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
   const SPAN = /`[^`\n]*`|\*\*([^*]*?)\*\*/g;
   const out: string[] = [];
   let buf: string[] = [];
-  let fence = '';
+  let fence: Fence = null;
   const flush = () => {
     if (!buf.length) return;
     const text = buf.join('\n');
@@ -97,15 +103,15 @@ export function repairBold(md: string): string {
     }));
   };
   for (const line of String(md || '').split('\n')) {
-    const hit = line.match(FENCE);
-    if (hit) {
+    const wasInside = fence !== null;
+    const tracked = trackFence(line, fence);
+    fence = tracked.fence;
+    if (tracked.fenceLine) {
       flush();
       out.push(line);
-      const ch = hit[1].charAt(0);
-      fence = fence === ch ? '' : fence || ch;
       continue;
     }
-    if (fence) { out.push(line); continue; }
+    if (wasInside) { out.push(line); continue; }
     if (line.trim() === '') { flush(); out.push(line); continue; }
     buf.push(line);
   }
@@ -161,14 +167,21 @@ function repairBrokenTasks(md: string): string {
   const normalized = src.map((line) => (/^\s*\\\*\s*$/.test(line) ? '* ' : line));
   const out: string[] = [];
   const emptyBullet = /^\s*[*+-]\s*$/;
-  const isFence = (line: string) => /^\s*```/.test(line);
+  const isFence = (line: string) => /^[ \t]{0,3}(`{3,}|~{3,})/.test(line);
   const junkFence = (body: string[]) => body.some((line) => /<span[\s>]/.test(line));
   let i = 0;
   while (i < normalized.length) {
     const line = normalized[i];
     if (isFence(line)) {
+      const opener = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line) as RegExpExecArray;
+      const openCh = opener[1].charAt(0);
+      const openLen = opener[1].length;
       let j = i + 1;
-      while (j < normalized.length && !isFence(normalized[j])) j += 1;
+      while (j < normalized.length) {
+        const closeHit = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*$/.exec(normalized[j]);
+        if (closeHit && closeHit[1].charAt(0) === openCh && closeHit[1].length >= openLen) break;
+        j += 1;
+      }
       const body = normalized.slice(i + 1, j);
       if (junkFence(body)) {
         const text = body

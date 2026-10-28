@@ -61,6 +61,26 @@ HR_LINE = re.compile(r"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$")
 FENCE_LINE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
 
 
+def _fence_hit(line: str):
+    marker = FENCE_LINE.match(line)
+    if not marker:
+        return None
+    text = marker.group(1)
+    return (text[0], len(text))
+
+
+def _track_fence(line: str, state):
+    hit = _fence_hit(line)
+    if not hit:
+        return state, False
+    ch, size = hit
+    if not state:
+        return (ch, size), True
+    if state[0] == ch and size >= state[1]:
+        return None, True
+    return state, True
+
+
 def continue_ordered_lists(md: str) -> str:
     lines = str(md or "").split("\n")
     fence = ""
@@ -698,15 +718,11 @@ def restore_list_fences(html: str, blocks, render) -> str:
 def normalize_list_indent(md: str) -> str:
     lines = str(md or "").split("\n")
     out = []
-    fence = ""
+    fence = None
     for line in lines:
-        hit = FENCE_LINE.match(line)
-        if hit:
-            ch = hit.group(1)[0]
-            fence = "" if fence == ch else (fence or ch)
-            out.append(line)
-            continue
-        if fence:
+        was_inside = fence is not None
+        fence, is_fence = _track_fence(line, fence)
+        if is_fence or was_inside:
             out.append(line)
             continue
         mark = LIST_MARK_RE.match(line)
@@ -716,12 +732,6 @@ def normalize_list_indent(md: str) -> str:
                 line = " " * 4 + line[indent:]
         out.append(line)
     return "\n".join(out)
-
-
-
-BQ_ITEM_RE = re.compile(r"^([ \t]*(?:>[ \t]*)+)([*+-]|\d{1,9}[.)])(?=\S)(.*)$")
-BQ_ANY_ITEM_RE = re.compile(r"^[ \t]*(?:>[ \t]*)+([*+-]|\d{1,9}[.)])[ \t]")
-
 
 def space_blockquote_lists(md: str) -> str:
     lines = str(md or "").split("\n")
@@ -767,24 +777,17 @@ def sanitize_code_fences(raw_html: str) -> str:
 def strip_spans_in_fences(md: str) -> str:
     lines = str(md or "").split("\n")
     out = []
-    fence = ""
+    fence = None
     for line in lines:
-        hit = FENCE_LINE.match(line)
-        if hit:
-            ch = hit.group(1)[0]
-            fence = "" if fence == ch else (fence or ch)
+        fence, is_fence = _track_fence(line, fence)
+        if is_fence or fence:
             out.append(line)
             continue
-        if fence and "<span" in line:
+        if "<span" in line:
             line = re.sub(r"<[^>]+>", "", line)
             line = line.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
         out.append(line)
     return "\n".join(out)
-
-
-PARA_RE = re.compile(r"<p>((?:(?!</p>).)*?)</p>", re.S)
-SINGLE_CODE_RE = re.compile(r"^\s*<code[^>]*>(.*?)</code>\s*$", re.S)
-
 
 def promote_inline_code_blocks(html: str) -> str:
     def repl(match):
