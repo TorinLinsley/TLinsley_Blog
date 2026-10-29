@@ -82,7 +82,8 @@ export function continueOrderedLists(md: string): string {
       continue;
     }
     if (line.trim() === '' || /^[ \t]/.test(line)) continue;
-    resumable = true;
+    last = 0;
+    resumable = false;
   }
   return lines.join('\n');
 }

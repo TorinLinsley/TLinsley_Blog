@@ -113,7 +113,8 @@ def continue_ordered_lists(md: str) -> str:
             continue
         if line.strip() == "" or line[:1] in (" ", "\t"):
             continue
-        resumable = True
+        last = 0
+        resumable = False
     return "\n".join(lines)
 
 
@@ -157,6 +158,7 @@ def collapse_blank_lines(markdown_text: str) -> str:
 _INVISIBLE = "\u200b\u200d\ufeff"
 
 _IMG_LINE_RE = re.compile(r"^[" + _INVISIBLE + r"]*!\[[^\]]*\]\([^)]*\)\s*$")
+_IMG_TAG_LINE_RE = re.compile(r"^[" + _INVISIBLE + r"]*<img\b[^>]*>\s*$", re.I)
 _MARKER_LINE_RE = re.compile(
     r"^[\s" + _INVISIBLE + r"]*[" + _INVISIBLE + r"][\s" + _INVISIBLE + r"]*$"
 )
@@ -188,7 +190,8 @@ def glue_image_blocks(markdown_text: str) -> str:
                 fence = None
             continue
 
-        if _IMG_LINE_RE.match(stripped) and out and (
+        raw_tag = _IMG_TAG_LINE_RE.match(stripped) is not None
+        if (_IMG_LINE_RE.match(stripped) or raw_tag) and out and (
             out[-1].strip() == "" or _MARKER_LINE_RE.match(out[-1])
         ):
             popped: List[str] = []
@@ -197,6 +200,8 @@ def glue_image_blocks(markdown_text: str) -> str:
 
             prev = out[-1] if out else ""
             if prev.strip() and not _BAD_LEAD_RE.match(prev.lstrip()):
+                out.append(re.sub(r"^[" + _INVISIBLE + r"]+", "", stripped))
+            elif raw_tag:
                 out.append(re.sub(r"^[" + _INVISIBLE + r"]+", "", stripped))
             elif any(_MARKER_LINE_RE.match(l) for l in popped):
                 out.append("")
