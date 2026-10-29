@@ -155,7 +155,7 @@ function repairTaskLists(md: string): string {
 }
 
 function repairBrokenTasks(md: string): string {
-  const zw = /[\u200b\u200d\ufeff]/g;
+  const zw = /[\u200b\ufeff]/g;
   const spanJunk = /<span[^>]*>\s*<\/span>/gi;
   const src = md.split('\n').map((line) => line.replace(zw, ''));
   const normalized = src.map((line) => (/^\s*\\\*\s*$/.test(line) ? '* ' : line));
