@@ -237,14 +237,21 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
       && (kids[0] as Element).tagName === 'IMG';
     if (onlyImg) p.replaceWith(kids[0]);
   });
-  body.querySelectorAll('p').forEach((p) => {
-    const empty = !(p.textContent || '').trim()
-      && Array.from(p.children).every((c) => c.tagName === 'BR');
-    if (!empty) return;
-    const prev = p.previousElementSibling;
-    const next = p.nextElementSibling;
-    if ((prev && prev.tagName === 'IMG') || (next && next.tagName === 'IMG')) p.remove();
-  });
+  for (let pass = 0; pass < 4; pass++) {
+    let removed = 0;
+    body.querySelectorAll('p').forEach((p) => {
+      const empty = !(p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')
+        && Array.from(p.children).every((c) => c.tagName === 'BR');
+      if (!empty) return;
+      const prev = p.previousElementSibling;
+      const next = p.nextElementSibling;
+      if ((prev && prev.tagName === 'IMG') || (next && next.tagName === 'IMG')) {
+        p.remove();
+        removed += 1;
+      }
+    });
+    if (!removed) break;
+  }
 
   body.querySelectorAll('a').forEach((a) => {
     const kids = Array.from(a.childNodes).filter(
@@ -259,7 +266,18 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     const href = a.getAttribute('href') || '';
     a.replaceWith(body.ownerDocument.createTextNode(`[![${alt}](${src})](${href})`));
   });
-  return PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
+  const slice = PMDOMParser.fromSchema(schema).parseSlice(body, { preserveWhitespace: true });
+  if (slice.openStart !== 0 || slice.openEnd !== 0) return slice;
+  const nodes: PMNode[] = [];
+  slice.content.forEach((node) => nodes.push(node));
+  const kept = nodes.filter((node, i) => {
+    if (node.type.name !== 'paragraph') return true;
+    if ((node.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return true;
+    if (node.content.size > 1) return true;
+    return !(nodes[i - 1]?.type.name === 'image' || nodes[i + 1]?.type.name === 'image');
+  });
+  if (kept.length === nodes.length) return slice;
+  return new Slice(Fragment.fromArray(kept), 0, 0);
 }
 
 function normalizePastedInlineHtml(html: string): string {
