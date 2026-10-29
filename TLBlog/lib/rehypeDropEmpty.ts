@@ -1,6 +1,8 @@
 import { visit } from 'unist-util-visit';
 import type { Root } from 'hast';
 
+const ZERO_WIDTH = /[\s\u00a0\u200b\u200c\u200d\u2060\ufeff\u3000]+/g;
+
 const textOf = (node: any): string => {
   if (!node) return '';
   if (node.type === 'text') return node.value || '';
@@ -16,11 +18,12 @@ const hasMedia = (node: any): boolean => {
 
 export default function rehypeDropEmpty() {
   return (tree: Root) => {
+    const blank = (node: any) => textOf(node).replace(ZERO_WIDTH, '') === '';
     const clean = (parent: any) => {
       if (!Array.isArray(parent.children)) return;
       parent.children = parent.children.filter((child: any) => {
         if (!child || child.type !== 'element') return true;
-        if (child.tagName === 'p' && !textOf(child).trim() && !hasMedia(child)) return false;
+        if (child.tagName === 'p' && blank(child) && !hasMedia(child)) return false;
         clean(child);
         return true;
       });

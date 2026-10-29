@@ -45,6 +45,7 @@ from .markdown_utils import (
     render_callouts,
     restore_callouts,
     tidy_quote_blanks,
+    strip_zero_width,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -95,6 +96,7 @@ def html_to_markdown(raw_html: str) -> str:
     text = tighten_math_blocks(text)
     text = restore_code_blocks(text, code_stash)
     text = tidy_quote_blanks(text)
+    text = strip_zero_width(text)
     return harden_fences(text)
 
 
@@ -341,6 +343,7 @@ async def sync_local_operations(request: Request):
             md_content = restore_task_lists(md_content, task_stash)
             md_content = restore_code_blocks(md_content, code_stash)
             md_content = tidy_quote_blanks(md_content)
+            md_content = strip_zero_width(md_content)
             md_content = harden_fences(md_content)
 
             input_date = str(data.get("date", "")).strip()

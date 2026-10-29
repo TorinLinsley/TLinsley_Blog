@@ -958,6 +958,19 @@ def render_task_lists(html: str) -> str:
     return str(soup)
 
 
+def strip_zero_width(md_text: str) -> str:
+    """删掉零宽标记行（\u200b / \u200d / \ufeff）
+
+    这些是「空段落占位符」的残留：保存时 <p></p> 会变成 <br>\u200d，
+    再把 <br> 换成空行后，就剩一行只有 \u200d 的内容。
+    前端会把它当成一个空段落渲染出来，页面上就多出一大块空白 ✗
+    """
+    text = str(md_text or "")
+    text = text.replace("\u200b", "").replace("\u200d", "").replace("\ufeff", "")
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text)
+
+
 def tidy_quote_blanks(md_text: str) -> str:
     """引用块里连续多行空 `>` 压成两行（回填后会出现一长串空引用行）"""
     return re.sub(r"(?:^>[ \t]*\n){3,}", ">\n>\n", str(md_text or ""), flags=re.M)

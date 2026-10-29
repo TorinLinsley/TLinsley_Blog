@@ -49,6 +49,7 @@ from .markdown_utils import (
     render_callouts,
     restore_callouts,
     tidy_quote_blanks,
+    strip_zero_width,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -485,6 +486,7 @@ def html_to_markdown(raw_html: str) -> str:
     out = tighten_math_blocks(out)
     out = restore_code_blocks(out, code_stash)
     out = tidy_quote_blanks(out)
+    out = strip_zero_width(out)
     return harden_fences(out)
 
 
