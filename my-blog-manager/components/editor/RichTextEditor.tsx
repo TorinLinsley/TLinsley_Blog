@@ -232,10 +232,13 @@ function markdownToSlice(schema: Schema, raw: string): Slice {
     const kids = Array.from(p.childNodes).filter(
       (n) => !(n.nodeType === Node.TEXT_NODE && !(n.nodeValue || '').trim())
     );
-    const onlyImg = kids.length === 1
-      && kids[0].nodeType === Node.ELEMENT_NODE
-      && (kids[0] as Element).tagName === 'IMG';
-    if (onlyImg) p.replaceWith(kids[0]);
+    const onlyImg = kids.length >= 1
+      && kids.every((n) => n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === 'IMG');
+    if (!onlyImg) return;
+    const parent = p.parentNode;
+    if (!parent) return;
+    kids.forEach((kid) => parent.insertBefore(kid, p));
+    p.remove();
   });
   for (let pass = 0; pass < 4; pass++) {
     let removed = 0;
@@ -1537,6 +1540,22 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       if (!editor) return '';
       let html = editor.getHTML();
 
+      try {
+        const dom = new window.DOMParser().parseFromString(`<div id="r">${html}</div>`, 'text/html');
+        const root = dom.getElementById('r');
+        if (root) {
+          const holdsImg = (n: Element | null) =>
+            !!n && (n.tagName.toUpperCase() === 'IMG' || !!n.querySelector('img'));
+          Array.from(root.querySelectorAll('p')).forEach((p) => {
+            if ((p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;
+            if (p.querySelector('img')) return;
+            if (holdsImg(p.nextElementSibling) || holdsImg(p.previousElementSibling)) p.remove();
+          });
+          html = root.innerHTML;
+        }
+      } catch {
+      }
+
       html = html.replace(/<p><\/p>/gi, '<br>&zwj;');
       html = html.replace(/<p><br><\/p>/gi, '<br>&zwj;');
 
@@ -1581,6 +1600,17 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
       const holdsImg = (n: Element | null) =>
         !!n && (n.tagName.toUpperCase() === 'IMG' || !!n.querySelector('img'));
+      Array.from(dom.body.querySelectorAll('p')).forEach((p) => {
+        const kids = Array.from(p.childNodes).filter(
+          (n) => !(n.nodeType === Node.TEXT_NODE && !(n.nodeValue || '').trim())
+        );
+        if (!kids.length) return;
+        if (!kids.every((n) => n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === 'IMG')) return;
+        const parent = p.parentNode;
+        if (!parent) return;
+        kids.forEach((kid) => parent.insertBefore(kid, p));
+        p.remove();
+      });
       Array.from(dom.body.querySelectorAll('p')).forEach((p) => {
         if (p.querySelector('img')) return;
         if ((p.textContent || '').replace(/[\s\u00a0\u3000\u200b\u200d\ufeff]/g, '')) return;
