@@ -48,6 +48,7 @@ from .markdown_utils import (
     protect_inline_tags,
     render_callouts,
     restore_callouts,
+    tidy_quote_blanks,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -474,8 +475,8 @@ def html_to_markdown(raw_html: str) -> str:
     protected, callouts = stash_callouts(protected)
     out = md(protected, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback)
     out = re.sub(r"<br\s*/?>", "\n\n", out)
-    out = restore_tables(out, tables)
     out = restore_callouts(out, callouts)
+    out = restore_tables(out, tables)
     out = collapse_blank_lines(out)
     out = glue_image_blocks(out)
     out = split_callout_blockquotes(out)
@@ -483,6 +484,7 @@ def html_to_markdown(raw_html: str) -> str:
     out = restore_task_lists(out, task_stash)
     out = tighten_math_blocks(out)
     out = restore_code_blocks(out, code_stash)
+    out = tidy_quote_blanks(out)
     return harden_fences(out)
 
 

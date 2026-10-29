@@ -44,6 +44,7 @@ from .markdown_utils import (
     protect_inline_tags,
     render_callouts,
     restore_callouts,
+    tidy_quote_blanks,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -84,8 +85,8 @@ def html_to_markdown(raw_html: str) -> str:
     raw_html, callouts = stash_callouts(raw_html)
     text = md(raw_html, heading_style="ATX", keep=["img", "br"], code_language_callback=code_language_callback)
     text = re.sub(r"<br\s*/?>", "\n\n", text)
-    text = restore_tables(text, tables)
     text = restore_callouts(text, callouts)
+    text = restore_tables(text, tables)
     text = collapse_blank_lines(text)
     text = glue_image_blocks(text)
     text = split_callout_blockquotes(text)
@@ -93,6 +94,7 @@ def html_to_markdown(raw_html: str) -> str:
     text = restore_task_lists(text, task_stash)
     text = tighten_math_blocks(text)
     text = restore_code_blocks(text, code_stash)
+    text = tidy_quote_blanks(text)
     return harden_fences(text)
 
 
@@ -329,8 +331,8 @@ async def sync_local_operations(request: Request):
 
             md_content = re.sub(r'<br\s*\/?>', '\n\n', md_content)
 
-            md_content = restore_tables(md_content, tables)
             md_content = restore_callouts(md_content, callouts)
+            md_content = restore_tables(md_content, tables)
             md_content = collapse_blank_lines(md_content)
             md_content = glue_image_blocks(md_content)
 
@@ -338,6 +340,7 @@ async def sync_local_operations(request: Request):
             md_content = restore_inline_tags(md_content, inline_tags)
             md_content = restore_task_lists(md_content, task_stash)
             md_content = restore_code_blocks(md_content, code_stash)
+            md_content = tidy_quote_blanks(md_content)
             md_content = harden_fences(md_content)
 
             input_date = str(data.get("date", "")).strip()

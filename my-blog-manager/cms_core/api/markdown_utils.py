@@ -308,10 +308,38 @@ def stash_tables(raw_html: str) -> Tuple[str, List[str]]:
     return out, tables
 
 
+def _quote_prefix_at(line: str, token: str) -> str:
+    idx = line.find(token)
+    if idx < 0:
+        return ""
+    lead = line[:idx]
+    return lead.strip() if ">" in lead else ""
+
+
+def expand_restore(text: str, token: str, block: str) -> str:
+    """占位符在引用块里时，把替换出来的多行内容逐行加上同一个 `>` 前缀
+
+    不这样做的后果：`> TLCODE0` 被换成裸围栏，围栏第 2 行起没有 `>`，
+    引用块当场断掉，代码块/表格就掉到 callout 外面去了 ✗
+    """
+    pattern = re.compile(r"^([ \t]*(?:>[ \t]*)+)[ \t]*" + re.escape(token) + r"[ \t]*$", re.M)
+
+    def repl(match):
+        prefix = match.group(1).strip() or ">"
+        out = []
+        for ln in block.split("\n"):
+            out.append((prefix + " " + ln) if ln.strip() else prefix)
+        return "\n".join(out)
+
+    if pattern.search(text):
+        return pattern.sub(repl, text)
+    return text.replace(token, "\n\n" + block + "\n\n")
+
+
 def restore_tables(text: str, tables: List[str]) -> str:
     """把占位符换回转换好的 Markdown 表格"""
     for i, table in enumerate(tables):
-        text = text.replace(_TABLE_SLOT.format(i), table)
+        text = expand_restore(text, _TABLE_SLOT.format(i), table)
     return text
 
 
@@ -377,7 +405,7 @@ def callout_html_to_markdown(div_html: str) -> str:
             body_md = re.sub(r"<br\s*/?>", "\n", body_md)
             body_md = re.sub(r"\n{3,}", "\n\n", body_md).strip()
 
-    lines = [f"> [!{kind}] {title}".rstrip()]
+    lines = [f"> [!{kind}] {title}".rstrip(), ">"]
     for ln in body_md.split("\n"):
         lines.append(("> " + ln).rstrip() if ln.strip() else ">")
     return "\n".join(lines)
@@ -411,7 +439,7 @@ def stash_callouts(raw_html: str) -> Tuple[str, List[str]]:
 def restore_callouts(text: str, callouts: List[str]) -> str:
     """把占位符换回 `> [!type] 标题` 形式的 Markdown"""
     for i, md_text in enumerate(callouts):
-        text = text.replace(_CALLOUT_SLOT.format(i), md_text)
+        text = expand_restore(text, _CALLOUT_SLOT.format(i), md_text)
     return text
 
 
@@ -870,7 +898,7 @@ def stash_task_lists(html: str, to_md):
 
 def restore_task_lists(md_text: str, stash) -> str:
     for token, block in stash or []:
-        md_text = md_text.replace(token, "\n\n" + block + "\n\n")
+        md_text = expand_restore(md_text, token, block)
     return md_text
 
 
@@ -928,6 +956,11 @@ def render_task_lists(html: str) -> str:
             li.append(label)
             li.append(holder)
     return str(soup)
+
+
+def tidy_quote_blanks(md_text: str) -> str:
+    """引用块里连续多行空 `>` 压成两行（回填后会出现一长串空引用行）"""
+    return re.sub(r"(?:^>[ \t]*\n){3,}", ">\n>\n", str(md_text or ""), flags=re.M)
 
 
 def harden_fences(md_text: str) -> str:
@@ -1009,7 +1042,7 @@ def restore_code_blocks(md_text: str, stash) -> str:
         size = max([3] + [len(run) + 1 for run in runs]) if runs else 3
         fence = "`" * size
         block = fence + (language or "") + "\n" + (text or "") + "\n" + fence
-        md_text = md_text.replace(token, "\n\n" + block + "\n\n")
+        md_text = expand_restore(md_text, token, block)
     return md_text
 
 
