@@ -50,6 +50,7 @@ from .markdown_utils import (
     restore_callouts,
     tidy_quote_blanks,
     strip_zero_width,
+    mark_blank_lines,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -443,6 +444,7 @@ async def get_resource(request: Request):
     html = promote_inline_code_blocks(html)
     html = unbreak_image_lines(html)
     html = render_callouts(html)
+    html = mark_blank_lines(html)
     fallback = os.path.splitext(os.path.basename(rel))[0]
 
     return {
@@ -462,8 +464,8 @@ def html_to_markdown(raw_html: str) -> str:
     """
     raw_html = sanitize_code_fences(raw_html)
     raw_html = re.sub(
-        r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
-        "<br>\u200d",
+        r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
+        "<p>\u200d</p>",
         raw_html,
     )
     raw_html, code_stash = stash_code_blocks(raw_html)

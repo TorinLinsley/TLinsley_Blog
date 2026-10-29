@@ -46,6 +46,7 @@ from .markdown_utils import (
     restore_callouts,
     tidy_quote_blanks,
     strip_zero_width,
+    mark_blank_lines,
     restore_inline_tags,
     restore_tables,
     separate_blockquotes,
@@ -72,8 +73,8 @@ def get_manager_drafts_dir() -> str:
 def html_to_markdown(raw_html: str) -> str:
     raw_html = sanitize_code_fences(raw_html)
     raw_html = re.sub(
-        r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
-        "<br>\u200d",
+        r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
+        "<p>\u200d</p>",
         raw_html,
     )
     raw_html, code_stash = stash_code_blocks(raw_html)
@@ -128,6 +129,7 @@ def render_markdown_body(md_body: str) -> str:
     html = promote_inline_code_blocks(html)
     html = unbreak_image_lines(html)
     html = render_callouts(html)
+    html = mark_blank_lines(html)
     return html
 
 
@@ -316,8 +318,8 @@ async def sync_local_operations(request: Request):
             raw_html = data.get("content", "")
 
             raw_html = re.sub(
-                r"<p>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
-                "<br>\u200d",
+                r"<p\b[^>]*>(?:\s|&nbsp;|&#12288;|\u200b|\u200d|\ufeff|<br\s*/?>)*</p>",
+                "<p>\u200d</p>",
                 raw_html,
             )
 

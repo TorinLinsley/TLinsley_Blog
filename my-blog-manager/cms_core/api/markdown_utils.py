@@ -966,9 +966,16 @@ def strip_zero_width(md_text: str) -> str:
     前端会把它当成一个空段落渲染出来，页面上就多出一大块空白 ✗
     """
     text = str(md_text or "")
-    text = text.replace("\u200b", "").replace("\u200d", "").replace("\ufeff", "")
+    text = text.replace("\u200b", "").replace("\ufeff", "")
     text = re.sub(r"[ \t]+\n", "\n", text)
     return re.sub(r"\n{3,}", "\n\n", text)
+
+
+BLANK_MARK_RE = re.compile(r"<p>[ \t]*\u200d[ \t]*</p>")
+
+
+def mark_blank_lines(html: str) -> str:
+    return BLANK_MARK_RE.sub('<p class="blank-line"><br></p>', str(html or ""))
 
 
 def tidy_quote_blanks(md_text: str) -> str:
