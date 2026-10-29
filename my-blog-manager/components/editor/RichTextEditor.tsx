@@ -1343,7 +1343,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       ExitQuoteOnEmptyEnter,
       Markdown.configure({
         transformPastedText: true,
-        transformCopiedText: false,
+        transformCopiedText: true,
         html: false,
         tightLists: true,
         linkify: true,
@@ -1399,13 +1399,24 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     },
     editorProps: {
       attributes: { class: 'prose prose-slate dark:prose-invert prose-lg max-w-none w-full focus:outline-none min-h-full pb-60 font-serif leading-relaxed px-4 editor-content-area', spellcheck: 'false' },
-      transformPastedHTML: (html: string) => normalizePastedInlineHtml(html),
+      transformPastedHTML: (html: string) => {
+        const out = normalizePastedInlineHtml(html);
+        if (!/class="[^"]*callout/i.test(out)) return out;
+        try {
+          const dom = new window.DOMParser().parseFromString(out, 'text/html');
+          calloutDivsToBlockquotes(dom.body);
+          return dom.body.innerHTML;
+        } catch {
+          return out;
+        }
+      },
       handlePaste(view, event) {
         const clipboard = event.clipboardData;
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
         const clipboardHtml = clipboard?.getData('text/html') || '';
-        if (clipboardHtml && /callout/i.test(clipboardHtml) && raw.trim()) {
+        const richHtml = /<(p|div|ul|ol|li|table|pre|blockquote|h[1-6]|img|hr)\b/i.test(clipboardHtml);
+        if (clipboardHtml && /(^|\n)[ \t]*(?:>[ \t]*)+\[![A-Za-z]+\]/.test(raw)) {
           view.dispatch(view.state.tr.replaceSelection(markdownToSlice(view.state.schema, raw)).scrollIntoView());
           if (onChange) onChange();
           return true;
@@ -1413,6 +1424,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         if (/<(u|ins|mark|sub|sup)\b|text-decoration\s*:|border-bottom\s*:/i.test(clipboardHtml)) {
           return false;
         }
+        if (richHtml) return false;
         const pasted = raw.trim();
         if (/^https?:\/\/\S+$/i.test(pasted)) {
           const { state } = view;
