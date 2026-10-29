@@ -36,48 +36,44 @@ export function repairListMarkers(md: string): string {
 
 export function continueOrderedLists(md: string): string {
   const ORDERED = /^(\d{1,9})([.)])([ \t]+)(.*)$/;
-  const UNORDERED = /^[-*+][ \t]+/;
-  const HEADING = /^#{1,6}[ \t]+/;
-  const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
   const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
   const lines = String(md || '').split('\n');
   let fence = '';
+  let group: number[] = [];
   let last = 0;
-  let resumable = false;
+  const flush = () => {
+    if (!group.length) return;
+    const nums = group.map((i) => parseInt(lines[i], 10));
+    const same = nums.every((n) => n === nums[0]);
+    if (same) {
+      const start = last > 0 ? last + 1 : nums[0];
+      group.forEach((idx, k) => {
+        const m = lines[idx].match(ORDERED);
+        if (m) lines[idx] = `${start + k}${m[2]}${m[3]}${m[4]}`;
+      });
+      last = start + group.length - 1;
+    } else {
+      last = nums[nums.length - 1];
+    }
+    group = [];
+  };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const f = line.match(FENCE);
-    if (f) {
-      const ch = f[1].charAt(0);
+    const hit = FENCE.exec(line);
+    if (hit) {
+      const ch = hit[1].charAt(0);
       fence = fence === ch ? '' : fence || ch;
-      last = 0;
-      resumable = false;
+      flush();
       continue;
     }
     if (fence) continue;
-    const o = line.match(ORDERED);
-    if (o) {
-      let n = parseInt(o[1], 10);
-      if (resumable && last > 0) {
-        const want = last + 1;
-        if (n !== want) {
-          lines[i] = `${want}${o[2]}${o[3]}${o[4]}`;
-          n = want;
-        }
-      }
-      last = n;
-      resumable = true;
+    if (ORDERED.test(line)) {
+      group.push(i);
       continue;
     }
-    if (HEADING.test(line) || HR.test(line) || UNORDERED.test(line)) {
-      last = 0;
-      resumable = false;
-      continue;
-    }
-    if (line.trim() === '' || /^[ \t]/.test(line)) continue;
-    last = 0;
-    resumable = false;
+    if (line.trim() !== '' && !/^[ \t]/.test(line)) flush();
   }
+  flush();
   return lines.join('\n');
 }
 

@@ -84,37 +84,39 @@ def _track_fence(line: str, state):
 def continue_ordered_lists(md: str) -> str:
     lines = str(md or "").split("\n")
     fence = ""
+    group: List[int] = []
     last = 0
-    resumable = False
+
+    def flush() -> None:
+        nonlocal group, last
+        if not group:
+            return
+        nums = [int(ORDERED_LINE.match(lines[i]).group(1)) for i in group]
+        if all(n == nums[0] for n in nums):
+            start = last + 1 if last > 0 else nums[0]
+            for k, idx in enumerate(group):
+                m = ORDERED_LINE.match(lines[idx])
+                lines[idx] = "%d%s%s%s" % (start + k, m.group(2), m.group(3), m.group(4))
+            last = start + len(group) - 1
+        else:
+            last = nums[-1]
+        group = []
+
     for i, line in enumerate(lines):
         hit = FENCE_LINE.match(line)
         if hit:
             ch = hit.group(1)[0]
             fence = "" if fence == ch else (fence or ch)
-            last = 0
-            resumable = False
+            flush()
             continue
         if fence:
             continue
-        ordered = ORDERED_LINE.match(line)
-        if ordered:
-            n = int(ordered.group(1))
-            if resumable and last > 0:
-                want = last + 1
-                if n != want:
-                    lines[i] = "%d%s%s%s" % (want, ordered.group(2), ordered.group(3), ordered.group(4))
-                    n = want
-            last = n
-            resumable = True
+        if ORDERED_LINE.match(line):
+            group.append(i)
             continue
-        if HEADING_LINE.match(line) or HR_LINE.match(line) or UNORDERED_LINE.match(line):
-            last = 0
-            resumable = False
-            continue
-        if line.strip() == "" or line[:1] in (" ", "\t"):
-            continue
-        last = 0
-        resumable = False
+        if line.strip() and line[:1] not in (" ", "\t"):
+            flush()
+    flush()
     return "\n".join(lines)
 
 
