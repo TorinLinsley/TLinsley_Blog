@@ -975,7 +975,7 @@ BLANK_MARK_RE = re.compile(r"<p>[ \t]*\u200d[ \t]*</p>")
 
 
 def mark_blank_lines(html: str) -> str:
-    return BLANK_MARK_RE.sub('<p class="blank-line"><br></p>', str(html or ""))
+    return BLANK_MARK_RE.sub('<p class="blank-line"></p>', str(html or ""))
 
 
 def tidy_quote_blanks(md_text: str) -> str:

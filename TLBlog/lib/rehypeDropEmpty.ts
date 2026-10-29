@@ -29,7 +29,7 @@ export default function rehypeDropEmpty() {
           if (isBlankLine(child)) {
             const prev = Array.isArray(child.properties?.className) ? child.properties.className : [];
             child.properties = { ...(child.properties || {}), className: [...prev, 'blank-line'] };
-            child.children = [{ type: 'element', tagName: 'br', properties: {}, children: [] }];
+            child.children = [];
             return true;
           }
           if (blank(child)) return false;

@@ -1179,6 +1179,6 @@ html .resource-preview input[type="checkbox"] {
 :is(.prose,.resource-preview,.chatter-preview,.moment-content,.editor-content-area) p.blank-line {
   margin: 0 !important;
   padding: 0 !important;
-  min-height: 0 !important;
+  min-height: 1.9em !important;
   line-height: 1.9;
 }
