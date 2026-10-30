@@ -203,12 +203,38 @@ function restoreMathText(html: string, slots: string[]): string {
   });
 }
 
+function stripPastedTextStyles(html: string): string {
+  const doc = new window.DOMParser().parseFromString(html, 'text/html');
+  let touched = false;
+  doc.body.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+    const st = el.style;
+    const before = st.cssText;
+    st.removeProperty('font-size');
+    st.removeProperty('font-family');
+    st.removeProperty('line-height');
+    st.removeProperty('letter-spacing');
+    const color = st.getPropertyValue('color').trim();
+    const rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(color);
+    if (rgb && Number(rgb[1]) >= 235 && Number(rgb[2]) >= 235 && Number(rgb[3]) >= 235) {
+      st.removeProperty('color');
+    }
+    if (!st.length) el.removeAttribute('style');
+    if (st.cssText !== before) touched = true;
+    if (el.tagName === 'SPAN' && el.getAttributeNames().length === 0) {
+      el.replaceWith(...Array.from(el.childNodes));
+    }
+  });
+  return touched ? doc.body.innerHTML : html;
+}
+
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const protectedRaw = protectMathText(stripFrontmatter(raw));
   const body = new window.DOMParser()
     .parseFromString(PASTE_MD.render(continueOrderedLists(protectedRaw.text)), 'text/html')
     .body;
   body.innerHTML = restoreMathText(body.innerHTML, protectedRaw.slots);
+  const cleanedPaste = stripPastedTextStyles(body.innerHTML);
+  if (cleanedPaste !== body.innerHTML) body.innerHTML = cleanedPaste;
   tidyPasteWhitespace(body);
   mergeSiblingLists(body);
   convertTaskLists(body);
@@ -1436,9 +1462,15 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         const raw = clipboard?.getData('text/plain') || '';
         if (!raw.trim()) return false;
         const clipboardHtml = clipboard?.getData('text/html') || '';
-        const richHtml = /<(p|div|ul|ol|li|table|pre|blockquote|h[1-6]|img|hr)\b/i.test(clipboardHtml);
+        const cleanedHtml = clipboardHtml ? stripPastedTextStyles(clipboardHtml) : '';
+        const richHtml = /<(p|div|ul|ol|li|table|pre|blockquote|h[1-6]|img|hr)\b/i.test(cleanedHtml);
         if (clipboardHtml && /(^|\n)[ \t]*(?:>[ \t]*)+\[![A-Za-z]+\]/.test(raw)) {
           view.dispatch(view.state.tr.replaceSelection(markdownToSlice(view.state.schema, raw)).scrollIntoView());
+          if (onChange) onChange();
+          return true;
+        }
+        if (cleanedHtml !== clipboardHtml) {
+          view.pasteHTML(cleanedHtml);
           if (onChange) onChange();
           return true;
         }
