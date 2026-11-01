@@ -25,7 +25,6 @@ def md(html, *args, **kwargs):
         out = out.replace("@@SUPSUB%d@@" % i, tag)
     return out
 from .markdown_utils import (
-    continue_ordered_lists,
     normalize_list_indent,
     sanitize_code_fences,
     stash_task_lists,
@@ -418,7 +417,6 @@ async def get_resource(request: Request):
 
     body = split_callout_blockquotes(body)
     body = separate_blockquotes(body)
-    body = continue_ordered_lists(body)
     body = tighten_math_blocks(normalize_list_indent(space_blockquote_lists(strip_heading_strike(strip_spans_in_fences(body)))))
     body, list_fences = extract_list_fences(body)
 

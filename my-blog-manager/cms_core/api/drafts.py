@@ -24,7 +24,6 @@ from .markdown_utils import (
     MathExtension,
     code_language_callback,
     collapse_blank_lines,
-    continue_ordered_lists,
     normalize_list_indent,
     sanitize_code_fences,
     stash_task_lists,
@@ -104,7 +103,6 @@ def html_to_markdown(raw_html: str) -> str:
 def render_markdown_body(md_body: str) -> str:
     md_body = split_callout_blockquotes(md_body)
     md_body = separate_blockquotes(md_body)
-    md_body = continue_ordered_lists(md_body)
     md_body = tighten_math_blocks(normalize_list_indent(space_blockquote_lists(strip_heading_strike(strip_spans_in_fences(md_body)))))
     md_body, list_fences = extract_list_fences(md_body)
     html = markdown.markdown(

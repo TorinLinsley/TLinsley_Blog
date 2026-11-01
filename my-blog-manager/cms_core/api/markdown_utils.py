@@ -81,45 +81,6 @@ def _track_fence(line: str, state):
     return state, True
 
 
-def continue_ordered_lists(md: str) -> str:
-    lines = str(md or "").split("\n")
-    fence = ""
-    group: List[int] = []
-    last = 0
-
-    def flush() -> None:
-        nonlocal group, last
-        if not group:
-            return
-        nums = [int(ORDERED_LINE.match(lines[i]).group(1)) for i in group]
-        if all(n == nums[0] for n in nums):
-            start = last + 1 if last > 0 else nums[0]
-            for k, idx in enumerate(group):
-                m = ORDERED_LINE.match(lines[idx])
-                lines[idx] = "%d%s%s%s" % (start + k, m.group(2), m.group(3), m.group(4))
-            last = start + len(group) - 1
-        else:
-            last = nums[-1]
-        group = []
-
-    for i, line in enumerate(lines):
-        hit = FENCE_LINE.match(line)
-        if hit:
-            ch = hit.group(1)[0]
-            fence = "" if fence == ch else (fence or ch)
-            flush()
-            continue
-        if fence:
-            continue
-        if ORDERED_LINE.match(line):
-            group.append(i)
-            continue
-        if line.strip() and line[:1] not in (" ", "\t"):
-            flush()
-    flush()
-    return "\n".join(lines)
-
-
 def collapse_blank_lines(markdown_text: str) -> str:
     """把连续空行压成一个（代码围栏内部**原样保留**）。
 

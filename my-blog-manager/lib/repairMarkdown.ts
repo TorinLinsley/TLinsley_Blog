@@ -34,49 +34,6 @@ export function repairListMarkers(md: string): string {
     .join('\n');
 }
 
-export function continueOrderedLists(md: string): string {
-  const ORDERED = /^(\d{1,9})([.)])([ \t]+)(.*)$/;
-  const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
-  const lines = String(md || '').split('\n');
-  let fence = '';
-  let group: number[] = [];
-  let last = 0;
-  const flush = () => {
-    if (!group.length) return;
-    const nums = group.map((i) => parseInt(lines[i], 10));
-    const same = nums.every((n) => n === nums[0]);
-    if (same) {
-      const start = last > 0 ? last + 1 : nums[0];
-      group.forEach((idx, k) => {
-        const m = lines[idx].match(ORDERED);
-        if (m) lines[idx] = `${start + k}${m[2]}${m[3]}${m[4]}`;
-      });
-      last = start + group.length - 1;
-    } else {
-      last = nums[nums.length - 1];
-    }
-    group = [];
-  };
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const hit = FENCE.exec(line);
-    if (hit) {
-      const ch = hit[1].charAt(0);
-      fence = fence === ch ? '' : fence || ch;
-      flush();
-      continue;
-    }
-    if (fence) continue;
-    if (ORDERED.test(line)) {
-      group.push(i);
-      continue;
-    }
-    if (line.trim() !== '' && !/^[ \t]/.test(line)) flush();
-  }
-  flush();
-  return lines.join('\n');
-}
-
 export function repairBold(md: string): string {
   const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
   const SPAN = /`[^`\n]*`|\*\*([^*]*?)\*\*/g;
@@ -208,7 +165,7 @@ function repairBrokenTasks(md: string): string {
 }
 
 export function repairMarkdown(md: string): string {
-  return repairEmphasis(repairListMarkers(repairBold(continueOrderedLists(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(md)))))));
+  return repairEmphasis(repairListMarkers(repairBold(repairBlockquoteLists(repairTaskLists(repairBrokenTasks(md))))));
 }
 
 export function stripInlineMarkdown(text: string): string {

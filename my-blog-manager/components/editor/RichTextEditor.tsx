@@ -1,7 +1,6 @@
 "use client";
 
 import { badgeHtmlToSource } from '../../lib/badgeSource';
-import { continueOrderedLists } from '../../lib/repairMarkdown';
 import React, { useState, useImperativeHandle, forwardRef, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
@@ -230,7 +229,7 @@ function stripPastedTextStyles(html: string): string {
 function markdownToSlice(schema: Schema, raw: string): Slice {
   const protectedRaw = protectMathText(stripFrontmatter(raw));
   const body = new window.DOMParser()
-    .parseFromString(PASTE_MD.render(continueOrderedLists(protectedRaw.text)), 'text/html')
+    .parseFromString(PASTE_MD.render(protectedRaw.text), 'text/html')
     .body;
   body.innerHTML = restoreMathText(body.innerHTML, protectedRaw.slots);
   const cleanedPaste = stripPastedTextStyles(body.innerHTML);
