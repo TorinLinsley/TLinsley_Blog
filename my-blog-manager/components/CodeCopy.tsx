@@ -485,7 +485,7 @@ export function attachCodeFold(
       const label = btn.querySelector<HTMLElement>('.cc-fold-text');
       if (label) label.textContent = text;
     }
-
+    wrap.dispatchEvent(new CustomEvent('cc-fold-change', { bubbles: true }));
   };
 
   const toggle = (event: Event) => {

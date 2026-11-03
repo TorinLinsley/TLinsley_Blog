@@ -1849,17 +1849,12 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     collectLineTargets(editor.state.doc, 0, targets);
 
     const next: { n: number; y: number; h: number }[] = [];
-    let lastBottom = 0;
     targets.forEach((t, i) => {
       let box: { top: number; bottom: number } | null = null;
       try {
         box = measureLineBox(view, t);
       } catch {  }
-      if (!box) {
-        const top = lastBottom || originY;
-        box = { top, bottom: top + 20 };
-      }
-      lastBottom = box.bottom;
+      if (!box) return;
       next.push({ n: i + 1, y: Math.round(box.top - originY), h: Math.max(14, Math.round(box.bottom - box.top)) });
     });
 
@@ -1900,10 +1895,11 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     const ro = new ResizeObserver(() => scheduleMeasure());
     ro.observe(dom);
     if (scrollRef.current) ro.observe(scrollRef.current);
+    dom.addEventListener('cc-fold-change', scheduleMeasure);
     window.addEventListener('resize', scheduleMeasure);
     const fonts = (document as any).fonts;
     if (fonts?.ready?.then) fonts.ready.then(() => scheduleMeasure()).catch(() => {});
-    return () => { ro.disconnect(); window.removeEventListener('resize', scheduleMeasure); };
+    return () => { ro.disconnect(); dom.removeEventListener('cc-fold-change', scheduleMeasure); window.removeEventListener('resize', scheduleMeasure); };
   }, [editor, scheduleMeasure]);
 
   useEffect(() => {
