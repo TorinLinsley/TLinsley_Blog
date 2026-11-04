@@ -1,3 +1,4 @@
+import { dateText } from '../../lib/postDate';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -35,7 +36,7 @@ export default async function MomentsPage() {
 
           collected.push({
             id: fileName.replace(/\.md$/, ''),
-            date: data.date || '1970-01-01',
+            date: dateText(data.date) || '1970-01-01',
             location: data.location || '',
             images: data.images || [],
             content: stripInlineMarkdown(content.trim()),

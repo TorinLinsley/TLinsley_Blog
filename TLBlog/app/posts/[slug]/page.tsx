@@ -1,3 +1,4 @@
+import { dateText } from '../../../lib/postDate';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -116,7 +117,7 @@ async function getPostData(slug: string) {
     contentHtml: processedContent.toString(),
     toc: extractToc(content),
     title: data.title,
-    date: data.date,
+    date: dateText(data.date),
     tags: data.tags && Array.isArray(data.tags) ? data.tags : [],
     cover: data.cover || siteConfig.defaultPostCover
   };
@@ -131,7 +132,7 @@ function getRecentPosts(currentSlug: string) {
     const s = f.replace(/\.md$/, '');
     const c = fs.readFileSync(path.join(postsDirectory, f), 'utf8');
     const { data } = matter(c);
-    return { slug: s, title: data.title || '无标题', date: data.date };
+    return { slug: s, title: data.title || '无标题', date: dateText(data.date) };
   }).filter(p => p.slug !== currentSlug).slice(0, 3);
 }
 

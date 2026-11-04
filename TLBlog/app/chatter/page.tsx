@@ -1,3 +1,4 @@
+import { dateText } from '../../lib/postDate';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -85,7 +86,7 @@ export default async function ChatterPage() {
       return {
         slug,
         title: data.title || '',
-        date: data.date || '未知时间',
+        date: dateText(data.date) || '未知时间',
         tags: data.tags || [],
         mood: data.mood || '',
         cover: data.cover || '',

@@ -5,6 +5,7 @@ import PageTransition from '../../components/PageTransition';
 import { siteConfig } from '../../siteConfig';
 import TimelineClient from '../../components/TimelineClient';
 import { ToastProvider } from '../../components/ToastProvider';
+import { dateText } from '../../lib/postDate';
 
 export const revalidate = 30;
 
@@ -25,23 +26,27 @@ export default function Timeline() {
         const slug = fileName.replace(/\.md$/, '');
         const fullPath = path.join(postsDirectory, fileName);
 
-        const fileContents = fs.readFileSync(fullPath, 'utf8');
-        const { data } = matter(fileContents);
+        try {
+          const fileContents = fs.readFileSync(fullPath, 'utf8');
+          const { data } = matter(fileContents);
 
-        const postTags = data.tags && Array.isArray(data.tags) ? data.tags : ['未分类'];
+          const postTags = data.tags && Array.isArray(data.tags) ? data.tags.map(t => String(t)) : ['未分类'];
 
-        postTags.forEach(tag => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        });
+          postTags.forEach(tag => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
 
-        posts.push({
-          slug,
-          title: data.title || '无标题',
-          date: data.date || '1970-01-01',
-          description: data.description || '',
-          tags: postTags,
-          cover: data.cover || siteConfig.defaultPostCover,
-        });
+          posts.push({
+            slug,
+            title: typeof data.title === 'string' && data.title ? data.title : '无标题',
+            date: dateText(data.date) || '1970-01-01',
+            description: typeof data.description === 'string' ? data.description : '',
+            tags: postTags,
+            cover: typeof data.cover === 'string' && data.cover ? data.cover : siteConfig.defaultPostCover,
+          });
+        } catch (err) {
+          console.error('跳过无法解析的文章', fileName, err);
+        }
       });
 
       posts.sort((a, b) => {

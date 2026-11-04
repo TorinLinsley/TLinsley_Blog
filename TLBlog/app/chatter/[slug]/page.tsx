@@ -1,3 +1,4 @@
+import { dateText } from '../../../lib/postDate';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -116,7 +117,7 @@ async function getChatterData(slug: string) {
     contentHtml: processedContent.toString(),
     toc: extractToc(content),
     title: data.title || '碎片记录',
-    date: data.date,
+    date: dateText(data.date),
     mood: data.mood,
     tags: data.tags && Array.isArray(data.tags) ? data.tags : [],
     cover: data.cover || siteConfig.defaultPostCover
@@ -133,7 +134,7 @@ function getRecentChatters(currentSlug: string) {
     const s = f.replace(/\.md$/, '');
     const c = fs.readFileSync(path.join(chattersDirectory, f), 'utf8');
     const { data } = matter(c);
-    return { slug: s, title: data.title || '碎片记录', date: data.date || '1970-01-01' };
+    return { slug: s, title: data.title || '碎片记录', date: dateText(data.date) || '1970-01-01' };
   }).filter(p => p.slug !== currentSlug)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
