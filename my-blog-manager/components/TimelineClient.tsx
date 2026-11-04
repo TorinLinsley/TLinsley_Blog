@@ -1,5 +1,6 @@
 "use client";
 
+import { dayText } from '../lib/postDate';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import TimelineNode from './TimelineNode';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -164,7 +165,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
                             {post.title}
                           </h4>
                           <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md shrink-0">
-                            {post.date.split(' ')[0]}
+                            {dayText(post.date)}
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 leading-relaxed">
@@ -287,7 +288,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
                           <img src={post.cover || undefined} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                           <span className="absolute bottom-3 left-4 text-white/90 text-xs font-mono font-bold bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md">
-                            {post.date.split(' ')[0]}
+                            {dayText(post.date)}
                           </span>
                         </div>
                         <div className="p-5 flex-1 flex flex-col">

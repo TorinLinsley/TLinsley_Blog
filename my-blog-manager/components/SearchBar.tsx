@@ -1,5 +1,6 @@
 "use client";
 
+import { dayText } from '../lib/postDate';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -173,7 +174,7 @@ export default function SearchBar({
                           </h4>
                           {post.date && (
                             <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-md shrink-0 mt-1">
-                              {post.date.split(' ')[0]}
+                              {dayText(post.date)}
                             </span>
                           )}
                         </div>

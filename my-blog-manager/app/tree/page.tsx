@@ -1,3 +1,4 @@
+import { dateText } from '../../lib/postDate';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -29,7 +30,7 @@ function getLocalItems(directoryName: string, typeName: string) {
           slug: realSlug,
           title: data.title || '',
           type: typeName,
-          date: data.date || '2026-05-01',
+          date: dateText(data.date) || '2026-05-01',
           cover: data.cover || data.image || null,
           content: stripInlineMarkdown(content.trim())
         };
