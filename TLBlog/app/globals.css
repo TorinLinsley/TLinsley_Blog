@@ -79,9 +79,14 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
   }
 
   .dark .prose {
-    --tw-prose-body: var(--color-slate-200);
+    --tw-prose-body: rgb(226 232 240 / 0.95);
     --tw-prose-headings: var(--color-white);
     --tw-prose-links: var(--color-indigo-400);
+  }
+
+  .dark :is(.prose, .resource-preview, .chatter-preview, .moment-content, .editor-content-area) {
+    color: rgb(226 232 240 / 0.95);
+    font-weight: 396;
   }
 
   [class*="backdrop-blur-"] {
