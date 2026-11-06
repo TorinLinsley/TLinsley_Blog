@@ -18,6 +18,7 @@ import { projectsData } from '../data/projects';
 import LyricBar from '../components/LyricBar';
 import { ToastProvider } from '../components/ToastProvider';
 
+const CHATTER_FALLBACK_COVER = 'https://bu.dusays.com/2026/03/24/69c26fe50cf3f.jpg';
 import LatestPostsCarousel from '../components/LatestPostsCarousel';
 import LatestChatterCarousel from '../components/LatestChatterCarousel';
 import DanmakuBackground from '../components/DanmakuBackground';
@@ -110,7 +111,7 @@ export default function Home() {
         const fullPath = path.join(chattersDirectory, fileName);
         const { data, content } = matter(fs.readFileSync(fullPath, 'utf8'));
         const rawDate = dateText(data.date) || '1970-01-01';
-        const cover = typeof data.cover === 'string' ? data.cover.trim() : '';
+        const cover = typeof data.cover === 'string' && data.cover.trim() ? data.cover.trim() : CHATTER_FALLBACK_COVER;
         return { slug: fileName.replace(/\.md$/, ''), title: data.title || '碎片记录', description: data.description || stripInlineMarkdown(content.substring(0, 60)), cover: cover, date: rawDate, formattedDate: formatUpdateTime(rawDate) };
       }).sort((a, b) => {
         const dateA = new Date(a.date).getTime();
