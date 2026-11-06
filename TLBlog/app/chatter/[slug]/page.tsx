@@ -120,7 +120,7 @@ async function getChatterData(slug: string) {
     date: dateText(data.date),
     mood: data.mood,
     tags: data.tags && Array.isArray(data.tags) ? data.tags : [],
-    cover: data.cover || siteConfig.defaultPostCover
+    cover: typeof data.cover === 'string' && data.cover.trim() ? data.cover.trim() : siteConfig.defaultPostCover
   };
 }
 

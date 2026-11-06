@@ -84,7 +84,7 @@ export default function Home() {
         return {
           slug: fileName.replace(/\.md$/, ''),
           ...data,
-          cover: data.cover || siteConfig.defaultPostCover,
+          cover: typeof data.cover === 'string' && data.cover.trim() ? data.cover.trim() : siteConfig.defaultPostCover,
           title: data.title || '',
           description: data.description || '',
           content: content || '',

@@ -17,7 +17,7 @@ export const siteConfig = {
   themeColors: ["#a18cd1", "#fbc2eb", "#a1c4fd", "#c2e9fb"],
   bgImages: ["https://bu.dusays.com/2026/03/24/69c1e38b4c370.jpg", "https://bu.dusays.com/2026/03/24/69c26fe4acdb5.jpg", "https://bu.dusays.com/2026/03/24/69c26fe4d9486.jpg"],
 
-  defaultPostCover: "https://bu.dusays.com/2026/03/24/69c26fe4acdb5.jpg",
+  defaultPostCover: "https://pub-10366cd6dd8a4aae87ff5c7565402826.r2.dev/%E5%9B%BE%E7%89%87/%E5%B0%81%E9%9D%A2-%E9%BB%98%E8%AE%A4.png",
 
   photoWallImage: "https://bu.dusays.com/2026/03/24/69c1e38b4c370.jpg",
   cloudMusicIds: ["406232", "478507889", "5308028", "357126", "406173", "421110787", "1817827748"],

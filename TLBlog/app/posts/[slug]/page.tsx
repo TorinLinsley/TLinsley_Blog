@@ -119,7 +119,7 @@ async function getPostData(slug: string) {
     title: data.title,
     date: dateText(data.date),
     tags: data.tags && Array.isArray(data.tags) ? data.tags : [],
-    cover: data.cover || siteConfig.defaultPostCover
+    cover: typeof data.cover === 'string' && data.cover.trim() ? data.cover.trim() : siteConfig.defaultPostCover
   };
 }
 
