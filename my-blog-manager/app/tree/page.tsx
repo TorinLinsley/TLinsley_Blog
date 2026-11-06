@@ -31,7 +31,7 @@ function getLocalItems(directoryName: string, typeName: string) {
           title: data.title || '',
           type: typeName,
           date: dateText(data.date) || '2026-05-01',
-          cover: data.cover || data.image || siteConfig.defaultPostCover,
+          cover: data.cover || data.image || null,
           content: stripInlineMarkdown(content.trim())
         };
       });
