@@ -239,8 +239,7 @@ function SettingsContent() {
       <PageTransition>
         <main className="w-[95%] max-w-7xl mx-auto mt-[7rem] lg:mt-24 flex flex-col lg:flex-row gap-4 lg:gap-8 items-start relative z-10">
 
-          {
-}
+          
           <div
             className="lg:hidden fixed left-0 right-0 z-40 flex items-center justify-start px-3"
             style={{ top: NAV_H, height: TOOL_ROW_H }}

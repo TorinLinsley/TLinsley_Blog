@@ -103,8 +103,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
         </div>
       </div>
 
-      {
-}
+      
       {moment.contentHtml ? (
         <div
           className="moment-content prose prose-sm max-w-none text-slate-800 dark:text-slate-200 text-[14px] md:text-[16px] leading-relaxed font-medium break-words"

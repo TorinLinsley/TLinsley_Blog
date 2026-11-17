@@ -302,8 +302,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
                         </div>
                       </Link>
 
-                      {
-}
+                      
                       <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-all duration-300 z-10">
                         <Link href={`/editor?id=${post.slug}&type=post`} className="p-2 bg-indigo-500/90 backdrop-blur-md text-white rounded-xl hover:bg-indigo-600 hover:scale-110 shadow-lg shadow-indigo-500/30 transition-all cursor-pointer">
                           <Edit3 size={16} />

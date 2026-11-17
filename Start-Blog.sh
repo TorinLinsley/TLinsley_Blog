@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-#
-# TLinsleyBlog 前台博客（Linux）
-#
-#   bash Start-Blog.sh          默认 3000 端口
-#   PORT=8080 bash Start-Blog.sh
-#
-# 逻辑和 Windows 的 Start-Blog.bat 一样：
-#   查依赖 → 算代码指纹 → 变了才 npm run build → npm run start
-#   （posts / chatters / moments / resources / tools / public/uploads 是运行时读盘的，
-#     改这些内容不用重建，刷新页面就生效 ✓）
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

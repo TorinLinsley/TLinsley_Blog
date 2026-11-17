@@ -81,7 +81,6 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     color: rgb(255 255 255) !important;
   }
 
-
   [class*="backdrop-blur-"] {
     will-change: backdrop-filter;
     -webkit-backdrop-filter: blur(12px);
@@ -157,7 +156,6 @@ input[type="number"] {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.2); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
 
-
 .prose hr,
 .resource-preview hr,
 .editor-content-area hr {
@@ -168,7 +166,6 @@ input[type="number"] {
   background: transparent !important;
   height: 1.8em;
 }
-
 
 @supports (height: 1lh) {
   .prose hr,
@@ -373,8 +370,6 @@ html .dark .editor-content-area .tableWrapper::-webkit-scrollbar-thumb {
   html .editor-content-area .tableWrapper::-webkit-scrollbar { height: 12px; }
 }
 
-
-
 [data-toc-level]:focus,
 [data-toc-level]:focus-visible { outline: none !important; }
 
@@ -385,19 +380,18 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview) bloc
   font-style: normal !important;
 }
 
-
 .dark :is(.prose, .resource-preview, .chatter-preview, .editor-content-area, .moment-content) :is(strong, b) {
   font-weight: 900;
 }
 
-        .editor-content-area h1 { font-size: 2.2rem !important; font-weight: 900 !important; margin: 2rem 0 1.2rem !important; line-height: 1.25 !important; color: inherit; } 
-        .editor-content-area h2 { font-size: 1.6rem !important; font-weight: 800 !important; margin: 1.6rem 0 1rem !important; line-height: 1.5 !important; color: inherit; } 
-        .editor-content-area h3 { font-size: 1.25rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.8rem !important; line-height: 1.5 !important; color: inherit; } 
-        .editor-content-area h4, .editor-content-area.prose h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; color: inherit; } 
-        .editor-content-area h5, .editor-content-area.prose h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
-        .editor-content-area h6, .editor-content-area.prose h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; } 
-        .editor-content-area p, .editor-content-area hr { font-size: 1rem !important; line-height: 1.8 !important; margin: 0 0 1rem !important; } 
-        .editor-content-area ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; } 
+        .editor-content-area h1 { font-size: 2.2rem !important; font-weight: 900 !important; margin: 2rem 0 1.2rem !important; line-height: 1.25 !important; color: inherit; }
+        .editor-content-area h2 { font-size: 1.6rem !important; font-weight: 800 !important; margin: 1.6rem 0 1rem !important; line-height: 1.5 !important; color: inherit; }
+        .editor-content-area h3 { font-size: 1.25rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.8rem !important; line-height: 1.5 !important; color: inherit; }
+        .editor-content-area h4, .editor-content-area.prose h4 { font-size: 1.17rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.6rem !important; line-height: 1.4 !important; color: inherit; }
+        .editor-content-area h5, .editor-content-area.prose h5 { font-size: 1.11rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; }
+        .editor-content-area h6, .editor-content-area.prose h6 { font-size: 1.06rem !important; font-weight: 700 !important; margin: 1rem 0 0.5rem !important; line-height: 1.4 !important; color: inherit; }
+        .editor-content-area p, .editor-content-area hr { font-size: 1rem !important; line-height: 1.8 !important; margin: 0 0 1rem !important; }
+        .editor-content-area ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; }
         .editor-content-area ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0 !important; line-height: 1.5 !important; }
         .editor-content-area li { margin-bottom: 0.4rem !important; line-height: 1.5 !important; }
         html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .moment-content) li > :is(ol, ul) {
@@ -423,7 +417,7 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .mom
         .editor-content-area s, .editor-content-area del { color: inherit !important; }
         .editor-content-area a { color: #6366f1 !important; font-weight: 600 !important; text-decoration: none !important; border-bottom: 1px dashed #6366f1 !important; }
         .dark .editor-content-area a { color: #a5b4fc !important; border-bottom-color: #a5b4fc !important; }
-        
+
         .editor-content-area s, .editor-content-area del { text-decoration-line: line-through !important; opacity: 0.6; }
 
         .editor-content-area blockquote {
@@ -437,7 +431,7 @@ color: inherit !important;
 line-height: 1.5 !important;
         }
         .editor-content-area blockquote p {
-margin: 0 !important; 
+margin: 0 !important;
 color: inherit !important;
         }
         .editor-content-area blockquote:has(> p:only-child:empty),
@@ -457,7 +451,7 @@ font-variant-ligatures: normal !important;
 font-weight: 400 !important;
 letter-spacing: normal !important;
         }
-        
+
         .editor-content-area p code, .editor-content-area li code, .editor-content-area td code, .editor-content-area th code {
  background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.15rem 0.35rem !important; border-radius: 0.3rem !important; font-weight: 600 !important; font-size: 0.9em !important;
         }
@@ -468,13 +462,13 @@ letter-spacing: normal !important;
 
         :is(.editor-content-area, .resource-preview) pre code .hljs-comment, :is(.editor-content-area, .resource-preview) pre code .hljs-quote { color: #5c6370; font-style: italic; }
         :is(.editor-content-area, .resource-preview) pre code .hljs-doctag, :is(.editor-content-area, .resource-preview) pre code .hljs-keyword, :is(.editor-content-area, .resource-preview) pre code .hljs-formula { color: #c678dd; }
-        :is(.editor-content-area, .resource-preview) pre code .hljs-keyword.type_, :is(.editor-content-area, .resource-preview) pre code .hljs-type { color: #c678dd; } 
+        :is(.editor-content-area, .resource-preview) pre code .hljs-keyword.type_, :is(.editor-content-area, .resource-preview) pre code .hljs-type { color: #c678dd; }
         :is(.editor-content-area, .resource-preview) pre code .hljs-section, :is(.editor-content-area, .resource-preview) pre code .hljs-name, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-tag, :is(.editor-content-area, .resource-preview) pre code .hljs-deletion, :is(.editor-content-area, .resource-preview) pre code .hljs-subst { color: #e06c75; }
         :is(.editor-content-area, .resource-preview) pre code .hljs-literal { color: #56b6c2; }
         :is(.editor-content-area, .resource-preview) pre code .hljs-string, :is(.editor-content-area, .resource-preview) pre code .hljs-regexp, :is(.editor-content-area, .resource-preview) pre code .hljs-addition, :is(.editor-content-area, .resource-preview) pre code .hljs-attribute, :is(.editor-content-area, .resource-preview) pre code .hljs-meta-string { color: #98c379; }
-        :is(.editor-content-area, .resource-preview) pre code .hljs-built_in, :is(.editor-content-area, .resource-preview) pre code .hljs-class .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.class_ { color: #e6c07b; } 
+        :is(.editor-content-area, .resource-preview) pre code .hljs-built_in, :is(.editor-content-area, .resource-preview) pre code .hljs-class .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.class_ { color: #e6c07b; }
         :is(.editor-content-area, .resource-preview) pre code .hljs-attr, :is(.editor-content-area, .resource-preview) pre code .hljs-variable, :is(.editor-content-area, .resource-preview) pre code .hljs-template-variable, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-class, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-attr, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-pseudo, :is(.editor-content-area, .resource-preview) pre code .hljs-number { color: #d19a66; }
-        :is(.editor-content-area, .resource-preview) pre code .hljs-symbol, :is(.editor-content-area, .resource-preview) pre code .hljs-bullet, :is(.editor-content-area, .resource-preview) pre code .hljs-link, :is(.editor-content-area, .resource-preview) pre code .hljs-meta, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-id, :is(.editor-content-area, .resource-preview) pre code .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.function_ { color: #61aeee; } 
+        :is(.editor-content-area, .resource-preview) pre code .hljs-symbol, :is(.editor-content-area, .resource-preview) pre code .hljs-bullet, :is(.editor-content-area, .resource-preview) pre code .hljs-link, :is(.editor-content-area, .resource-preview) pre code .hljs-meta, :is(.editor-content-area, .resource-preview) pre code .hljs-selector-id, :is(.editor-content-area, .resource-preview) pre code .hljs-title, :is(.editor-content-area, .resource-preview) pre code .hljs-title.function_ { color: #61aeee; }
 
         .editor-content-area { padding-left: 3.75rem !important; }
         .editor-content-area > :first-child { margin-top: 0 !important; }
@@ -546,7 +540,6 @@ outline: none;
 appearance: none;
         }
         .cc-lang-input::placeholder { color: rgba(203,213,225,0.65); }
-
 
         .editor-content-area blockquote.callout {
 --callout: 148, 163, 184;
@@ -680,7 +673,6 @@ user-select: none;
   .tool-dialog { max-height: 71vh; }
   .tool-dialog-sm { max-height: 70vh; }
 }
-
 
 @media (max-width: 1023.98px) {
   .res-main {
@@ -948,8 +940,6 @@ html body img[src*="skillicons.dev/icons?i="][src*=","] {
   vertical-align: top !important;
 }
 
-
-
 html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)) {
   background: transparent !important;
   background-color: transparent !important;
@@ -1012,7 +1002,6 @@ html:not(.dark) :is(.callout-quote, .callout-cite, .callout-example, .callout-ab
   color: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220) !important;
   --callout-ink: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220);
 }
-
 
 .callout-note,
 .editor-content-area blockquote.callout-note {

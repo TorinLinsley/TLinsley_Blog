@@ -1789,7 +1789,6 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
   useEffect(() => {
@@ -1992,11 +1991,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-transparent relative">
-      {
-}
+      
 
-      {
-}
+      
       <div className="shrink-0 px-12 pt-14 pb-4 max-lg:px-4 max-lg:pt-5 max-lg:pb-2 flex items-center gap-4">
         <input
           type="text"
@@ -2016,15 +2013,13 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
         )}
       </div>
 
-      {
-}
+      
       <div className="shrink-0 px-8 py-2.5 border-y border-white/20 dark:border-white/10 flex flex-wrap items-center gap-1.5 bg-white/10 dark:bg-black/20 backdrop-blur-md z-50 max-lg:px-2 max-lg:py-1 max-lg:gap-1">
         <div className="flex items-center gap-1"><Btn onClick={() => editor.chain().focus().undo().run()} title="撤销 (Ctrl+Z)"><Undo2 size={16}/></Btn><Btn onClick={() => editor.chain().focus().redo().run()} title="重做 (Ctrl+Shift+Z)"><Redo2 size={16}/></Btn><Btn onClick={() => editor.chain().focus().unsetAllMarks().run()} title="清除格式（Ctrl+Shift+Backspace）"><RemoveFormatting size={16}/></Btn></div>
         <div className="w-px h-6 max-lg:h-4 bg-slate-400/20 mx-1 max-lg:mx-0.5" />
 
         <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-xl px-2">
-          {
-}
+          
           <ThemedSelect
             value={fontSizeValue}
             label={fontSizeLabel}
@@ -2099,8 +2094,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           >
             <TableIcon size={16}/>
           </Btn>
-          {
-}
+          
           {editor.isActive('codeBlock') && (
             customLangDraft !== null ? (
               <input
@@ -2148,8 +2142,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <Btn onClick={() => editor.chain().focus().toggleSubscript().run()} active={editor.isActive('subscript')} title="下标（Ctrl+,）"><SubIcon size={16}/></Btn>
           <Btn onClick={toggleLink} active={editor.isActive('link')} title="插入 / 编辑链接 (Ctrl+K)"><Link2 size={16}/></Btn>
           <Btn onClick={onOpenImageTool} title="插入图片（Ctrl+Alt+I）"><ImageIcon size={16} className="text-indigo-500"/></Btn>
-          {
-}
+          
           <ImageEditButton editor={editor} />
         </div>
 
@@ -2162,8 +2155,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
           <UnderlineColorButton editor={editor} />
           <div className="relative">
             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 px-3 rounded-2xl border border-white/10 shadow-inner">
-              {
-}
+              
               <button
                 type="button"
                 onClick={() => editor.chain().focus().unsetColor().run()}
@@ -2217,8 +2209,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
       </div>
 
 
-      {
-}
+      
       <LinkCardTool editor={editor} onEditLink={openLinkDialog} />
 
       {linkDialog && typeof document !== 'undefined' && createPortal(

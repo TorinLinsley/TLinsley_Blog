@@ -128,17 +128,14 @@ export default function Navbar() {
               {siteConfig.navAfter || '宝藏之地'}
             </Link>
 
-            {
-}
+            
             {pathname !== '/' && <ThemeButton />}
           </div>
 
           <div className="flex items-center gap-3 min-w-0">
-            {
-}
+            
             <nav className="flex items-center gap-3 xl:gap-5 2xl:gap-6 text-[16px] font-black whitespace-nowrap overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              {
-}
+              
               {navLinks.map((link) => {
                 const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                 return (
@@ -153,8 +150,7 @@ export default function Navbar() {
                     onClick={() => { setClicked(link.href); signalNavStart(); }}
                   >
                     <span className="relative inline-block">
-                      {
-}
+                      
                       <motion.span
                         aria-hidden
                         className={`absolute left-0 right-0 ${
@@ -214,8 +210,7 @@ export default function Navbar() {
               aria-label={isMenuOpen ? '关闭菜单' : '打开菜单'}
               className="relative w-8 h-8 shrink-0 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-slate-700/70 transition-colors duration-300"
             >
-              {
-}
+              
               <MenuLines open={isMenuOpen} />
             </button>
           </div>
@@ -225,8 +220,7 @@ export default function Navbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <>
-            {
-}
+            
             <motion.div
               key="nav-mask"
               data-nav-mask

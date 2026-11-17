@@ -56,7 +56,6 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
   }
 }
 
-
 @layer base {
   :root {
     --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
@@ -104,9 +103,6 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
     -webkit-backdrop-filter: blur(12px);
   }
 
-
-
-
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     [class*="backdrop-blur-"]:not([data-keep-glass]) {
       background-color: rgba(255, 255, 255, 0.86) !important;
@@ -115,7 +111,6 @@ select optgroup { background-color: #ffffff; color: #0f172a; }
       background-color: rgba(15, 23, 42, 0.9) !important;
     }
   }
-
 
   .no-glass [class*="backdrop-blur-"]:not([data-keep-glass]) {
     background-color: rgba(255, 255, 255, 0.86) !important;
@@ -176,7 +171,6 @@ input[type=range]::-webkit-slider-thumb {
   scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
 }
 
-
 .prose hr,
 .resource-preview hr,
 .editor-content-area hr {
@@ -187,7 +181,6 @@ input[type=range]::-webkit-slider-thumb {
   background: transparent !important;
   height: 1.8em;
 }
-
 
 @supports (height: 1lh) {
   .prose hr,
@@ -414,11 +407,9 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .mom
   font-style: normal !important;
 }
 
-
 .dark :is(.prose, .resource-preview, .chatter-preview, .editor-content-area, .moment-content) :is(strong, b) {
   font-weight: 900;
 }
-
 
 .prose,
 .resource-preview,
@@ -435,7 +426,6 @@ html :is(.prose, .resource-preview, .editor-content-area, .chatter-preview, .mom
   word-break: break-word;
   max-width: 100%;
 }
-
 
 @media (max-width: 1023.98px) {
   .res-main {
@@ -703,8 +693,6 @@ html body img[src*="skillicons.dev/icons?i="][src*=","] {
   vertical-align: top !important;
 }
 
-
-
 html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-content-area) a:not(.repo-card):not(:has(> img)) {
   background: transparent !important;
   background-color: transparent !important;
@@ -715,7 +703,6 @@ html.force-unhover :is(.prose, .resource-preview, .chatter-preview, .editor-cont
   text-decoration-style: dashed !important;
   text-underline-offset: 0.18em !important;
 }
-
 
 .moment-content p { margin: 0 0 0.5rem; }
 .moment-content p:last-child { margin-bottom: 0; }
@@ -768,7 +755,6 @@ html:not(.dark) :is(.callout-quote, .callout-cite, .callout-example, .callout-ab
   color: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220) !important;
   --callout-ink: color-mix(in srgb, rgb(var(--callout)) 38%, #0b1220);
 }
-
 
 .callout-note,
 .editor-content-area blockquote.callout-note {

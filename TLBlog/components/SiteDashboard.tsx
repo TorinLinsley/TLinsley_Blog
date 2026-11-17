@@ -133,8 +133,7 @@ export default function SiteDashboard() {
           ))}
         </div>
 
-        {
-}
+        
         {siteConfig.icpConfig && (siteConfig.icpConfig.name || siteConfig.icpConfig.link) && (
           <Tooltip label="点一下：复制备案号并打开查询页（粘贴即可查）">
             {siteConfig.icpConfig.link ? (

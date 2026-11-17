@@ -143,8 +143,7 @@ export default function MusicPage() {
             <p className="text-slate-600 dark:text-slate-400 font-medium tracking-wider transition-colors duration-700">在代码的缝隙中寻找灵魂的共鸣</p>
           </div>
 
-          {
-}
+          
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full items-stretch h-[calc(100vh-320px)] min-h-[600px] max-h-[720px] max-lg:h-auto max-lg:max-h-none">
 
             <div className="md:col-span-5 h-full flex flex-col bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl p-10 relative overflow-hidden transition-all duration-500">
@@ -174,11 +173,9 @@ export default function MusicPage() {
                   <button onClick={togglePlayMode} className="p-2 transition-transform hover:scale-110">{getPlayModeIcon()}</button>
                   <div className="flex items-center gap-4 lg:gap-6">
                     <button onClick={prevSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipBack size={28} fill="currentColor" /></button>
-                    {
-}
+                    
                     <button onClick={togglePlay} className="w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-105 lg:scale-[0.98] lg:hover:scale-[1.03] shadow-xl shadow-indigo-500/40">
-                      {
-}
+                      
                       {isPlaying ? <Pause size={32} className="w-[2.14rem] h-[2.14rem]" fill="currentColor" /> : <Play size={32} className="w-[2.14rem] h-[2.14rem]" fill="currentColor" style={{ transform: 'translateX(1.9%)' }} />}
                     </button>
                     <button onClick={nextSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipForward size={28} fill="currentColor" /></button>

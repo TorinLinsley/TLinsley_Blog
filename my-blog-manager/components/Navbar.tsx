@@ -276,11 +276,9 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-3 min-w-0" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            {
-}
+            
             <nav className="flex items-center gap-3 xl:gap-5 2xl:gap-6 text-[16px] font-black whitespace-nowrap overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              {
-}
+              
               {navLinks.map((link) => {
                 const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                 return (
@@ -387,8 +385,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {
-}
+      
       <header
         className="lg:hidden w-full fixed top-0 left-0 right-0 z-[60] border-b bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-white/20 dark:border-white/5 shadow-sm pywebview-drag-region"
         style={{ height: NAV_HEIGHT }}
@@ -466,16 +463,14 @@ export default function Navbar() {
               aria-expanded={isMenuOpen}
               className="relative w-8 h-8 shrink-0 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-slate-700/70 transition-colors duration-300 cursor-pointer"
             >
-              {
-}
+              
               <MenuLines open={isMenuOpen} />
             </button>
           </div>
         </div>
       </header>
 
-      {
-}
+      
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -501,8 +496,7 @@ export default function Navbar() {
               style={{ top: NAV_HEIGHT }}
             >
               <nav className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
-                {
-}
+                
                 {navLinks.map((link) => {
                   const active = clicked !== null ? clicked === link.href : isActivePath(link.href);
                   return (

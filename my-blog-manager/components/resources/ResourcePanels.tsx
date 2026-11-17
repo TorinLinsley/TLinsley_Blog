@@ -69,10 +69,8 @@ export default function ResourcePanels({
   return (
     <>
       <style>{`
-        /* 小屏：导航栏下面单独留一条「按钮行」，和导航栏一样固定住、不参与滚动。
-           正文的滚动区域从这条行下面才开始 —— 于是按钮永远不会盖住正文里的字。 */
         @media (max-width: 1023.98px) {
-          /* 🔒 这一页在小屏上是「App 式」布局：整页不滚，只有卡片内部滚。 */
+          
           html, body { overflow: hidden !important; }
 
           [data-res-page] {
@@ -89,21 +87,13 @@ export default function ResourcePanels({
             padding-right: 16px !important;
           }
 
-          /* 抽屉里的字稍微收一点：面板变窄了，字不缩一点会显得挤。 */
+          
           [data-res-drawer] { font-size: 0.92rem; }
           [data-res-drawer] .text-base { font-size: 0.92rem; }
           [data-res-drawer] .text-\\[15px\\] { font-size: 0.86rem; }
         }
 
-        /* 🐱 大屏：左右各留出「猫」那么宽的空档 —— 左下角那只猫就不会再压住文章列表。
-           猫是 fixed left-20（80px）+ 本体 120px 宽 → 右边缘在 200px，
-           所以左右各留 224px（14rem），左栏的左边缘刚好落在猫右侧一点点；
-           两边留一样宽，整页依旧是居中的。
-
-           ⚠️ 这里**只加左右 padding**，左右两栏的宽度在下面用 vw 另行算（见 section 的 style）：
-              padding 只让**中间正文那一栏变窄**，左右两块宽度和以前完全一样。
-           ⚠️ 224px 只在 ≥1536px 生效：再窄一点（1280~1535）留 224 会把中栏挤到 300px 以下、
-              触发横向滚动，所以那一档留 96px。 */
+        
         @media (min-width: 1536px) {
           .res-main {
             padding-left: 224px !important;
@@ -118,8 +108,7 @@ export default function ResourcePanels({
         }
       `}</style>
 
-      {
-}
+      
       <div
         data-res-toolbar
         ref={toolbarRef}
@@ -157,8 +146,7 @@ export default function ResourcePanels({
           paddingRight: 14,
         }}
       >
-        {
-}
+        
         <section
           className="hidden lg:flex shrink-0 bg-slate-200/50 dark:bg-slate-900/55 backdrop-blur-[60px] shadow-2xl border border-white/30 dark:border-white/10 overflow-hidden transition-all duration-700 flex-col"
           style={{ width: 'clamp(240px, calc((100vw - 28px) * 0.21), 420px)', borderRadius: '15px' }}
@@ -184,8 +172,7 @@ export default function ResourcePanels({
       <AnimatePresence>
         {panel && (
           <>
-            {
-}
+            
             <motion.div
               key="res-mask"
               data-res-mask

@@ -34,8 +34,7 @@ export default function ProfileCard({ postCount, chatterCount, photoCount }: { p
             <img src={siteConfig.avatarUrl || undefined} alt="avatar" className="w-full h-full rounded-lg md:rounded-xl object-cover bg-white" />
           </div>
           <div className="flex-1 min-w-0">
-            {
-}
+            
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2 pb-1 leading-snug tracking-wider transition-colors duration-700 truncate">
               {siteConfig.authorName}
             </h1>

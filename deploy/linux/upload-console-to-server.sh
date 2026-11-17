@@ -17,7 +17,6 @@ for arg in "$@"; do
 done
 
 if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
   . "$ENV_FILE"
 else
   echo "❌ 没找到 $ENV_FILE（照 server.env.example 复制一份并填好）" >&2

@@ -139,10 +139,8 @@ export default function Home() {
           projects={readProjects()}
         />
 
-            {
-}
-            {
-}
+            
+            
             <style>{`
               @media (min-width: 1024px) {
                 .home-right-col { display: flex !important; flex-direction: column; gap: 1.5rem; }
@@ -164,8 +162,7 @@ export default function Home() {
                 <LatestPostsCarousel posts={top5Posts} />
               </div>
 
-              {
-}
+              
               <div className="home-right-col lg:order-7 lg:col-span-8">
 
                 <Link href="/photowall" data-card="wall" className="order-5 lg:order-1 block w-full rounded-3xl bg-white/40 dark:bg-slate-800/50 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-xl overflow-hidden transition-all duration-700 hover:scale-[1.02] relative group min-h-[200px] sm:min-h-[220px] shrink-0">
@@ -195,8 +192,7 @@ export default function Home() {
 
               <div data-card="lyric" className="order-8 lg:order-3 lg:col-span-12 mt-[-10px] w-full"><LyricBar/></div>
 
-              {
-}
+              
               <div data-card="home-resources" className="order-2 lg:order-4 lg:col-span-6 flex flex-col">
                 <HomeResourcesCard />
               </div>
@@ -204,10 +200,8 @@ export default function Home() {
                 <HomeToolsCard tools={readHomeTools()} />
               </div>
 
-              {
-}
-              {
-}
+              
+              
               <div
                 data-card="dashboard"
                 className="order-9 lg:order-8 lg:col-span-12 w-full mt-4 sticky bottom-0 z-30"

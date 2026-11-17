@@ -24,8 +24,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen pt-20 pb-10 px-4 md:px-10 flex flex-col md:flex-row gap-6 max-w-[1600px] mx-auto relative z-10">
 
-      {
-}
+      
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -57,8 +56,7 @@ export default function AdminDashboard() {
         </div>
       </motion.div>
 
-      {
-}
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

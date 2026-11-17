@@ -67,17 +67,11 @@ async function enhance(a: HTMLAnchorElement) {
 }
 
 export const CARD_STYLE = `
-  /* ⚠️ 选择器必须带上作用域前缀、关键属性必须 !important ——
-     ① 站内原本就有 .resource-preview a { color: … !important; border-bottom: … !important }
-        这类规则，光写 .repo-card 会被它盖掉（实测：浅色下卡片文字变成靛蓝、还多出一条虚线底边）。
-     ② [data-repo-card-scope] 是给**编辑器浮层**用的：那张卡片挂在 body 下（在编辑器外面，
-        免得被 ProseMirror 当成文档内容），不在 .prose/.resource-preview 里，所以要单独给个作用域。 */
   :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card {
     display: flex !important; align-items: flex-start; gap: 14px;
     margin: 1.1rem 0 !important; padding: 14px 18px !important;
     border-radius: 14px !important;
-    /* 🪟 半透明毛玻璃，和站内面板同一套观感（bg-white/30 · dark:bg-slate-800/40 · backdrop-blur）——
-       纯实心白/黑在站内这种玻璃背景上太"硬"，看着突兀。 */
+    
     background: rgba(255, 255, 255, 0.55) !important;
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     backdrop-filter: blur(18px) saturate(140%);
@@ -90,19 +84,14 @@ export const CARD_STYLE = `
   }
   [data-repo-card-scope] .repo-card { margin: 0 !important; cursor: pointer; }
   :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card * { text-decoration: none !important; }
-  /* 深色 = 玻璃黑（不是纯黑），浅色 = 玻璃白（不是纯白） */
+  
   .dark :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card {
     background: rgba(30, 41, 59, 0.55) !important; color: #ffffff !important;
     border-color: rgba(255, 255, 255, 0.14) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
-  /* 悬停：底色换成「淡淡的紫」，文字同时转紫。
-     ⚠️ 这里必须**重申一遍 border-radius**：站内原本有
-        .resource-preview a:hover { … border-radius: 0.2rem !important; } 这条，
-        不重申的话鼠标一放上去卡片圆角就被改成接近直角（实测踩过）。 */
-  /* 🖱️ 悬停效果**只给真的有鼠标的设备**（用户 2026-10-22 要求，和 globals.css 同一套规矩）
-     ⚠️ 手机/平板没有 hover ✗ 这里若还给 :hover 样式，手指点一下卡片就会"卡"在紫色悬停态 ✗
-     ⚠️ 桌面悬停时仍然要重申 border-radius（站内老规则会把它改成接近直角，实测踩过）*/
+  
+  
   @media (hover: hover) and (pointer: fine) {
     :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card:hover {
       background: rgba(124, 58, 237, 0.13) !important; color: #6d28d9 !important;
@@ -138,7 +127,7 @@ export const CARD_STYLE = `
 
   .repo-card-brand { flex: 0 0 auto; display: inline-flex; align-items: center; opacity: .9; }
 
-  /* 📱 手机：卡片小一圈，用户名/仓库名过长就省略号，一行放得下 */
+  
   @media (max-width: 640px) {
     :is(.prose, .resource-preview, .chatter-preview, [data-repo-card-scope]) .repo-card { gap: 10px; padding: 11px 12px !important; border-radius: 12px !important; margin: .9rem 0 !important; }
     @media (hover: hover) and (pointer: fine) {

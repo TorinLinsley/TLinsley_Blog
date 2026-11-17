@@ -63,15 +63,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {
-}
+        
         <meta name="referrer" content="no-referrer" />
 
-        {
-
-
-
-}
+        
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
@@ -87,14 +82,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
 
-        {
-}
+        
         {!siteConfig.useGradient && siteConfig.bgImages?.[0] && (
           <link rel="preload" as="image" href={siteConfig.bgImages[0]} />
         )}
 
-        {
-}
+        
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -149,12 +142,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </div>
 
               <div className="relative z-10 flex-1 flex flex-col">
-                {
-
-}
+                
                 <Navbar />
-                {
-}
+                
                 <NavSwitchDim>{children}</NavSwitchDim>
               </div>
 
@@ -166,8 +156,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <GlobalToolbox />
               </div>
 
-              {
-}
+              
               <BackToTop />
 
               <div className="hidden md:block">
@@ -192,11 +181,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <RepoCard />
         <TableScroll />
         <ImageZoom />
-        {
-}
+        
         <InSiteLinks />
-        {
-}
+        
         <ClickUnhover />
         <PageKeys />
 

@@ -687,7 +687,6 @@ export default function ResourceTree({
       items.push({ key: 'trash', label: '打开回收站', icon: RotateCcw, onClick: onOpenTrash });
     }
     return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menu, expanded, selection, tree]);
 
   const renderNodes = (nodes: ResourceNode[], depth: number) =>
@@ -786,8 +785,7 @@ export default function ResourceTree({
 
             {isOpened && !isRenaming && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500" />}
 
-            {
-}
+            
             {!isRenaming && (
               <span className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 shrink-0">
                 {isFolder && (

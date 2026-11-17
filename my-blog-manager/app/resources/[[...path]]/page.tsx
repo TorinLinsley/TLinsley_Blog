@@ -259,7 +259,6 @@ function ResourcesContent() {
         setIsBooting(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase]);
 
   const getDefaultName = useCallback((parent: string, type: 'article' | 'folder') => {
@@ -639,13 +638,10 @@ function ResourcesContent() {
 
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
-      {
-}
-      {
-}
+      
+      
       <PageTransition onlyOnDocumentLoad fadeOnly>
-        {
-}
+        
         <ResourcePanels
           left={
             <ResourceTree
@@ -669,8 +665,7 @@ function ResourcesContent() {
           }
           right={<ResourceToc contentId={CONTENT_ID} contentKey={`${selectedPath}|${mode}|${contentVersion}`} />}
         >
-            {
-}
+            
             <div className="absolute top-5 right-6 z-30 flex items-center gap-3">
 
               {isDirty && (
@@ -733,8 +728,7 @@ function ResourcesContent() {
 
                 <div className={mode === 'preview' ? 'h-full overflow-y-auto custom-scrollbar' : 'hidden'}>
                   <style>{`
-                    /* ⚠️ 这一整块必须和博客前台 app/resources/[[...path]]/page.tsx 里的 .resource-preview
-                       逐条一致；编辑器的 .editor-content-area 也是照这一份对齐的。改这里就要三处一起改。 */
+                    
                     .resource-preview h1 { font-size: 2.2rem !important; font-weight: 900 !important; margin: 2rem 0 1.2rem !important; line-height: 1.25 !important; color: inherit !important; }
                     .resource-preview h2 { font-size: 1.6rem !important; font-weight: 800 !important; margin: 1.6rem 0 1rem !important; color: inherit !important; }
                     .resource-preview h3 { font-size: 1.25rem !important; font-weight: 700 !important; margin: 1.2rem 0 0.8rem !important; color: inherit !important; }
@@ -761,13 +755,11 @@ function ResourcesContent() {
                     .resource-preview table { width: 100% !important; border-collapse: collapse !important; margin: 1.5rem 0 !important; }
                     .resource-preview th, .resource-preview td { border: 1px solid rgba(148,163,184,0.35) !important; padding: 0.6rem 0.9rem !important; }
 
-                    /* 顶部留白收掉：原来是 .resource-preview 的 py-10（40px）
-                       + 首个标题自身的 2rem 上外边距（32px）≈ 72px 空一截。
-                       现在顶部只留 14px，并且把首元素的上外边距清零（它会叠在 padding 外面）。 */
-                    .resource-preview { padding-top: calc(38px + 1%) !important; /* 首行文字顶部 = 右上角按钮下沿(38px) + 1% 内容宽 */ }
+                    
+                    .resource-preview { padding-top: calc(38px + 1%) !important;  }
                     .resource-preview > :first-child { margin-top: 0 !important; }
 
-                    /* 📱 小屏：和博客前台那份保持完全一致（控制台窗口最小 1024px，这条实际不会触发，只为两边同步好维护） */
+                    
                     @media (max-width: 1023.98px) {
                       .resource-preview { padding-left: 1rem !important; padding-right: 1rem !important; }
                     }

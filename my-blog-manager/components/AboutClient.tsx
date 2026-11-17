@@ -182,7 +182,7 @@ export default function AboutClient({
                   .prose code::before, .prose code::after { content: none !important; }
                   .prose p code, .prose li code, .prose td code, .prose th code { background-color: rgba(99, 102, 241, 0.1) !important; color: #6366f1 !important; padding: 0.1rem 0.3rem !important; border-radius: 0.25rem !important; font-weight: 600 !important; font-size: 0.85em !important; }
                   .dark .prose p code, .dark .prose li code, .dark .prose td code, .dark .prose th code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
-                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img {  display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
                   .prose pre code .hljs-doctag, .prose pre code .hljs-keyword, .prose pre code .hljs-formula { color: #c678dd !important; }
@@ -219,7 +219,7 @@ export default function AboutClient({
                 <div className="flex gap-2">
 
                   <div className="flex flex-col shrink-0">
-                    <div className="h-4 mb-1"></div> {}
+                    <div className="h-4 mb-1"></div> 
                     <div className="flex flex-col gap-[4px] text-[10px] text-slate-400">
                       <div className="h-[11px] md:h-[13px]"></div>
                       <div className="h-[11px] md:h-[13px] leading-none flex items-center">Mon</div>

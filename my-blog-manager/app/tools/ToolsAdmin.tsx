@@ -178,7 +178,6 @@ export default function ToolsAdmin() {
       alive = false;
       clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, form?.dir, form?.entry]);
 
   const post = useCallback(async (api: string, body: any) => {
@@ -1179,8 +1178,7 @@ function IconDialog({
                 想留一份在本地就点右下角那个 ⤓ 角标（存进 public/uploads/ico，之后完全不依赖外网）。
               </p>
 
-              {
-}
+              
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
                 <p className="text-[10px] md:text-[11px] font-black text-slate-500 dark:text-slate-400 mb-1.5">
                   🅰️ 从 iconfont 项目导入（阿里矢量图标库）

@@ -46,8 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {
-}
+        
         {!siteConfig.useGradient && siteConfig.bgImages?.[0] && (
           <link rel="preload" as="image" href={siteConfig.bgImages[0]} />
         )}
@@ -85,17 +84,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <GlobalSnow />
 
                   <div className="relative z-10 flex-1 flex flex-col">
-                    {
-
-}
+                    
                     <Navbar />
-                    {
-}
+                    
                     <NavSwitchDim>{children}</NavSwitchDim>
                   </div>
 
-                  {
-}
+                  
                   <div className="hidden md:block">
                     <FloatingPlayer />
                   </div>
@@ -106,8 +101,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     <ClickEffect />
                   </div>
 
-                  {
-}
+                  
                   <BackToTop />
                 </div>
 
@@ -140,14 +134,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <RepoCard />
         <TableScroll />
         <ImageZoom />
-        {
-}
+        
         <InSiteLinks />
         <ClickUnhover />
         <CalloutRender />
         <PageKeys />
-        {
-}
+        
         <ApiKeyInjector />
       </body>
     </html>

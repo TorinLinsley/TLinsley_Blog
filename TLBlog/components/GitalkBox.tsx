@@ -66,7 +66,6 @@ export default function GitalkBox({
       <div ref={containerRef} />
 
       <style jsx global>{`
-        /* 🚫 藏掉 Gitalk 自带的列表和条数（列表统一由外层渲染 ✓） */
         .custom-gitalk-composer .gt-container .gt-comments,
         .custom-gitalk-composer .gt-container .gt-counts {
           display: none !important;
@@ -119,9 +118,8 @@ export default function GitalkBox({
           color: #6366f1 !important;
         }
 
-        /* ── 文字与卡片颜色跟随主题：浅色=深灰字/白玻璃，深色=浅字/暗玻璃 ── */
         .custom-gitalk-composer .gt-container {
-          color: #334155 !important;            /* slate-700 */
+          color: #334155 !important;            
         }
         .custom-gitalk-composer .gt-container .gt-comment-content,
         .custom-gitalk-composer .gt-container .gt-header-preview {
@@ -147,7 +145,7 @@ export default function GitalkBox({
         }
 
         .dark .custom-gitalk-composer .gt-container {
-          color: #e2e8f0 !important;            /* slate-200 */
+          color: #e2e8f0 !important;            
         }
         .dark .custom-gitalk-composer .gt-container .gt-comment-content,
         .dark .custom-gitalk-composer .gt-container .gt-header-preview {
@@ -162,12 +160,12 @@ export default function GitalkBox({
         .dark .custom-gitalk-composer .gt-container .gt-comment-body,
         .dark .custom-gitalk-composer .gt-container .gt-comment-username,
         .dark .custom-gitalk-composer .gt-container .gt-issues {
-          color: #cbd5e1 !important;            /* slate-300 */
+          color: #cbd5e1 !important;            
         }
         .dark .custom-gitalk-composer .gt-container .gt-comment-date,
         .dark .custom-gitalk-composer .gt-container .gt-header-controls-tip,
         .dark .custom-gitalk-composer .gt-container .gt-counts {
-          color: #94a3b8 !important;            /* slate-400 */
+          color: #94a3b8 !important;            
         }
       `}</style>
     </div>

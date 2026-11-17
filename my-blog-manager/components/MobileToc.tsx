@@ -55,8 +55,7 @@ export default function MobileToc({ contentKey }: { contentKey: string }) {
       <AnimatePresence mode="wait">
         {open && (
           <>
-            {
-}
+            
             <motion.div
               key="m-toc-mask"
               data-toc-mask

@@ -209,12 +209,10 @@ function EditorContent() {
       </div>
 
       <PageTransition>
-        {
-}
+        
         <main className="mx-auto w-[96%] max-w-[1750px] flex flex-row max-lg:flex-col gap-6 relative mt-[144px] max-lg:mt-28 mb-8 max-lg:mb-2 h-[calc(100vh-176px)] max-lg:h-auto">
 
-          {
-}
+          
           <button
             onClick={handleBackClick}
             className="absolute -top-14 left-2 px-5 py-2.5 max-lg:-top-11 max-lg:left-0 max-lg:px-3 max-lg:py-1.5 max-lg:text-[10px] bg-white/40 dark:bg-slate-800/60 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-2xl shadow-lg flex items-center gap-2 text-slate-700 dark:text-slate-200 font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all group z-50"
@@ -223,8 +221,7 @@ function EditorContent() {
             返回上一级
           </button>
 
-          {
-}
+          
           <section className="flex-1 bg-white/30 dark:bg-slate-800/40 backdrop-blur-[60px] rounded-[50px] shadow-2xl border border-white/30 dark:border-white/10 flex flex-col overflow-hidden max-lg:flex-none max-lg:rounded-3xl max-lg:h-[calc(100dvh-7.5rem)]">
             <RichTextEditor
               ref={editorRef}
@@ -237,8 +234,7 @@ function EditorContent() {
             />
           </section>
 
-          {
-}
+          
           <aside className="w-[360px] shrink-0 bg-white/30 dark:bg-slate-800/40 backdrop-blur-[60px] rounded-[50px] shadow-2xl border border-white/30 dark:border-white/10 flex flex-col overflow-hidden max-lg:w-full max-lg:h-[70vh] max-lg:h-[70dvh]">
             <MetaMatrix
               type={docType as any} tags={tags} setTags={setTags} cover={cover} setCover={setCover} summary={summary} setSummary={setSummary} mood={mood} setMood={setMood}

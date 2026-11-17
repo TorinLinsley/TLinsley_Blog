@@ -166,8 +166,7 @@ export default function CommentSection({ formData, handleUpdate, pushToQueue }: 
           </div>
         </div>
 
-        {
-}
+        
         <div className="mt-8 pt-6 border-t border-slate-300/40 dark:border-slate-700/50">
           <h3 className="text-sm font-black text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-1">
             🐙 新评论镜像 & 手机通知

@@ -597,7 +597,7 @@ class MathExtension(Extension):
     ⚠️ 必须每次渲染 new 一个（占位符清单是挂在实例上的，不能跨次复用）。
     """
 
-    def extendMarkdown(self, md):  # noqa: N802（python-markdown 的接口就是驼峰）
+    def extendMarkdown(self, md):
         stash: List[str] = []
         md.preprocessors.register(MathPreprocessor(md, stash), "xh_math", 40)
         md.postprocessors.register(MathPostprocessor(md, stash), "xh_math", 30)

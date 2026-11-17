@@ -184,8 +184,7 @@ export default function LinkCardTool({ editor, onEditLink }: { editor: Editor | 
         </button>
       </span>
 
-      {
-}
+      
       {card && (
         <div data-repo-card-scope style={cardBoxStyle}>
           <div ref={hostRef} />

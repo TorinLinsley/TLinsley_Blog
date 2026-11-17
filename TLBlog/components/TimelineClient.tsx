@@ -223,8 +223,7 @@ export default function TimelineClient({ posts: initialPosts, tags }: { posts: a
               </div>
             </div>
 
-            {
-}
+            
 
           </motion.div>
         )}

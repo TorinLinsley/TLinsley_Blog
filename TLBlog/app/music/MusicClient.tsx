@@ -170,17 +170,13 @@ export default function MusicClient() {
                 </div>
                 <div className="w-full flex items-center justify-between px-1 md:px-2 lg:px-4">
                   <button onClick={togglePlayMode} className="p-2 transition-transform hover:scale-110">{getPlayModeIcon()}</button>
-                  {
-}
+                  
                   <div className="flex items-center gap-[0.925rem] md:gap-4 lg:gap-6">
                     <button onClick={prevSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipBack size={24} className="md:w-7 md:h-7" fill="currentColor" /></button>
-                    {
-}
+                    
                     <button onClick={togglePlay} className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 flex items-center justify-center bg-indigo-500 text-white rounded-full hover:scale-105 lg:scale-[0.98] lg:hover:scale-[1.03] shadow-xl shadow-indigo-500/40">
-                      {
-}
-                      {
-}
+                      
+                      
                       {isPlaying ? <Pause size={22} className="md:w-8 md:h-8 lg:w-[2.14rem] lg:h-[2.14rem]" fill="currentColor" /> : <Play size={22} className="md:w-8 md:h-8 lg:w-[2.14rem] lg:h-[2.14rem]" fill="currentColor" style={{ transform: 'translateX(1.9%)' }} />}
                     </button>
                     <button onClick={nextSong} className="p-2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-transform hover:scale-110"><SkipForward size={24} className="md:w-7 md:h-7" fill="currentColor" /></button>

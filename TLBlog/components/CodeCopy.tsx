@@ -593,17 +593,10 @@ function enhance(pre: HTMLPreElement) {
 
 const STYLE = `
   .cc-wrap { position: relative; }
-  /* 📐 顶部留出「语言 / 复制」按钮那一条的高度。
-     按钮是绝对定位在右上角的，不留白的话第一行代码会被它盖住（长代码行尤其明显）。 */
   .cc-wrap > pre[data-cc-ready] { padding-top: 2.75rem !important; }
-  /* 📏 左边那条行号栏也要占位置（只有真的带行号的块才留白，单行代码不留） */
+  
   .cc-wrap[data-cc-lines="1"] > pre[data-cc-ready] { padding-left: 3.2rem !important; }
-  /* 🔄 长行自动折行（像 Obsidian 那样），不再横向滚动 ✓
-     ⚠️ 只认这一条支路（.cc-wrap 里的代码块 ✓），不动别的地方 ✗
-     ⚠️ 行号不用改：它是按「每个逻辑行第一个字符」的位置量的（见 lineNumberGutter）——
-        折行后同一行还是同一个号，而且贴在折行的第一行上 ✓
-     ⚠️ 页面级那条 .prose pre { overflow-x: auto !important } 优先级更低，
-        这里带 !important + 更具体的选择器，所以能盖住它 ✓ */
+  
   .cc-wrap > pre[data-cc-ready],
   .cc-wrap > pre[data-cc-ready] > code {
     white-space: pre-wrap !important;
@@ -627,9 +620,7 @@ const STYLE = `
     padding: 0.3rem 0.6rem;
     border: 0;
     border-radius: 999px;
-    /* ⚠️ 代码块里的按钮一律用**深色实底**，别用"半透明白"：
-       展开态那个浮在代码块外面的按钮就踩过坑 —— 半透明白落在浅色页面上 = 白底，
-       而文字是近白色 → 浅色模式下白底白字，什么都看不见。 */
+    
     background: rgba(17, 24, 39, 0.55);
     color: #e2e8f0;
     font-family: 'JetBrains Mono','Fira Code','Cascadia Code',Menlo,Consolas,ui-monospace,monospace;
@@ -651,9 +642,7 @@ const STYLE = `
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     opacity: 0.72;
-    /* 按下反馈那条 transform 用 140ms 强 ease-out ——
-       和 lib/motion.ts 里的 D_PRESS(0.14) / EASE_OUT(0.23,1,0.32,1) 同值。
-       （CSS 里没法 import TS 常量，所以这里是同一份数值的镜像，改一处记得改两处） */
+    
     transition: opacity .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease,
                 transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
   }
@@ -661,7 +650,6 @@ const STYLE = `
   .cc-bar:hover,
   .cc-bar:focus-visible { background: rgba(17, 24, 39, 0.82); color: #ffffff; outline: none; }
   .cc-bar:active { background: rgba(17, 24, 39, 0.95); transform: scale(0.97); }
-  /* 减少动效：颜色反馈照旧，去掉缩放那一下 */
   @media (prefers-reduced-motion: reduce) {
     .cc-bar { transition: opacity .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease; }
     .cc-bar:active { transform: none; }
@@ -681,10 +669,10 @@ const STYLE = `
     background: rgba(248,113,113,0.14);
     opacity: 1;
   }
-  /* 触屏设备（iPhone / Android）没有 hover，直接常显 */
+  
   @media (hover: none) {
     .cc-bar { opacity: 0.9; min-height: 2rem; padding: 0.35rem 0.65rem; }
-    /* 视觉上不放大，但把可点区域撑到 ~44px，满足 iOS 的触摸热区建议 */
+    
     .cc-bar::after {
       content: '';
       position: absolute;
@@ -700,8 +688,8 @@ const STYLE = `
     .cc-bar .cc-ic { width: 0.85rem; height: 0.85rem; }
   }
 
-  /* ===== 长代码块：默认折叠 + 展开/收起 ===== */
-  /* 右上角那一行：折叠按钮 + 复制按钮，位置统一交给 flex 管 */
+  
+  
   .cc-actions {
     position: absolute;
     top: 0.6rem;
@@ -712,30 +700,16 @@ const STYLE = `
     gap: 0.4rem;
     max-width: calc(100% - 1.2rem);
   }
-  /* 进了这一行就交回 flex 排版（编辑器里单独用的 .cc-bar 依然是绝对定位） */
+  
   .cc-actions > .cc-bar { position: static; top: auto; right: auto; }
-  /* ⛔ 必须把 .cc-bar 自己那条 max-width 关掉。
-     那条 max-width: calc(100% - 1.2rem) 是给「编辑器里绝对定位」的场合写的，
-     在那里 100% = 代码块宽度，合理；可一旦 bar 变成 .cc-actions 的 flex 子项，
-     100% 就变成**.cc-actions 自身的宽度**，而 .cc-actions 又是按内容收缩的 ——
-     等于自己限制自己，按钮会被算得比内容还窄（实测：插进「已复制」之后
-     按钮只有 38px，文字需要 24px 只显示 10px，就露出一个残字）。
-     关掉之后宽度由内容决定；长语言名由 .cc-lang 自己的 max-width + 省略号兜住。 */
+  
   .cc-actions > .cc-bar { max-width: none; }
-  /* 撑触摸热区的那层 ::after 在行内会盖住旁边的按钮，去掉 ——
-     触屏下两个按钮本身都加高到 2rem 了 */
+  
   .cc-actions > .cc-bar::after { display: none; }
-  /* ⚠️ 这两个按钮**不许被压扁**（flex: 0 0 auto）。
-     以前写的是 flex: 0 1 auto 加 min-width: 0 —— 允许收缩 + 取消最小宽度，
-     结果按钮会比自己的内容还窄：语言名被裁，更明显的是点完复制之后
-     「已复制」只露出一个字（手机截图里那个残字就是这么来的。实测：
-     按钮 62px → 38px，文字需要 24px 却只显示 10px）。
-     长语言名由 .cc-lang 自己的 max-width + 省略号兜着，不会撑爆这一行。 */
+  
   .cc-actions > .cc-bar,
   .cc-actions > .cc-fold { flex: 0 0 auto; }
 
-  /* 折叠按钮：走轻量风 —— 不要硬边框、不要等宽字，一颗圆润的胶囊 + 淡背景，
-     悬停时轻轻浮起来、箭头是转过去的（跟代码块那种"终端感"错开，看着灵动些） */
   .cc-fold {
     display: inline-flex;
     align-items: center;
@@ -784,21 +758,20 @@ const STYLE = `
     transition: transform .28s cubic-bezier(.22,1,.36,1);
   }
   .cc-fold .cc-ic svg { display: block; width: 100%; height: 100%; }
-  /* 展开状态：同一个箭头翻上去 */
+  
   .cc-wrap[data-cc-fold="open"] .cc-fold .cc-ic { transform: rotate(180deg); }
 
-  /* 折叠状态：只留前 10 行，多出来的裁掉（横向滚动照旧可用） */
+  
   .cc-wrap[data-cc-fold="closed"] > pre {
     max-height: var(--cc-max, 22rem);
     overflow-x: auto;
     overflow-y: hidden;
   }
 
-  /* 📏 行号栏：贴在代码块左边，每个行号各自绝对定位到它那一行的真实位置 */
+  
   .cc-lines {
     position: absolute;
-    /* ⚠️ top/left 必须明确写出来。行号是各自绝对定位的，容器自己不带 top 的话
-       会停在"静态位置"——也就是 pre 的下方，整列行号就飘到代码块外面去了。 */
+    
     top: 0;
     left: 0;
     width: 3.2rem;
@@ -813,19 +786,14 @@ const STYLE = `
     pointer-events: none;
   }
   .cc-lines > span { position: absolute; right: 0.8rem; }
-  /* 折叠时行号跟着代码一起收起来。这里**不能**再用 max-height + overflow:hidden ——
-     行号现在各自绝对定位，容器本身高度是 0，那样会把整列裁得一个不剩。
-     直接按序号藏掉第 11 行往后的（对应 FOLD_AFTER = 10）。 */
+  
   .cc-wrap[data-cc-fold="closed"] > .cc-lines {
-    /* 跟 pre 一样高、裁掉溢出：第 10 行正好落在底边，再往下的行号不该露到代码块外面
-       （行号是绝对定位的，不这么裁就会画出去）。 */
+    
     height: var(--cc-max, 22rem);
     overflow: hidden;
   }
   .cc-wrap[data-cc-fold="closed"] > .cc-lines > span:nth-child(n + 11) { display: none; }
 
-  /* 底部渐变：底色取代码块自己的背景色，用 mask 做透明过渡。
-     上半段几乎不压暗 —— 第 10 行必须看得清，只有最底下那截才真的糊掉 */
   .cc-fade {
     position: absolute;
     left: 0;
@@ -835,19 +803,12 @@ const STYLE = `
     z-index: 2;
     display: none;
     pointer-events: none;
-    /* 渐变曲线（10 格刻度尺，两端是颜色点）：
-         0% ~ 46% = 完全透明（上面四成半多一点不压暗）
-         46% ~ 100% = 从透明渐到纯黑（最底下那截实打实黑掉）
-       遮罩高度 4.2rem，也就是说最后约 2.27rem 开始渐隐。 */
+    
     background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 46%, #000 100%);
   }
-  /* 折叠时那层遮罩才出现；展开就收掉 */
+  
   .cc-wrap[data-cc-fold="closed"] > .cc-fade { display: block; }
 
-  /* 底部那颗按钮：
-     · 折叠时浮在代码块内部的渐变上居中 —— 长代码看到底不用再滚回去找右上角那个；
-     · 展开后落到代码块**下面**的空白里，依然居中。
-       （它是 pre 的兄弟节点，不盖正文，也不占行号那一列） */
   .cc-wrap > .cc-fold-bottom {
     display: none;
     width: fit-content;
@@ -855,9 +816,7 @@ const STYLE = `
   .cc-wrap[data-cc-fold="closed"] > .cc-fold-bottom {
     display: flex;
     position: absolute;
-    /* 居中用 left/right:0 + auto 边距，不用 translateX(-50%)：
-       那个 transform 切回展开态（position:static）时依然生效，
-       会把按钮整体左移半个宽度。 */
+    
     left: 0;
     right: 0;
     bottom: 0.4rem;
@@ -866,15 +825,13 @@ const STYLE = `
     z-index: 3;
     opacity: 0.95;
   }
-  /* 站点主题紫，但**不是实心**：半透明紫底 + 实色紫描边。
-     实心紫太重；而纯半透明深色又会跟代码块糊在一起 —— 描边正好把边界勾出来。 */
+  
   .cc-wrap > .cc-fold-bottom {
     background: rgba(99, 102, 241, 0.18);
     border: 1px solid #6366f1;
     color: #c7d2fe;
     box-shadow: 0 2px 10px rgba(79, 70, 229, 0.22);
   }
-  /* 折叠时它压在深色代码块上 → 浅紫字；展开时落在页面背景上 → 浅色主题要用深紫字 */
   .cc-wrap[data-cc-fold="open"] > .cc-fold-bottom { color: #4f46e5; }
   .dark .cc-wrap[data-cc-fold="open"] > .cc-fold-bottom { color: #c7d2fe; }
   .cc-wrap > .cc-fold-bottom:hover,
@@ -904,7 +861,6 @@ const STYLE = `
 export default function CodeCopy() {
   useEffect(() => {
     let frame = 0;
-
     const enhanceAll = () => {
       frame = 0;
       const blocks = document.querySelectorAll<HTMLPreElement>(SELECTOR);

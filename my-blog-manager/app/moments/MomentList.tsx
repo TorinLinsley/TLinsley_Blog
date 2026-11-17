@@ -305,8 +305,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
           <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-1"><Clock size={12} /> {timeAgo(moment.date)}</div>
         </div>
       </div>
-      {
-}
+      
       {moment.contentHtml ? (
         <div
           className="moment-content prose prose-sm max-w-none text-slate-800 dark:text-slate-200 text-[16px] leading-relaxed font-medium break-words"

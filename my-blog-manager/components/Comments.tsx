@@ -142,8 +142,7 @@ export default function Comments({ page }: { page?: string } = {}) {
           </div>
         </div>
 
-        {
-}
+        
         {(comments.length > 1 || tip) && (
           <div className="flex items-center justify-end gap-3 mb-3">
             {tip && <span className="text-[11px] font-bold text-rose-500">{tip}</span>}
@@ -181,7 +180,7 @@ export default function Comments({ page }: { page?: string } = {}) {
                 className="group relative flex gap-3 p-4 rounded-2xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/40 dark:border-white/10"
               >
                 {c.avatar ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
+                  
                   <img
                     src={c.avatar}
                     alt=""
@@ -215,8 +214,7 @@ export default function Comments({ page }: { page?: string } = {}) {
           </LayoutGroup>
         )}
 
-        {
-}
+        
         {mode === 'github' ? (
           <GitalkBox page={currentPage} onPosted={() => void load()} />
         ) : (

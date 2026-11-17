@@ -35,18 +35,15 @@ export default function MomentComments({ id }: MomentCommentsProps) {
       <div ref={containerRef} className="moment-gitalk" />
 
       <style jsx global>{`
-        /* 隐藏掉一些在说说里显得太多余的 Gitalk 原生元素 */
         .moment-gitalk .gt-header-controls-tip,
         .moment-gitalk .gt-svg-svg {
           display: none !important;
         }
 
-        /* 整体容器紧凑化 */
         .moment-gitalk .gt-container {
           padding: 0 !important;
         }
 
-        /* 输入框区域：极简模式 */
         .moment-gitalk .gt-header {
           margin-bottom: 10px !important;
         }
@@ -63,7 +60,7 @@ export default function MomentComments({ id }: MomentCommentsProps) {
         }
         .moment-gitalk .gt-header-textarea {
           padding: 8px 12px !important;
-          min-height: 40px !important; /* 默认很矮 */
+          min-height: 40px !important; 
           background: rgba(0, 0, 0, 0.03) !important;
           border: 1px solid transparent !important;
           border-radius: 8px !important;
@@ -72,9 +69,9 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           color: inherit !important;
         }
         .moment-gitalk .gt-header-textarea:focus {
-          min-height: 80px !important; /* 点击后展开 */
+          min-height: 80px !important; 
           background: rgba(255, 255, 255, 0.8) !important;
-          border-color: #6366f1 !important; /* 激活时变色 */
+          border-color: #6366f1 !important; 
         }
         .dark .moment-gitalk .gt-header-textarea {
           background: rgba(255, 255, 255, 0.05) !important;
@@ -83,7 +80,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           background: rgba(0, 0, 0, 0.5) !important;
         }
 
-        /* 发布按钮微调 */
         .moment-gitalk .gt-btn {
           padding: 0.3em 1rem !important;
           font-size: 12px !important;
@@ -92,7 +88,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           border: none !important;
         }
 
-        /* 评论列表：去边框，纯文本流 */
         .moment-gitalk .gt-comments {
           padding-top: 0 !important;
         }
@@ -108,7 +103,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           border-top: none !important;
         }
         
-        /* 评论头像缩小 */
         .moment-gitalk .gt-comment-avatar {
           width: 24px !important;
           height: 24px !important;
@@ -117,7 +111,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           border-radius: 4px !important;
         }
 
-        /* 评论内容布局 */
         .moment-gitalk .gt-comment-content {
           margin-left: 34px !important;
           padding: 0 !important;
@@ -126,17 +119,15 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           box-shadow: none !important;
         }
         
-        /* 评论者名字 */
         .moment-gitalk .gt-comment-username {
           font-size: 13px !important;
           font-weight: bold !important;
-          color: #576b95 !important; /* 朋友圈蓝色 */
+          color: #576b95 !important; 
         }
         .dark .moment-gitalk .gt-comment-username {
           color: #7f99cc !important;
         }
 
-        /* 评论正文 */
         .moment-gitalk .gt-comment-body {
           font-size: 13px !important;
           color: inherit !important;
@@ -147,7 +138,6 @@ export default function MomentComments({ id }: MomentCommentsProps) {
           margin: 0 !important;
         }
 
-        /* 隐藏回复按钮等杂项，保持极简 */
         .moment-gitalk .gt-comment-like,
         .moment-gitalk .gt-comment-edit,
         .moment-gitalk .gt-comment-reply {

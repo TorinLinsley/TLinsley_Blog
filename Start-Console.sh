@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-#
-# TLinsleyBlog 控制台（Linux）—— **网页模式**，不开 Python 图形窗口。
-#
-#   bash Start-Console.sh              默认 后端 7646 / 前端 3010
-#   WEB_PORT=3011 bash Start-Console.sh
-#
-# 和 Windows 的 Start-Console.bat 一样：起 uvicorn + Next，然后用浏览器访问
-# http://127.0.0.1:3010 即可（编辑、保存、同步、图片上传都在）。
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -22,11 +14,7 @@ PY="$(command -v python3 || command -v python || true)"
 
 cd "$CONSOLE"
 
-# 端口被占住就别硬起：最常见是 SSH 隧道还开着（把 3010/7646 转到服务器了），
-# 那种情况下前端连到的是服务器上的控制台、本地后端根本起不来，页面就没法用。
 port_listening() {
-  # Linux 用 ss；没有就用 netstat；Windows 的 netstat 不认 -l，所以只加 -an，
-  # 再兜底用 bash 自带 /dev/tcp 连一下 127.0.0.1。
   if command -v ss >/dev/null 2>&1; then
     ss -ltn 2>/dev/null | grep -qE "[:.]$1[[:space:]]" && return 0
   fi
@@ -55,12 +43,9 @@ if ! "$PY" -c "import fastapi, uvicorn" >/dev/null 2>&1; then
   "$PY" -m pip install -r requirements.txt
 fi
 
-# 前端靠这个文件知道后端端口
 mkdir -p public
 printf '{"api_port": %s}\n' "$API_PORT" > public/backend_config.json
 
-# .next 里如果躺着上一次「打包构建」的产物，dev 模式会跟它打架：Turbopack 反复 panic，
-# 浏览器上的表现就是「页面一直自动刷新、根本没法用」。检测到就先删掉，让 dev 自己重建。
 if [ -e .next/BUILD_ID ] || [ -e .next/standalone ]; then
   echo ">>> .next 里是旧的构建产物，先删掉再启动（否则页面会一直自动刷新）..."
   rm -rf .next

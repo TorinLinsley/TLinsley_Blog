@@ -79,8 +79,7 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-10 py-10 pt-20 lg:pt-28 relative z-10">
 
-      {
-}
+      
       <AnimatePresence>
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -127,8 +126,7 @@ export default function ChatterBoard({ chatters: initialChatters }: { chatters: 
         )}
       </AnimatePresence>
 
-      {
-}
+      
 
       <div className="mb-14 text-center">
         <motion.h1

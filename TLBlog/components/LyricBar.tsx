@@ -44,12 +44,10 @@ export default function LyricBar() {
         .animate-cursor {
           animation: cursorBlink 0.8s step-end infinite;
         }
-        /* 核心修改：让动画高度从 4px 到 28px */
         @keyframes safeWave {
           0%, 100% { height: 8px; }
           50% { height: 28px; }
         }
-        /* 小屏：波形整体按比例缩小，免得撑破横幅 */
         @media (max-width: 1023.98px) {
           @keyframes safeWave {
             0%, 100% { height: 5px; }

@@ -54,8 +54,7 @@ export default function FloatingPlayer() {
             onPointerDown={(e) => e.stopPropagation()}
             className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
           >
-            {
-}
+            
             {isPlaying ? <svg className="w-[1.125rem] h-[1.125rem]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-[1.125rem] h-[1.125rem]" style={{ transform: 'translateX(1.9%)' }} fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>}
           </button>
           <button

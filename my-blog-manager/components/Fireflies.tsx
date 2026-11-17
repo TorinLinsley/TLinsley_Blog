@@ -39,7 +39,6 @@ export default function Fireflies() {
     <div className="fixed inset-0 w-full h-full pointer-events-none z-10 overflow-hidden mix-blend-screen">
 
       <style>{`
-        /* 内层：纯粹的光芒呼吸闪烁 */
         @keyframes fireflyBreathe {
           0%, 100% { 
             opacity: 0; 
@@ -52,7 +51,6 @@ export default function Fireflies() {
           }
         }
 
-        /* 外层：四种不同的大范围随机漂浮轨迹 (利用 vw 和 vh 跨越屏幕) */
         @keyframes float1 {
           0%, 100% { transform: translate(0, 0); }
           33% { transform: translate(10vw, -15vh); }

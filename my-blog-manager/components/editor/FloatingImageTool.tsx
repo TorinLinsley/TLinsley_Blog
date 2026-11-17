@@ -248,8 +248,7 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert }: Floatin
                       placeholder="筛选文件名…"
                       className="flex-1 min-w-0 px-3 py-2 text-xs bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200"
                     />
-                    {
-}
+                    
                     <Tooltip label="刷新（刚传上去的图点这里就能看到）" className="shrink-0 inline-flex">
                       <button
                         onClick={() => void loadGallery()}

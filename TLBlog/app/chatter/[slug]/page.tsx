@@ -167,8 +167,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
     <div className="min-h-screen relative pb-20">
 
       <PageTransition>
-        {
-}
+        
         <main className="w-[95%] md:w-[90%] max-w-[1900px] mx-auto mt-24 md:mt-28 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
 
           <article className="flex-1 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl rounded-[40px] shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden transition-colors duration-700">
@@ -229,7 +228,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   
                   .prose del { text-decoration-color: inherit !important; opacity: 0.6; }
 
-                  /* 🌟 引用块专属果冻极客风样式补丁 */
+                  
                   .prose blockquote {
                     border-left: 4px solid #6366f1 !important;
                     background-color: rgba(99, 102, 241, 0.05) !important;
@@ -272,7 +271,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
 
                   .prose pre code, .prose pre code *, .dark .prose pre code, .dark .prose pre code * { background-color: transparent !important; padding: 0 !important; border-radius: 0 !important; }
                   .dark .prose p code, .dark .prose li code, .dark .prose td code, .dark .prose th code { background-color: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
-                  .prose img { /* ⚠️ 正文图一律左对齐（不用 margin:auto 居中）：小图保持原尺寸靠左，大图靠 max-width:100% 等比铺满。和 .resource-preview img / .editor-content-area img 保持同一套写法。 */ display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
+                  .prose img {  display: block !important; margin: 0 0 1.5rem !important; border-radius: 1rem !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; max-width: 100% !important; height: auto !important; }
 
                   .prose pre code .hljs-comment, .prose pre code .hljs-quote { color: #5c6370 !important; font-style: italic !important; }
                   .prose pre code .hljs-doctag, .prose pre code .hljs-keyword, .prose pre code .hljs-formula { color: #c678dd !important; }
@@ -299,8 +298,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
                   }
                 `}</style>
 
-                {
-}
+                
                 <div
                   id="article-content"
                   className="prose prose-slate dark:prose-invert prose-base md:prose-lg max-w-none text-slate-800 dark:text-slate-200 font-serif transition-colors duration-700 leading-relaxed scroll-smooth"
@@ -360,8 +358,7 @@ export default async function ChatterDetail({ params }: { params: Promise<{ slug
               </div>
             </div>
 
-            {
-}
+            
             {chatterData.toc.length > 0 && (
               <ClientTOC toc={chatterData.toc} />
             )}

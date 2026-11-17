@@ -3,10 +3,8 @@
 set -euo pipefail
 
 if [ -f /etc/tlblog.env ]; then
-  # shellcheck disable=SC1091
   . /etc/tlblog.env
 elif [ -f /etc/xhblogs.env ]; then
-  # shellcheck disable=SC1091
   . /etc/xhblogs.env
 fi
 

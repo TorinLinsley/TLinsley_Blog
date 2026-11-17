@@ -139,8 +139,7 @@ export default function Home() {
               projects={projectsData}
             />
 
-            {
-}
+            
             <style>{`
               @media (min-width: 1024px) {
                 .home-right-col { display: flex !important; flex-direction: column; gap: 1.5rem; }
@@ -197,8 +196,7 @@ export default function Home() {
                 <HomeToolsCard tools={readHomeTools()} />
               </div>
 
-              {
-}
+              
               <div data-card="dashboard" className="order-9 lg:order-8 lg:col-span-12 w-full mt-4 sticky bottom-0 z-30">
                 <SiteDashboard/>
               </div>

@@ -38,7 +38,6 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
       }
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(formData.bgImages)]);
 
   const fmtSize = (bytes: number) =>
@@ -201,8 +200,7 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
             <AnimatePresence>
               {formData.bgImages?.map((url: string, index: number) => (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={index} className="relative group rounded-2xl overflow-hidden aspect-video shadow-md border border-white/20">
-                  {
-}
+                  
                   <img src={url || undefined} alt={`bg-${index}`} className="w-full h-full object-cover" />
 
                   {index === 0 && (
@@ -218,8 +216,7 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
                     </span>
                   )}
 
-                  {
-}
+                  
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 max-lg:opacity-100! transition-opacity flex items-center justify-center gap-2">
                     <button
                       onClick={() => moveBg(index, -1)}

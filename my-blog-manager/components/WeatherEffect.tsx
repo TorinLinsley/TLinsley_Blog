@@ -33,7 +33,6 @@ export default function WeatherEffect() {
           animation: float-down linear infinite;
           filter: blur(1px);
         }
-        /* 暗黑模式下的发光特效 */
         .dark .cyber-particle {
            background: rgba(165, 180, 252, 0.8);
            box-shadow: 0 0 10px 2px rgba(99, 102, 241, 0.3);

@@ -179,12 +179,9 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
 
   return (
     <div className="min-h-screen relative pb-8" data-res-page>
-      {
-}
-      {
-}
-      {
-}
+      
+      
+      
       <PageTransition disabled={Boolean(requested)} fadeOnly>
         <ResourcePanels
           left={<ResourceTreeView tree={tree} selectedPath={targetPath} />}
@@ -234,19 +231,9 @@ export default async function ResourcesPage({ params }: { params: Promise<{ path
                   .resource-preview table { width: 100% !important; border-collapse: collapse !important; margin: 1.5rem 0 !important; }
                   .resource-preview th, .resource-preview td { border: 1px solid rgba(148,163,184,0.35) !important; padding: 0.6rem 0.9rem !important; }
 
-                  /* 顶部留白收掉：.resource-preview 的 py-10（40px）
-                     + 首个标题自身的 2rem 上外边距（32px）≈ 72px 空一截。
-                     现在顶部只留 14px，并把首元素上外边距清零（它会叠在 padding 外面）。
-                     小屏那份 2% 的规则写在下面的媒体查询里，优先级更高、不受影响。 */
-                  .resource-preview { padding-top: 2rem !important; /* 博客没有预览/编辑按钮，就保持这个适中的 32px */ }
+                  
+                  .resource-preview { padding-top: 2rem !important;  }
                   .resource-preview > :first-child { margin-top: 0 !important; }
-
-                  /* 📱 小屏：整站的等比缩小交给 globals.css 里的 html{font-size:74%}（导航栏、图标、字号一起缩）。
-                     这里调正文自己的留白：
-                       · 左右 1.5rem —— 字不再贴着卡片边缘
-                       · 顶部只留 2% —— 默认那 2.5rem 在手机上显得空一大截
-                       · 顺带干掉第一个元素的 2rem 上外边距（它会叠在 padding 外面再加一截空白）
-                     只影响小屏，桌面完全不变 */
                   @media (max-width: 1023.98px) {
                     .resource-preview {
                       padding-left: 1.5rem !important;

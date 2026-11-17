@@ -102,8 +102,7 @@ export function FolderLines({ open, size = 16 }: { open: boolean; size?: number 
 
   return (
     <span aria-hidden className="absolute inset-0 m-auto block" style={{ width: W, height: H }}>
-      {
-}
+      
       <span
         className={`absolute inset-0 m-auto block ${BAR}`}
         style={{
@@ -215,8 +214,7 @@ export function TocBars({ open, size = 16 }: { open: boolean; size?: number }) {
         stroke="currentColor"
         strokeWidth={SW}
       >
-        {
-}
+        
         <line x1={BRIDGE_X} y1={BRIDGE_Y1} x2={BRIDGE_X} y2={BRIDGE_Y2} strokeWidth={BRIDGE_W} />
         {rings.map((r, i) => {
           const x = r.cx - R;
